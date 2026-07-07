@@ -1,4 +1,4 @@
-import { Component, inject, effect, signal } from '@angular/core';
+import { Component, inject, effect, signal, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/router';
 import { AuthService } from './services/auth.service';
 import { ToastService } from './services/toast.service';
@@ -9,12 +9,16 @@ import { ToastService } from './services/toast.service';
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
-export class App {
+export class App implements OnInit, OnDestroy {
   public readonly authService = inject(AuthService);
   public readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
 
   fontSize = signal<'normal' | 'large'>('normal');
+
+  private inactivityTimeoutId: any;
+  private readonly INACTIVITY_TIME = 60 * 60 * 1000; // 2 minutes
 
   constructor() {
     // 1. Initial size check from localStorage
@@ -62,6 +66,56 @@ export class App {
       }
     });
   }
+
+  ngOnInit(): void {
+    this.setupInactivityListener();
+  }
+
+  ngOnDestroy(): void {
+    this.clearInactivityListener();
+  }
+
+  private setupInactivityListener(): void {
+    this.ngZone.runOutsideAngular(() => {
+      window.addEventListener('mousemove', this.resetTimeout);
+      window.addEventListener('keydown', this.resetTimeout);
+      window.addEventListener('click', this.resetTimeout);
+      window.addEventListener('scroll', this.resetTimeout);
+    });
+    this.startTimeout();
+  }
+
+  private clearInactivityListener(): void {
+    window.removeEventListener('mousemove', this.resetTimeout);
+    window.removeEventListener('keydown', this.resetTimeout);
+    window.removeEventListener('click', this.resetTimeout);
+    window.removeEventListener('scroll', this.resetTimeout);
+    if (this.inactivityTimeoutId) {
+      clearTimeout(this.inactivityTimeoutId);
+    }
+  }
+
+  private resetTimeout = (): void => {
+    if (this.inactivityTimeoutId) {
+      clearTimeout(this.inactivityTimeoutId);
+    }
+    this.startTimeout();
+  };
+
+  private startTimeout(): void {
+    this.ngZone.runOutsideAngular(() => {
+      this.inactivityTimeoutId = setTimeout(() => {
+        this.ngZone.run(() => {
+          if (this.authService.isLoggedIn()) {
+            this.authService.logout();
+            this.toastService.show('Đã tự động đăng xuất do không có tương tác trong thời gian dài.', 'info');
+            this.router.navigate(['/login']);
+          }
+        });
+      }, this.INACTIVITY_TIME);
+    });
+  }
+
 
   setFontSize(size: 'normal' | 'large'): void {
     this.fontSize.set(size);

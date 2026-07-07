@@ -982,13 +982,17 @@ export class LandingComponent implements OnInit {
           averageRating: item.averageRating,
           reviewCount: item.reviewCount,
           subscriptionId: item.subscriptionId,
-          minRoomPrice: item.price
+          minRoomPrice: item.price,
+          minVacantRoomPrice: Infinity
         });
       }
       const prop = map.get(item.propertyId);
       prop.rooms.push(item);
       if (item.status === 'Available') {
         prop.vacantRoomsCount++;
+        if (item.price < prop.minVacantRoomPrice) {
+          prop.minVacantRoomPrice = item.price;
+        }
       }
       
       if (item.price < prop.minRoomPrice) {
@@ -1008,6 +1012,9 @@ export class LandingComponent implements OnInit {
     const propsArray = Array.from(map.values()).map(prop => {
       // isFavorite is already populated correctly from API, but we just want to ensure it remains a boolean
       prop.isFavorite = prop.rooms.some((r: any) => r.isFavorite);
+      if (prop.vacantRoomsCount > 0 && prop.minVacantRoomPrice !== Infinity) {
+        prop.minRoomPrice = prop.minVacantRoomPrice;
+      }
       return prop;
     });
 
