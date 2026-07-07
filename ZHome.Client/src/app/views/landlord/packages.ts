@@ -47,8 +47,10 @@ import { AuthService } from '../../services/auth.service';
 
                 @if (pkg.id >= 3) {
                   <li><i class="fas fa-check"></i> Gửi nhắc nợ qua Email tự động</li>
+                  <li><i class="fas fa-check"></i> Tham khảo tiền thuế cần phải nộp</li>
                 } @else {
                   <li class="disabled"><i class="fas fa-times"></i> Gửi nhắc nợ qua Email tự động</li>
+                  <li class="disabled"><i class="fas fa-times"></i> Tham khảo tiền thuế cần phải nộp</li>
                 }
               </ul>
               
@@ -244,12 +246,12 @@ export class LandlordPackagesComponent implements OnInit {
         this.toastService.show(res.message, 'success');
         this.isPurchasing.set(false);
         this.selectedPackage.set(null);
-        
+
         // Update user session to reflect new premium status without requiring a relogin
         const currentSession = this.authService.session();
         if (currentSession) {
-          const updatedSession = { 
-            ...currentSession, 
+          const updatedSession = {
+            ...currentSession,
             subscriptionId: res.subscriptionId,
             subscriptionEndDate: res.subscriptionEndDate
           };

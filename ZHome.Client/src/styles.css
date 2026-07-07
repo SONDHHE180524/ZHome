@@ -565,3 +565,123 @@ tr:hover td {
   width: 100%;
   animation: shrinkProgress 4s linear forwards;
 }
+
+/* Brand Modal Styles for Premium Suggestions */
+.brand-backdrop {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+.brand-modal-card {
+  background: #ffffff;
+  width: 90%;
+  max-width: 580px;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.brand-modal-header {
+  background: linear-gradient(135deg, #f97316, #ea580c);
+  color: white;
+  padding: 16px 24px;
+  font-size: 1.25rem;
+  font-weight: 700;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.close-icon-btn {
+  background: none; border: none; color: white; font-size: 1.8rem; line-height: 1;
+  cursor: pointer; opacity: 0.8; transition: opacity 0.2s;
+}
+.close-icon-btn:hover { opacity: 1; }
+.brand-modal-body {
+  padding: 24px;
+  color: #334155;
+}
+.premium-banner {
+  background: #1e293b;
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+.premium-banner::before {
+  content: ''; position: absolute; top: -50%; left: -50%; width: 200%; height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+  animation: rotateBg 10s linear infinite;
+}
+.banner-icon-wrapper {
+  font-size: 3rem;
+  z-index: 1;
+}
+.banner-text { z-index: 1; }
+.banner-text h3 { margin: 0 0 8px 0; color: #f8fafc; font-size: 1.1rem; }
+.banner-text p { margin: 0; color: #cbd5e1; font-size: 0.9rem; line-height: 1.5; }
+
+.package-suggestions {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.package-option {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  transition: all 0.3s ease;
+  background: #f8fafc;
+}
+.package-option:hover {
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0,0,0,0.05);
+}
+.package-option.premium-opt {
+  border-color: #f97316;
+  background: #fff7ed;
+}
+.package-option.premium-opt:hover {
+  box-shadow: 0 10px 15px -3px rgba(249, 115, 22, 0.15);
+}
+.pkg-info h4 { margin: 0 0 8px 0; font-size: 1.05rem; color: #0f172a; display: flex; align-items: center; justify-content: space-between; }
+.badge-hot { background: #ef4444; color: white; font-size: 0.65rem; padding: 2px 6px; border-radius: 4px; font-weight: bold; }
+.pkg-price { display: block; font-size: 1.25rem; font-weight: 800; color: #475569; margin-bottom: 12px; }
+.premium-opt .pkg-price { color: #ea580c; }
+.pkg-price span { font-size: 0.8rem; font-weight: 500; color: #94a3b8; }
+.pkg-features-mini { list-style: none; padding: 0; margin: 0 0 16px 0; font-size: 0.85rem; color: #64748b; }
+.pkg-features-mini li { margin-bottom: 6px; }
+
+.btn-upgrade-outline {
+  width: 100%; padding: 10px; border: 2px solid #cbd5e1; background: transparent; color: #475569;
+  border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+}
+.btn-upgrade-outline:hover { background: #e2e8f0; }
+.btn-upgrade-filled {
+  width: 100%; padding: 10px; border: none; background: linear-gradient(135deg, #f97316, #ea580c); color: white;
+  border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.3);
+}
+.btn-upgrade-filled:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+.brand-modal-footer {
+  padding: 16px 24px; background: #f8fafc; border-top: 1px solid #e2e8f0;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.secure-text { margin: 0; font-size: 0.85rem; color: #64748b; display: flex; align-items: center; gap: 6px; }
+.btn-close-text { background: none; border: none; color: #f97316; font-weight: 600; cursor: pointer; padding: 4px 8px; font-size: 0.9rem;}
+.btn-close-text:hover { text-decoration: underline; }
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes rotateBg {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

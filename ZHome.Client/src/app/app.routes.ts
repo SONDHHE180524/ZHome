@@ -15,6 +15,7 @@ import { AdminVerificationsComponent } from './views/admin/verifications';
 import { ProfileComponent } from './views/auth/profile';
 import { LandlordReportsComponent } from './views/landlord/reports';
 import { LandlordPackagesComponent } from './views/landlord/packages';
+import { LandlordTransactionsComponent } from './views/landlord/transactions';
 
 export const routes: Routes = [
   { path: '', component: LandingComponent },
@@ -53,6 +54,12 @@ export const routes: Routes = [
   { 
     path: 'landlord/bills', 
     component: LandlordBillsComponent,
+    canActivate: [authGuard],
+    data: { roles: ['Landlord', 'Administrator'] }
+  },
+  { 
+    path: 'landlord/transactions', 
+    component: LandlordTransactionsComponent,
     canActivate: [authGuard],
     data: { roles: ['Landlord', 'Administrator'] }
   },

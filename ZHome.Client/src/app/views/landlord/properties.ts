@@ -5,6 +5,7 @@ import { PropertyService } from '../../services/property.service';
 import { ContractService } from '../../services/contract.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-landlord-properties',
@@ -317,13 +318,54 @@ import { AuthService } from '../../services/auth.service';
 
       <!-- Premium Modal -->
       @if (showPremiumModal()) {
-        <div class="modal-backdrop" (click)="showPremiumModal.set(false)">
-          <div class="glass-panel modal-card text-center max-w-500" (click)="$event.stopPropagation()">
-            <div class="premium-icon mb-4" style="font-size: 3rem;">👑</div>
-            <h2 class="mb-3" style="color: var(--primary);">Nâng Cấp Gói Premium</h2>
-            <p class="text-muted mb-4">Tính năng này chỉ dành cho chủ trọ đăng ký gói Premium. Bạn có muốn nâng cấp để trải nghiệm các tính năng mạnh mẽ hơn không?</p>
-            <div class="modal-actions justify-content-center">
-              <button class="btn btn-secondary" (click)="showPremiumModal.set(false)">Đóng</button>
+        <div class="brand-backdrop" (click)="showPremiumModal.set(false)">
+          <div class="brand-modal-card" (click)="$event.stopPropagation()">
+            <div class="brand-modal-header">
+              <span>🚀 Kích Hoạt Gói Premium</span>
+              <button class="close-icon-btn" (click)="showPremiumModal.set(false)">&times;</button>
+            </div>
+            <div class="brand-modal-body">
+              <div class="premium-banner">
+                <div class="banner-icon-wrapper">
+                  <div class="glow-icon">🚀</div>
+                </div>
+                <div class="banner-text">
+                  <h3>Tính năng dành riêng cho gói trả phí</h3>
+                  <p>Tính năng này chỉ dành cho chủ trọ đăng ký gói trả phí. Bạn có muốn nâng cấp để trải nghiệm các tính năng mạnh mẽ hơn không?</p>
+                </div>
+              </div>
+
+              <div class="package-suggestions">
+                <!-- Package 1 -->
+                <div class="package-option">
+                  <div class="pkg-info">
+                    <h4>Gói Cơ Bản</h4>
+                    <span class="pkg-price">99.000đ<span>/tháng</span></span>
+                    <ul class="pkg-features-mini">
+                      <li>✓ Tối đa 50 phòng</li>
+                      <li>✓ Lập hóa đơn điện nước</li>
+                    </ul>
+                  </div>
+                  <button class="btn-upgrade-outline" (click)="navigateToPackages()">Xem chi tiết</button>
+                </div>
+                <!-- Package 2 -->
+                <div class="package-option premium-opt">
+                  <div class="pkg-info">
+                    <h4>Gói Nâng Cao <span class="badge-hot">HOT</span></h4>
+                    <span class="pkg-price">199.000đ<span>/tháng</span></span>
+                    <ul class="pkg-features-mini">
+                      <li>✓ Tối đa 150 phòng</li>
+                      <li>✓ Gửi nhắc nợ tự động</li>
+                      <li>✓ Tham khảo thuế</li>
+                    </ul>
+                  </div>
+                  <button class="btn-upgrade-filled" (click)="navigateToPackages()">Nâng cấp ngay</button>
+                </div>
+              </div>
+            </div>
+            <div class="brand-modal-footer">
+              <p class="secure-text">✓ Thanh toán an toàn, kích hoạt ngay lập tức.</p>
+              <button class="btn-close-text" (click)="showPremiumModal.set(false)">Đóng lại</button>
             </div>
           </div>
         </div>
@@ -670,6 +712,7 @@ export class LandlordPropertiesComponent implements OnInit {
   private readonly propertyService = inject(PropertyService);
   private readonly contractService = inject(ContractService);
   private readonly toastService = inject(ToastService);
+  private readonly router = inject(Router);
   readonly authService = inject(AuthService);
 
   properties = signal<any[]>([]);
@@ -747,6 +790,11 @@ export class LandlordPropertiesComponent implements OnInit {
       case 'Maintenance': return 'Bảo trì';
       default: return status;
     }
+  }
+
+  navigateToPackages() {
+    this.showPremiumModal.set(false);
+    this.router.navigate(['/landlord/packages']);
   }
 
   // Add Property handlers
