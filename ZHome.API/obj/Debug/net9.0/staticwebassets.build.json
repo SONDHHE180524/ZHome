@@ -1,0 +1,1155 @@
+{
+  "Version": 1,
+  "Hash": "wS0kT8pu8EXFaChWcd4d2N/JickWzlspOQL4YfsTid8=",
+  "Source": "ZHome.API",
+  "BasePath": "_content/ZHome.API",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [
+    {
+      "Name": "ZHome.API\\wwwroot",
+      "Source": "ZHome.API",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "Pattern": "**"
+    }
+  ],
+  "Assets": [
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0512345678_639187324646321387.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/avatar_0512345678_639187324646321387#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\avatar_0512345678_639187324646321387.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0928374659_639187364646981862.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/avatar_0928374659_639187364646981862#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\avatar_0928374659_639187364646981862.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0983746574_639188627564359584.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/avatar_0983746574_639188627564359584#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\avatar_0983746574_639188627564359584.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_back_0394857384_639186473731276180#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_back_0928374659_639182917983539750#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_back_0987898789_639182922617037310#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_front_0394857384_639186473731259201#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_front_0928374659_639182917983524619#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/cards/cccd_front_0987898789_639182922616966804#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189826121414030.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/properties/property_0928374659_639189826121414030#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "iyoze564fj",
+      "Integrity": "5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\properties\\property_0928374659_639189826121414030.jpg"
+    },
+    {
+      "Identity": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189834973113138.jpg",
+      "SourceId": "ZHome.API",
+      "SourceType": "Discovered",
+      "ContentRoot": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\",
+      "BasePath": "_content/ZHome.API",
+      "RelativePath": "media/properties/property_0928374659_639189834973113138#[.{fingerprint}]?.jpg",
+      "AssetKind": "All",
+      "AssetMode": "All",
+      "AssetRole": "Primary",
+      "AssetMergeBehavior": "",
+      "AssetMergeSource": "",
+      "RelatedAsset": "",
+      "AssetTraitName": "",
+      "AssetTraitValue": "",
+      "Fingerprint": "org222dgo6",
+      "Integrity": "ZBsSanqLx4o2L9GuGOMhpeKv3VxByaFpnHv96y/DB/g=",
+      "CopyToOutputDirectory": "Never",
+      "CopyToPublishDirectory": "PreserveNewest",
+      "OriginalItemSpec": "wwwroot\\media\\properties\\property_0928374659_639189834973113138.jpg"
+    }
+  ],
+  "Endpoints": [
+    {
+      "Route": "media/cards/avatar_0512345678_639187324646321387.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0512345678_639187324646321387.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 04 Jul 2026 03:27:44 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/avatar_0512345678_639187324646321387.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/avatar_0512345678_639187324646321387.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0512345678_639187324646321387.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 04 Jul 2026 03:27:44 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/avatar_0928374659_639187364646981862.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0928374659_639187364646981862.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 04 Jul 2026 04:34:24 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/avatar_0928374659_639187364646981862.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/avatar_0928374659_639187364646981862.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0928374659_639187364646981862.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sat, 04 Jul 2026 04:34:24 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/avatar_0983746574_639188627564359584.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0983746574_639188627564359584.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sun, 05 Jul 2026 15:39:16 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/avatar_0983746574_639188627564359584.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/avatar_0983746574_639188627564359584.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0983746574_639188627564359584.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Sun, 05 Jul 2026 15:39:16 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0394857384_639186473731276180.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 03 Jul 2026 03:49:33 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_back_0394857384_639186473731276180.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0394857384_639186473731276180.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 03 Jul 2026 03:49:33 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0928374659_639182917983539750.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:03:18 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_back_0928374659_639182917983539750.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0928374659_639182917983539750.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:03:18 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0987898789_639182922617037310.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:11:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_back_0987898789_639182922617037310.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_back_0987898789_639182922617037310.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:11:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0394857384_639186473731259201.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 03 Jul 2026 03:49:33 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_front_0394857384_639186473731259201.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0394857384_639186473731259201.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Fri, 03 Jul 2026 03:49:33 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0928374659_639182917983524619.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:03:18 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_front_0928374659_639182917983524619.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0928374659_639182917983524619.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:03:18 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0987898789_639182922616966804.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:11:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/cards/cccd_front_0987898789_639182922616966804.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/cards/cccd_front_0987898789_639182922616966804.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Mon, 29 Jun 2026 01:11:01 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/properties/property_0928374659_639189826121414030.iyoze564fj.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189826121414030.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 07 Jul 2026 00:56:52 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "iyoze564fj"
+        },
+        {
+          "Name": "label",
+          "Value": "media/properties/property_0928374659_639189826121414030.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/properties/property_0928374659_639189826121414030.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189826121414030.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "82677"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 07 Jul 2026 00:56:52 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-5jSMxsFCNBffnpB9VaoC2hnH8l5z2tE55Yv/4YAA/Fk="
+        }
+      ]
+    },
+    {
+      "Route": "media/properties/property_0928374659_639189834973113138.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189834973113138.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "18970"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"ZBsSanqLx4o2L9GuGOMhpeKv3VxByaFpnHv96y/DB/g=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 07 Jul 2026 01:11:37 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=3600, must-revalidate"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "integrity",
+          "Value": "sha256-ZBsSanqLx4o2L9GuGOMhpeKv3VxByaFpnHv96y/DB/g="
+        }
+      ]
+    },
+    {
+      "Route": "media/properties/property_0928374659_639189834973113138.org222dgo6.jpg",
+      "AssetFile": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189834973113138.jpg",
+      "Selectors": [],
+      "ResponseHeaders": [
+        {
+          "Name": "Accept-Ranges",
+          "Value": "bytes"
+        },
+        {
+          "Name": "Content-Length",
+          "Value": "18970"
+        },
+        {
+          "Name": "Content-Type",
+          "Value": "image/jpeg"
+        },
+        {
+          "Name": "ETag",
+          "Value": "\"ZBsSanqLx4o2L9GuGOMhpeKv3VxByaFpnHv96y/DB/g=\""
+        },
+        {
+          "Name": "Last-Modified",
+          "Value": "Tue, 07 Jul 2026 01:11:37 GMT"
+        },
+        {
+          "Name": "Cache-Control",
+          "Value": "max-age=31536000, immutable"
+        }
+      ],
+      "EndpointProperties": [
+        {
+          "Name": "fingerprint",
+          "Value": "org222dgo6"
+        },
+        {
+          "Name": "label",
+          "Value": "media/properties/property_0928374659_639189834973113138.jpg"
+        },
+        {
+          "Name": "integrity",
+          "Value": "sha256-ZBsSanqLx4o2L9GuGOMhpeKv3VxByaFpnHv96y/DB/g="
+        }
+      ]
+    }
+  ]
+}

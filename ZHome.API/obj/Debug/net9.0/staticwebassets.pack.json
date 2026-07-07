@@ -1,0 +1,69 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0512345678_639187324646321387.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\avatar_0512345678_639187324646321387.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0928374659_639187364646981862.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\avatar_0928374659_639187364646981862.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\avatar_0983746574_639188627564359584.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\avatar_0983746574_639188627564359584.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_back_0394857384_639186473731276180.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_back_0928374659_639182917983539750.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_back_0987898789_639182922617037310.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_front_0394857384_639186473731259201.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_front_0928374659_639182917983524619.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg",
+      "PackagePath": "staticwebassets\\media\\cards\\cccd_front_0987898789_639182922616966804.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189826121414030.jpg",
+      "PackagePath": "staticwebassets\\media\\properties\\property_0928374659_639189826121414030.jpg"
+    },
+    {
+      "Id": "C:\\Users\\Asus\\Music\\ZHome_Quản_Lý_Trọ\\ZHome.API\\wwwroot\\media\\properties\\property_0928374659_639189834973113138.jpg",
+      "PackagePath": "staticwebassets\\media\\properties\\property_0928374659_639189834973113138.jpg"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.ZHome.API.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.ZHome.API.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.build.ZHome.API.props",
+      "PackagePath": "build\\ZHome.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildMultiTargeting.ZHome.API.props",
+      "PackagePath": "buildMultiTargeting\\ZHome.API.props"
+    },
+    {
+      "Id": "obj\\Debug\\net9.0\\staticwebassets\\msbuild.buildTransitive.ZHome.API.props",
+      "PackagePath": "buildTransitive\\ZHome.API.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

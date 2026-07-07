@@ -1,0 +1,103 @@
+<header class="navbar">
+  <div class="nav-container">
+    <div class="nav-top-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+      
+      <!-- Premium SVG Logo -->
+      <a routerLink="/" class="brand" style="display: flex; align-items: center; gap: 10px; position: relative; padding: 4px 8px; border-radius: 12px; transition: all 0.3s ease;">
+        <div class="logo-wrapper" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
+          <svg class="animated-logo" width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(79, 70, 229, 0.3)); overflow: visible;">
+            <!-- Chimney Smoke -->
+            <circle class="smoke smoke-1" cx="76" cy="8" r="5" fill="#cbd5e1" opacity="0"/>
+            <circle class="smoke smoke-2" cx="76" cy="8" r="7" fill="#94a3b8" opacity="0"/>
+            <circle class="smoke smoke-3" cx="76" cy="8" r="6" fill="#cbd5e1" opacity="0"/>
+
+            <!-- Chimney -->
+            <path class="logo-chimney" d="M70 30 V12 A2 2 0 0 1 72 10 H80 A2 2 0 0 1 82 12 V38 Z" fill="url(#gradZ)"/>
+            
+            <!-- House Base -->
+            <path class="logo-base" d="M50 10 L10 45 V85 A5 5 0 0 0 15 90 H85 A5 5 0 0 0 90 85 V45 Z" fill="url(#gradZ)" opacity="0.95"/>
+            
+            <!-- Inner white Z line -->
+            <path class="logo-path" d="M35 45 H65 L35 70 H65" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+            
+            <defs>
+              <linearGradient id="gradZ" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#4f46e5"/>
+                <stop offset="1" stop-color="#0ea5e9"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="logo-text" style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.05em; background: var(--grad-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s ease;">ZHome</span>
+      </a>
+
+      <!-- Center Navigation Links -->
+      <nav class="nav-links" style="display: flex; gap: 24px; margin-left: 20px; flex: 1; justify-content: center;">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Trang chủ</a>
+        
+        @if (authService.isLoggedIn() && authService.userRole() === 'Tenant') {
+          <a routerLink="/tenant/my-rental" routerLinkActive="active">Trọ của tôi</a>
+          <a routerLink="/tenant/match" routerLinkActive="active">ZHome Match</a>
+          <a routerLink="/tenant/bills" routerLinkActive="active">Hóa đơn</a>
+        }
+
+        @if (authService.isLoggedIn() && (authService.userRole() === 'Landlord' || authService.userRole() === 'Administrator')) {
+          <a routerLink="/landlord/overview" routerLinkActive="active">Bảng điều khiển</a>
+          <a routerLink="/landlord/properties" routerLinkActive="active">Nhà & Phòng</a>
+          <a routerLink="/landlord/utility-grid" routerLinkActive="active">Điện nước</a>
+          <a routerLink="/landlord/bills" routerLinkActive="active">Công nợ</a>
+          <a routerLink="/landlord/reports" routerLinkActive="active">Đánh giá</a>
+          <a routerLink="/landlord/packages" routerLinkActive="active" style="color: var(--primary); font-weight: 600;">💎 Gói cước</a>
+        }
+
+        @if (authService.isLoggedIn() && authService.userRole() === 'Administrator') {
+          <a routerLink="/admin/verifications" routerLinkActive="active">Duyệt chủ trọ</a>
+        }
+      </nav>
+
+      <!-- Right Auth Actions -->
+      <div class="nav-auth" style="display: flex; align-items: center; gap: 16px;">
+        <div class="font-size-toggle" title="Điều chỉnh cỡ chữ">
+          <button (click)="setFontSize('normal')" [class.active-size]="fontSize() === 'normal'">A</button>
+          <button (click)="setFontSize('large')" [class.active-size]="fontSize() === 'large'">A+</button>
+        </div>
+
+        @if (authService.isLoggedIn()) {
+          <div class="user-badge" routerLink="/profile" style="cursor: pointer;" title="Chỉnh sửa hồ sơ">
+            <span class="user-role-tag">{{ authService.userRole() === 'Administrator' ? 'Admin' : (authService.userRole() === 'Landlord' ? 'Chủ trọ' : 'Khách thuê') }}</span>
+            <span class="user-name">
+              {{ authService.userName() }}
+              @if (authService.session()?.role === 'Landlord' && authService.session()?.verificationStatus === 'Approved') {
+                <span style="margin-left: 4px; font-size: 0.95rem;" title="Đã xác minh">✅</span>
+              }
+            </span>
+          </div>
+          <button (click)="logout()" class="btn btn-secondary btn-sm">Đăng xuất</button>
+        } @else {
+          <a routerLink="/login" class="btn btn-secondary btn-sm" style="border-radius: 20px;">Đăng nhập</a>
+          <a routerLink="/register" class="btn btn-primary btn-sm" style="border-radius: 20px; background: var(--grad-primary); border: none;">Đăng ký</a>
+        }
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="main-content">
+  <router-outlet></router-outlet>
+</main>
+
+<!-- Global Toast Container -->
+<div class="toast-container">
+  @for (toast of toastService.toasts(); track toast.id) {
+    <div class="toast toast-{{toast.type}}" (click)="toastService.remove(toast.id)">
+      @if (toast.type === 'success') {
+        <span class="toast-icon">✓</span>
+      } @else if (toast.type === 'error') {
+        <span class="toast-icon">✗</span>
+      } @else {
+        <span class="toast-icon">i</span>
+      }
+      <div class="toast-content">{{ toast.message }}</div>
+    </div>
+  }
+</div>
