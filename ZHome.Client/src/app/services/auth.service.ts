@@ -9,6 +9,7 @@ export interface UserSession {
   role: string;
   phone: string;
   email?: string;
+  avatarUrl?: string;
   verificationStatus?: string;
   subscriptionId?: number;
   subscriptionEndDate?: string;
@@ -41,7 +42,11 @@ export class AuthService {
   readonly isPremium = computed(() => this.subscriptionId() > 1); // >= 99k
   readonly isPremiumPro = computed(() => this.subscriptionId() > 2); // >= 299k
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    if (this.isLoggedIn()) {
+      this.refreshUserProfile();
+    }
+  }
 
   register(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/register`, data);
@@ -49,8 +54,28 @@ export class AuthService {
 
   login(credentials: any): Observable<UserSession> {
     return this.http.post<UserSession>(`${this.apiUrl}/login`, credentials).pipe(
-      tap(userSession => this.saveSession(userSession))
+      tap(userSession => {
+        this.saveSession(userSession);
+        this.refreshUserProfile();
+      })
     );
+  }
+
+  refreshUserProfile(): void {
+    this.getProfile().subscribe({
+      next: (profile) => {
+        if (profile) {
+          this.updateSessionProfile(
+            profile.fullName,
+            profile.email,
+            profile.avatarUrl,
+            profile.subscriptionId,
+            profile.subscriptionEndDate
+          );
+        }
+      },
+      error: () => {}
+    });
   }
 
   logout(): void {
@@ -67,10 +92,21 @@ export class AuthService {
     return this.http.put<any>(`${this.apiUrl}/profile`, data);
   }
 
-  updateSessionProfile(fullName: string, email?: string, avatarUrl?: string): void {
+  changePassword(data: { oldPassword: string, newPassword: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/change-password`, data);
+  }
+
+  updateSessionProfile(fullName: string, email?: string, avatarUrl?: string, subscriptionId?: number, subscriptionEndDate?: string): void {
     const current = this.session();
     if (current) {
-      const updated = { ...current, fullName, email };
+      const updated = {
+        ...current,
+        fullName,
+        email,
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : current.avatarUrl,
+        subscriptionId: subscriptionId !== undefined ? subscriptionId : current.subscriptionId,
+        subscriptionEndDate: subscriptionEndDate !== undefined ? subscriptionEndDate : current.subscriptionEndDate
+      };
       localStorage.setItem('user_session', JSON.stringify(updated));
       this.session.set(updated);
     }

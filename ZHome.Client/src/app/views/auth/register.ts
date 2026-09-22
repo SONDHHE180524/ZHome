@@ -26,14 +26,14 @@ import { ToastService } from '../../services/toast.service';
                 class="role-option" 
                 [class.selected]="roleName === 'Tenant'" 
                 (click)="setRole('Tenant')">
-                <span class="role-icon">🎓</span>
+                <span class="role-icon"></span>
                 <span class="role-title">Sinh viên / Tenant</span>
               </div>
               <div 
                 class="role-option" 
                 [class.selected]="roleName === 'Landlord'" 
                 (click)="setRole('Landlord')">
-                <span class="role-icon">🔑</span>
+                <span class="role-icon"></span>
                 <span class="role-title">Chủ nhà / Landlord</span>
               </div>
             </div>
@@ -71,9 +71,9 @@ import { ToastService } from '../../services/toast.service';
               required 
               pattern="^0[35789]\\d{8}$"
               class="form-control" 
-              placeholder="Ví dụ: 0812345678" />
+              placeholder="Ví dụ: 0912345678" />
             @if (phoneInput.invalid && (phoneInput.dirty || phoneInput.touched)) {
-              <span class="error-text">Số điện thoại Việt Nam 10 chữ số không hợp lệ.</span>
+              <span class="error-text">Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng số 0 và chữ số thứ 2 là 3, 5, 7, 8 hoặc 9).</span>
             }
           </div>
 
@@ -155,7 +155,7 @@ import { ToastService } from '../../services/toast.service';
                     @if (cccdFrontPreview()) {
                       <img [src]="cccdFrontPreview()" alt="Mặt trước" class="upload-preview" />
                     } @else {
-                      <span>📸 Chọn mặt trước</span>
+                      <span> Chọn mặt trước</span>
                     }
                   </label>
                 </div>
@@ -174,7 +174,7 @@ import { ToastService } from '../../services/toast.service';
                     @if (cccdBackPreview()) {
                       <img [src]="cccdBackPreview()" alt="Mặt sau" class="upload-preview" />
                     } @else {
-                      <span>📸 Chọn mặt sau</span>
+                      <span> Chọn mặt sau</span>
                     }
                   </label>
                 </div>

@@ -42,5 +42,6 @@ namespace ZHome.API.Models.Entities
         public ICollection<RoomAmenity> Amenities { get; set; } = new List<RoomAmenity>();
         public ICollection<RoomImage> Images { get; set; } = new List<RoomImage>();
         public ICollection<MonthlyBill> MonthlyBills { get; set; } = new List<MonthlyBill>();
+        public ICollection<Contract> Contracts { get; set; } = new List<Contract>();
     }
 }

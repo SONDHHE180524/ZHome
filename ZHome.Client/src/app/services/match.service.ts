@@ -10,6 +10,18 @@ export class MatchService {
 
   constructor(private http: HttpClient) {}
 
+  getPublicPosts(filters?: any): Observable<any[]> {
+    let params: any = {};
+    if (filters) {
+      if (filters.university) params.university = filters.university;
+      if (filters.hasRoom !== null && filters.hasRoom !== undefined) params.hasRoom = filters.hasRoom;
+      if (filters.gender) params.gender = filters.gender;
+      if (filters.maxPrice) params.maxPrice = filters.maxPrice;
+      if (filters.search) params.search = filters.search;
+    }
+    return this.http.get<any[]>(`${this.apiUrl}/posts`, { params });
+  }
+
   getProfile(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/profile`);
   }
@@ -20,5 +32,9 @@ export class MatchService {
 
   getSuggestedRoommates(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/suggested-roommates`);
+  }
+
+  toggleActive(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/toggle-active`, {});
   }
 }

@@ -16,4 +16,9 @@ namespace ZHome.API.Models.DTOs
         [Range(1, 5)]
         public int? Rating { get; set; }
     }
+
+    public class ReportStatusDto
+    {
+        public string Status { get; set; } = string.Empty;
+    }
 }

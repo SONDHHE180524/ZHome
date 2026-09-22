@@ -21,7 +21,7 @@ import { RouterLink } from '@angular/router';
         <!-- Bên trái: Lịch sử sinh viên thanh toán cho chủ trọ -->
         <div class="glass-panel transaction-panel">
           <div class="panel-header">
-            <h3><span class="icon">👥</span> Sinh Viên Thanh Toán (Tiền Phòng)</h3>
+            <h3><span class="icon"></span> Sinh Viên Thanh Toán (Tiền Phòng)</h3>
             <span class="badge badge-success">+ {{ totalTenantPaid() | number:'1.0-0' }}đ (Tổng thu)</span>
           </div>
           
@@ -41,7 +41,7 @@ import { RouterLink } from '@angular/router';
               }
             } @else {
               <div class="empty-state text-center" style="padding: 40px 20px; color: var(--text-muted);">
-                <div style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;">🤝</div>
+                <div style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;"></div>
                 <h4>Chưa có giao dịch thu tiền</h4>
                 <p style="font-size: 0.9rem; margin-top: 5px;">Khi sinh viên thanh toán hóa đơn, giao dịch sẽ hiện ở đây.</p>
               </div>
@@ -52,7 +52,7 @@ import { RouterLink } from '@angular/router';
         <!-- Bên phải: Lịch sử chủ trọ thanh toán gói ZHome -->
         <div class="glass-panel transaction-panel">
           <div class="panel-header">
-            <h3><span class="icon">💎</span> Lịch Sử Mua Gói ZHome</h3>
+            <h3><span class="icon"></span> Lịch Sử Mua Gói ZHome</h3>
           </div>
           
           <div class="transaction-list">
@@ -74,7 +74,7 @@ import { RouterLink } from '@angular/router';
               }
             } @else {
               <div class="empty-state text-center" style="padding: 40px 20px; color: var(--text-muted);">
-                <div style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;">🧾</div>
+                <div style="font-size: 3rem; margin-bottom: 10px; opacity: 0.5;"></div>
                 <h4>Chưa có giao dịch nào</h4>
                 <p style="font-size: 0.9rem; margin-top: 5px;">Tài khoản của bạn hiện chưa mua hoặc nâng cấp gói dịch vụ nào.</p>
                 <a routerLink="/landlord/packages" class="btn btn-primary btn-sm mt-3" style="margin-top: 15px;">Khám phá các gói cước</a>

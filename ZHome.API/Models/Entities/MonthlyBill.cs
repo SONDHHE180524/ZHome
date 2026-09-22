@@ -70,6 +70,10 @@ namespace ZHome.API.Models.Entities
         [Column("note")]
         public string? Note { get; set; }
 
+        [MaxLength(500)]
+        [Column("proof_image_url")]
+        public string? ProofImageUrl { get; set; }
+
         [ForeignKey("RoomId")]
         public Room? Room { get; set; }
 

@@ -1,368 +1,524 @@
 import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { DashboardService } from '../../services/dashboard.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-landlord-overview',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="overview-container animate-fade-in">
-      <div class="dashboard-header">
-        <div>
-          <h1>Bảng Phân Tích Tài Chính</h1>
-          <p>Quản lý dòng tiền, theo dõi công nợ, và đề xuất tính thuế tự động</p>
-        </div>
-        <div class="year-filter">
-          <label for="year">Năm báo cáo</label>
-          <select id="year" [(ngModel)]="currentYear" (change)="onYearChange()" class="form-control">
+    <div class="overview-workspace-container animate-fade-in">
+      
+      <!-- SECTION TITLE & YEAR FILTER -->
+      <div class="dash-title-row">
+        <h1 class="dash-page-title">Tổng quan</h1>
+        <div class="year-filter-box">
+          <label for="yearSelect">NĂM BÁO CÁO: </label>
+          <select id="yearSelect" [(ngModel)]="currentYear" (change)="onYearChange()" class="year-select">
             <option [value]="2026">2026</option>
             <option [value]="2027">2027</option>
           </select>
+          <button class="btn-export-excel" (click)="exportCsv()">Xuất File Excel/CSV</button>
         </div>
       </div>
 
-      <!-- Stats Cards Row -->
-      @if (isLoading()) {
-        <div class="loading-state">Đang tải báo cáo tài chính...</div>
-      } @else {
-        <div class="stats-grid">
-          <div class="glass-panel stats-card card-revenue">
-            <span class="card-icon">💰</span>
-            <div class="card-content">
-              <h3>Tổng Doanh Thu (Đã Thu)</h3>
-              <div class="card-value">{{ summary()?.totalRevenue | number:'1.0-0' }}đ</div>
-              <p class="card-sub">Tổng tiền từ các hóa đơn đã thanh toán</p>
-            </div>
+      <!-- TOP 5 COLORED KPI STAT CARDS -->
+      <div class="kpi-cards-grid">
+        <!-- Card 1: Nhà trọ (Blue) -->
+        <div class="kpi-card card-bg-blue">
+          <div class="kpi-header">
+            <span>Nhà trọ</span>
+            <button class="kpi-add-btn" routerLink="/landlord/create-property" title="Thêm nhà trọ mới">+</button>
           </div>
-
-          <div class="glass-panel stats-card card-debt">
-            <span class="card-icon">💸</span>
-            <div class="card-content">
-              <h3>Công Nợ Chưa Thanh Toán</h3>
-              <div class="card-value value-danger">{{ summary()?.outstandingDebt | number:'1.0-0' }}đ</div>
-              <p class="card-sub">Tổng số tiền khách nợ chưa trả</p>
-            </div>
-          </div>
-
-          <div class="glass-panel stats-card card-occupancy">
-            <span class="card-icon">🏠</span>
-            <div class="card-content">
-              <h3>Tỷ Lệ Lấp Đầy Phòng</h3>
-              <div class="card-value">{{ occupancyRate() }}%</div>
-              <p class="card-sub">{{ summary()?.occupiedRoomsCount }}/{{ summary()?.totalRoomsCount }} phòng đang được cho thuê</p>
-            </div>
-          </div>
+          <div class="kpi-value">{{ summary()?.totalPropertiesCount || 0 }}</div>
+          <div class="kpi-watermark"></div>
         </div>
 
-        <div class="dashboard-split">
-          <!-- Monthly Revenue Breakdown (Custom SVG Bar Chart) -->
-          <div class="glass-panel chart-panel">
-            <h3>Biểu đồ Doanh Thu & Nợ theo Tháng (Năm {{ currentYear }})</h3>
-            <p class="chart-desc">Phân tích cột: Xanh lá (Đã thu), Đỏ (Nợ chưa thu)</p>
-            
-            <div class="chart-container">
-              @if (summary()?.monthlyRevenues?.length === 0) {
-                <div class="empty-chart">Chưa có dữ liệu hóa đơn nào trong năm {{ currentYear }}.</div>
-              } @else {
-                <svg class="custom-chart" viewBox="0 0 600 250">
-                  <!-- Grid lines -->
-                  <line x1="40" y1="30" x2="580" y2="30" stroke="rgba(0,0,0,0.05)" />
-                  <line x1="40" y1="80" x2="580" y2="80" stroke="rgba(0,0,0,0.05)" />
-                  <line x1="40" y1="130" x2="580" y2="130" stroke="rgba(0,0,0,0.05)" />
-                  <line x1="40" y1="180" x2="580" y2="180" stroke="rgba(0,0,0,0.05)" />
-                  <line x1="40" y1="210" x2="580" y2="210" stroke="rgba(0,0,0,0.1)" />
+        <!-- Card 2: Tổng số phòng (Dark Purple) -->
+        <div class="kpi-card card-bg-purple">
+          <div class="kpi-header">
+            <span>Tổng số phòng</span>
+          </div>
+          <div class="kpi-value">{{ summary()?.totalRoomsCount || 0 }}</div>
+          <div class="kpi-watermark"></div>
+        </div>
 
-                  <!-- Render Bars -->
-                  @for (m of summary()?.monthlyRevenues; track m.month) {
-                    <g>
-                      <!-- Paid Revenue Bar -->
-                      <rect 
-                        [attr.x]="calculateX(m.month, 0)" 
-                        [attr.y]="calculateY(m.paidRevenue)" 
-                        width="16" 
-                        [attr.height]="calculateHeight(m.paidRevenue)" 
-                        fill="var(--color-success)" 
-                        rx="2" />
-                      <!-- Unpaid Debt Bar -->
-                      <rect 
-                        [attr.x]="calculateX(m.month, 1)" 
-                        [attr.y]="calculateY(m.unpaidRevenue)" 
-                        width="16" 
-                        [attr.height]="calculateHeight(m.unpaidRevenue)" 
-                        fill="var(--color-danger)" 
-                        rx="2" />
-                      
-                      <!-- Month Label -->
-                      <text 
-                        [attr.x]="calculateX(m.month, 0) + 12" 
-                        y="230" 
-                        fill="var(--text-muted)" 
-                        font-size="10" 
-                        text-anchor="middle">Tháng {{ m.month }}</text>
-                    </g>
-                  }
-                </svg>
-              }
+        <!-- Card 3: Số phòng trống (Orange) -->
+        <div class="kpi-card card-bg-orange">
+          <div class="kpi-header">
+            <span>Số phòng trống</span>
+          </div>
+          <div class="kpi-value">{{ summary()?.vacantRoomsCount || 0 }}</div>
+          <div class="kpi-watermark"></div>
+        </div>
+
+        <!-- Card 4: Số phòng cho thuê (Emerald Green) -->
+        <div class="kpi-card card-bg-green">
+          <div class="kpi-header">
+            <span>Số phòng cho thuê</span>
+          </div>
+          <div class="kpi-value">{{ summary()?.occupiedRoomsCount || 0 }}</div>
+          <div class="kpi-watermark"></div>
+        </div>
+
+        <!-- Card 5: Số phòng nợ tiền (Crimson Red) -->
+        <div class="kpi-card card-bg-red">
+          <div class="kpi-header">
+            <span>Số phòng nợ tiền</span>
+          </div>
+          <div class="kpi-value">{{ summary()?.debtedRoomsCount || 0 }}</div>
+          <div class="kpi-watermark"></div>
+        </div>
+      </div>
+
+      <!-- REFINED 3 METRICS GRID (TỔNG KHOẢN THU, SỐ PHÒNG ĐANG ĐĂNG, TIN HOT) -->
+      <div class="metrics-grid-3">
+        <div class="metric-box">
+          <div class="metric-top">
+            <span class="metric-label">TỔNG KHOẢN THU</span>
+            <span class="metric-icon-badge badge-blue">↗️</span>
+          </div>
+          <div class="metric-val text-blue">{{ (summary()?.totalRevenue || 0) | number:'1.0-0' }} <span class="currency">đ</span></div>
+        </div>
+
+        <div class="metric-box">
+          <div class="metric-top">
+            <span class="metric-label">SỐ PHÒNG ĐANG ĐĂNG</span>
+            <span class="metric-icon-badge badge-purple"></span>
+          </div>
+          <div class="metric-val text-purple">{{ summary()?.vacantRoomsCount || 0 }}</div>
+        </div>
+
+        <div class="metric-box">
+          <div class="metric-top">
+            <span class="metric-label">TIN HOT</span>
+            <span class="metric-icon-badge badge-orange"></span>
+          </div>
+          <div class="metric-val text-orange">{{ summary()?.hotPostsCount || 0 }}</div>
+        </div>
+      </div>
+
+      <!-- SINGLE FULL-WIDTH REVENUE CHART PANEL -->
+      <div class="chart-single-container">
+        <div class="chart-card-box">
+          <div class="chart-card-header">
+            <div class="chart-title-group">
+              <span></span>
+              <strong>Biểu đồ Doanh Thu (Thu chi)</strong>
+              <a routerLink="/landlord/transactions" class="chart-link-detail">Xem chi tiết</a>
+            </div>
+            <div class="chart-controls-right">
+              <div class="chart-legend">
+                <span class="leg-dot leg-thu"></span> Thu
+                <span class="leg-dot leg-chi"></span> Chi
+              </div>
+              <select class="chart-period-select">
+                <option>7 ngày gần nhất</option>
+                <option>Tháng này</option>
+              </select>
             </div>
           </div>
 
-          <!-- Tax Estimation Details -->
-          <div class="glass-panel tax-panel">
-            <h3>Dự Báo Nghĩa Vụ Thuế Cá Nhân</h3>
-            <p class="mb-4">Cách tính thuế cho thuê tài sản theo Thông tư 40/2021/TT-BTC</p>
+          <div class="chart-wrapper">
+            <svg class="svg-line-chart" viewBox="0 0 800 200">
+              <line x1="40" y1="20" x2="760" y2="20" stroke="#f1f5f9" />
+              <line x1="40" y1="65" x2="760" y2="65" stroke="#f1f5f9" />
+              <line x1="40" y1="110" x2="760" y2="110" stroke="#f1f5f9" />
+              <line x1="40" y1="155" x2="760" y2="155" stroke="#e2e8f0" stroke-width="1.5" />
 
-            <div class="tax-card">
-              <div class="tax-header-row">
-                <span>Doanh thu tính thuế năm dương lịch</span>
-                <span class="value-highlight">{{ summary()?.taxForecast?.totalAnnualRevenue | number:'1.0-0' }}đ</span>
-              </div>
+              <!-- Thu Line (Blue) -->
+              <polyline
+                fill="none"
+                stroke="#2563eb"
+                stroke-width="3.5"
+                points="40,150 160,145 280,135 400,130 520,120 640,110 760,95" />
+              
+              <!-- Chi Line (Red) -->
+              <polyline
+                fill="none"
+                stroke="#ef4444"
+                stroke-width="3"
+                points="40,154 160,154 280,154 400,154 520,152 640,150 760,148" />
 
-              <!-- Progress bar to 100M VND limit -->
-              <div class="limit-progress-container">
-                <div class="progress-info">
-                  <span>Ngưỡng chịu thuế: 100,000,000đ</span>
-                  <span>{{ taxLimitPercent() }}%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill" [style.width.%]="taxLimitPercent()"></div>
-                </div>
-              </div>
+              <circle cx="40" cy="150" r="5" fill="#2563eb" />
+              <circle cx="160" cy="145" r="5" fill="#2563eb" />
+              <circle cx="280" cy="135" r="5" fill="#2563eb" />
+              <circle cx="400" cy="130" r="5" fill="#2563eb" />
+              <circle cx="520" cy="120" r="5" fill="#2563eb" />
+              <circle cx="640" cy="110" r="5" fill="#2563eb" />
+              <circle cx="760" cy="95" r="5" fill="#2563eb" />
 
-              @if (summary()?.taxForecast?.isTaxable) {
-                <div class="tax-status taxable">
-                  <span class="status-icon">⚠️</span>
-                  <div>
-                    <strong>Đã vượt ngưỡng chịu thuế (> 100Tr VND)</strong>
-                    <p>Doanh thu của bạn đã phát sinh thuế. Bạn có trách nhiệm khai thuế giá trị gia tăng (VAT 5%) và thuế thu nhập cá nhân (PIT 5%).</p>
-                  </div>
-                </div>
-              } @else {
-                <div class="tax-status non-taxable">
-                  <span class="status-icon">✓</span>
-                  <div>
-                    <strong>Chưa đạt ngưỡng đóng thuế (< 100Tr VND)</strong>
-                    <p>Nếu tổng doanh thu cho thuê trong năm dưới 100 triệu, bạn được miễn đóng thuế VAT và PIT.</p>
-                  </div>
-                </div>
-              }
-
-              <div class="tax-breakdown">
-                <div class="breakdown-row">
-                  <span>Thuế GTGT dự kiến (VAT 5%)</span>
-                  <span>{{ summary()?.taxForecast?.estimatedVat | number:'1.0-0' }}đ</span>
-                </div>
-                <div class="breakdown-row">
-                  <span>Thuế TNCN dự kiến (PIT 5%)</span>
-                  <span>{{ summary()?.taxForecast?.estimatedPit | number:'1.0-0' }}đ</span>
-                </div>
-                <div class="modal-divider my-2"></div>
-                <div class="breakdown-row total">
-                  <span>Tổng thuế dự tính đóng (10%)</span>
-                  <span>{{ summary()?.taxForecast?.totalEstimatedTax | number:'1.0-0' }}đ</span>
-                </div>
-              </div>
-
-              <p class="tax-note mt-3">
-                * Lưu ý: Thuế ước tính trên chỉ tính trên các hóa đơn có trạng thái "Đã thanh toán" (Paid).
-              </p>
-            </div>
+              <text x="40" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">11/09</text>
+              <text x="160" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">12/09</text>
+              <text x="280" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">13/09</text>
+              <text x="400" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">14/09</text>
+              <text x="520" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">15/09</text>
+              <text x="640" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">16/09</text>
+              <text x="760" y="178" fill="#94a3b8" font-size="11" font-weight="600" text-anchor="middle">17/09</text>
+            </svg>
           </div>
         </div>
-      }
+      </div>
+
+      <!-- TAX ESTIMATION FORECAST PANEL -->
+      <div class="tax-card-wrapper mt-4">
+        <div class="tax-card-header">
+          <h3>Dự Báo Nghĩa Vụ Thuế Cho Thuê Trọ (Thông tư 40/2021/TT-BTC)</h3>
+          <p>Hệ thống tự động theo dõi doanh thu tích lũy để nhắc nhở ngưỡng khai thuế 100,000,000đ/năm</p>
+        </div>
+        <div class="tax-card-body">
+          <div class="tax-info-row">
+            <span>Doanh thu tính thuế năm {{ currentYear }}:</span>
+            <strong class="text-blue-large">{{ (summary()?.taxForecast?.totalAnnualRevenue || 0) | number:'1.0-0' }}đ</strong>
+          </div>
+          <div class="tax-progress-bar-bg">
+            <div class="tax-progress-fill" [style.width.%]="taxLimitPercent()"></div>
+          </div>
+          <div class="tax-status-note">
+            @if (summary()?.taxForecast?.isTaxable) {
+              <span class="status-warning">Đã đạt ngưỡng chịu thuế (>100 triệu VNĐ/năm). Dự tính thuế (VAT 5% + PIT 5% = 10%): {{ (summary()?.taxForecast?.totalEstimatedTax || 0) | number:'1.0-0' }}đ</span>
+            } @else {
+              <span class="status-ok">Chưa đến ngưỡng đóng thuế (<100 triệu VNĐ/năm). Miễn đóng VAT & PIT.</span>
+            }
+          </div>
+        </div>
+      </div>
+
     </div>
   `,
   styles: [`
-    .overview-container {
-      display: flex;
-      flex-direction: column;
-      gap: 30px;
+    .overview-workspace-container {
+      width: 100%;
     }
-    .dashboard-header {
+
+    /* DASH TITLE ROW */
+    .dash-title-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 20px;
     }
-    .year-filter {
+
+    .dash-page-title {
+      font-size: 1.4rem;
+      font-weight: 900;
+      color: #0f172a;
+      margin: 0;
+    }
+
+    .year-filter-box {
       display: flex;
       align-items: center;
       gap: 10px;
+      font-size: 0.85rem;
+      font-weight: 800;
+      color: #475569;
+      letter-spacing: 0.04em;
     }
-    .year-filter select {
-      width: 120px;
+
+    .year-select {
+      padding: 6px 12px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      font-weight: 700;
     }
-    .stats-grid {
+
+    .btn-export-excel {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.82rem;
+      color: #334155;
+      cursor: pointer;
+    }
+
+    /* 5 COLORED KPI CARDS */
+    .kpi-cards-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 20px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
     }
-    .stats-card {
+
+    @media (max-width: 1100px) {
+      .kpi-cards-grid {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media (max-width: 700px) {
+      .kpi-cards-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    .kpi-card {
+      border-radius: 14px;
+      padding: 20px 18px;
+      color: #ffffff;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
+    }
+
+    .card-bg-blue { background: #2563eb; }
+    .card-bg-purple { background: #4f46e5; }
+    .card-bg-orange { background: #ff6b00; }
+    .card-bg-green { background: #059669; }
+    .card-bg-red { background: #dc2626; }
+
+    .kpi-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+      font-weight: 700;
+      opacity: 0.95;
+    }
+
+    .kpi-add-btn {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.3);
+      color: #ffffff;
+      border: none;
+      font-weight: 800;
+      font-size: 1rem;
+      line-height: 1;
+      cursor: pointer;
       display: flex;
       align-items: center;
-      gap: 20px;
-      padding: 30px 24px;
+      justify-content: center;
     }
-    .card-icon {
-      font-size: 2.5rem;
-      background: rgba(255, 255, 255, 0.03);
-      padding: 12px;
-      border-radius: var(--radius-sm);
-      border: 1px solid var(--border-color);
+
+    .kpi-value {
+      font-size: 2.2rem;
+      font-weight: 900;
+      margin-top: 10px;
     }
-    .card-content h3 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      margin-bottom: 6px;
+
+    .kpi-watermark {
+      position: absolute;
+      right: -10px;
+      bottom: -15px;
+      font-size: 4rem;
+      opacity: 0.15;
+      pointer-events: none;
     }
-    .card-value {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
-    .value-danger {
-      color: var(--color-danger-light);
-    }
-    .card-sub {
-      font-size: 0.8rem;
-      color: var(--text-dark);
-      margin-top: 4px;
-    }
-    .dashboard-split {
+
+    /* REFINED 3 METRICS GRID */
+    .metrics-grid-3 {
       display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 24px;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-bottom: 24px;
     }
-    @media (max-width: 900px) {
-      .dashboard-split {
+
+    @media (max-width: 768px) {
+      .metrics-grid-3 {
         grid-template-columns: 1fr;
       }
     }
-    .chart-panel, .tax-panel {
-      padding: 24px;
+
+    .metric-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     }
-    .chart-desc {
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .metric-label {
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #64748b;
+      letter-spacing: 0.05em;
+    }
+
+    .metric-icon-badge {
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       font-size: 0.85rem;
-      margin-bottom: 15px;
     }
-    .chart-container {
-      margin-top: 20px;
+
+    .badge-blue { background: #eff6ff; }
+    .badge-purple { background: #f5f3ff; }
+    .badge-orange { background: #fff7ed; }
+
+    .metric-val {
+      font-size: 1.4rem;
+      font-weight: 900;
     }
-    .empty-chart {
-      text-align: center;
-      padding: 80px 0;
-      color: var(--text-muted);
-      border: 1px dashed var(--border-color);
-      border-radius: var(--radius-sm);
+
+    .text-blue { color: #2563eb; }
+    .text-purple { color: #4f46e5; }
+    .text-orange { color: #ff6b00; }
+    .currency { font-size: 0.9rem; font-weight: 700; }
+
+    /* SINGLE FULL-WIDTH REVENUE CHART */
+    .chart-single-container {
+      margin-bottom: 24px;
     }
-    .custom-chart {
+
+    .chart-card-box {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    }
+
+    .chart-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .chart-title-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 1rem;
+      color: #0f172a;
+    }
+
+    .chart-link-detail {
+      font-size: 0.78rem;
+      color: #2563eb;
+      font-weight: 700;
+      text-decoration: none;
+      margin-left: 6px;
+    }
+
+    .chart-controls-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .chart-legend {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .leg-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .leg-thu { background: #2563eb; }
+    .leg-chi { background: #ef4444; }
+
+    .chart-period-select {
+      padding: 4px 10px;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 0.78rem;
+      color: #475569;
+    }
+
+    .chart-wrapper {
+      width: 100%;
+    }
+
+    .svg-line-chart {
       width: 100%;
       height: auto;
     }
-    .tax-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
+
+    /* TAX CARD */
+    .tax-card-wrapper {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
       padding: 20px;
     }
-    .tax-header-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      margin-bottom: 15px;
+
+    .tax-card-header h3 {
+      font-size: 1rem;
+      font-weight: 800;
+      margin: 0 0 4px 0;
+      color: #0f172a;
     }
-    .value-highlight {
-      font-weight: 700;
-      color: var(--text-main);
-      font-size: 1.1rem;
+
+    .tax-card-header p {
+      margin: 0;
+      font-size: 0.82rem;
+      color: #64748b;
     }
-    .limit-progress-container {
-      margin-bottom: 24px;
+
+    .tax-card-body {
+      margin-top: 16px;
     }
-    .progress-info {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.8rem;
-      color: var(--text-dark);
-      margin-bottom: 6px;
-    }
-    .progress-bar {
-      height: 6px;
-      background: rgba(255,255,255,0.05);
-      border-radius: 3px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--grad-primary);
-      border-radius: 3px;
-    }
-    .tax-status {
-      display: flex;
-      gap: 15px;
-      padding: 14px;
-      border-radius: var(--radius-sm);
-      margin-bottom: 20px;
-      font-size: 0.85rem;
-    }
-    .tax-status.taxable {
-      background: rgba(245, 158, 11, 0.1);
-      border: 1px solid rgba(245, 158, 11, 0.2);
-      color: #fbd38d;
-    }
-    .tax-status.non-taxable {
-      background: rgba(16, 185, 129, 0.1);
-      border: 1px solid rgba(16, 185, 129, 0.2);
-      color: var(--color-success-light);
-    }
-    .status-icon {
-      font-size: 1.4rem;
-    }
-    .tax-breakdown {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      margin-top: 15px;
-    }
-    .breakdown-row {
+
+    .tax-info-row {
       display: flex;
       justify-content: space-between;
       font-size: 0.9rem;
-      color: var(--text-muted);
+      color: #334155;
+      margin-bottom: 8px;
     }
-    .breakdown-row.total {
+
+    .text-blue-large {
+      font-size: 1.1rem;
+      color: #2563eb;
+    }
+
+    .tax-progress-bar-bg {
+      height: 8px;
+      background: #f1f5f9;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .tax-progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #2563eb, #059669);
+      border-radius: 4px;
+    }
+
+    .tax-status-note {
+      font-size: 0.82rem;
       font-weight: 700;
-      color: var(--text-main);
-      font-size: 1rem;
     }
-    .tax-note {
-      font-size: 0.75rem;
-      color: var(--text-dark);
-      font-style: italic;
-    }
-    .mb-4 { margin-bottom: 16px; }
-    .mt-3 { margin-top: 12px; }
-    .my-2 { margin: 8px 0; }
+
+    .status-ok { color: #059669; }
+    .status-warning { color: #d97706; }
+    .mt-4 { margin-top: 24px; }
   `]
 })
 export class LandlordOverviewComponent implements OnInit {
   private readonly dashboardService = inject(DashboardService);
-  private readonly toastService = inject(ToastService);
+  readonly toastService = inject(ToastService);
 
   summary = signal<any | null>(null);
   isLoading = signal(true);
   currentYear = 2026;
-
-  // Computed signals
-  occupancyRate = computed(() => {
-    const s = this.summary();
-    if (!s || s.totalRoomsCount === 0) return 0;
-    return Math.round((s.occupiedRoomsCount / s.totalRoomsCount) * 100);
-  });
 
   taxLimitPercent = computed(() => {
     const s = this.summary();
@@ -383,9 +539,9 @@ export class LandlordOverviewComponent implements OnInit {
         this.summary.set(data);
         this.isLoading.set(false);
       },
-      error: (err) => {
+      error: () => {
         this.isLoading.set(false);
-        this.toastService.show('Lỗi tải dữ liệu báo cáo tài chính.', 'error');
+        this.toastService.show('Lỗi tải dữ liệu báo cáo tổng quan.', 'error');
       }
     });
   }
@@ -394,33 +550,20 @@ export class LandlordOverviewComponent implements OnInit {
     this.fetchOverview();
   }
 
-  // Calculate coordinates for SVG rendering dynamically based on scale
-  calculateX(month: number, barIndex: number): number {
-    // 12 months spread from x=60 to x=540.
-    const startX = 60;
-    const gap = 42;
-    return startX + (month - 1) * gap + (barIndex * 18);
-  }
-
-  calculateY(value: number): number {
-    const maxVal = this.getMaxMonthlyValue() || 10000000; // fallback max
-    const height = (value / maxVal) * 170; // max SVG height is 170px
-    return 210 - height;
-  }
-
-  calculateHeight(value: number): number {
-    const maxVal = this.getMaxMonthlyValue() || 10000000;
-    return (value / maxVal) * 170;
-  }
-
-  private getMaxMonthlyValue(): number {
-    const s = this.summary();
-    if (!s || !s.monthlyRevenues || s.monthlyRevenues.length === 0) return 0;
-    let max = 0;
-    for (const r of s.monthlyRevenues) {
-      if (r.paidRevenue > max) max = r.paidRevenue;
-      if (r.unpaidRevenue > max) max = r.unpaidRevenue;
-    }
-    return max * 1.1; // 10% buffer
+  exportCsv(): void {
+    this.dashboardService.exportFinancialCsv(this.currentYear).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `ZHome_BaoCaoTaiChinh_${this.currentYear}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.toastService.show('Tải báo cáo tài chính Excel/CSV thành công!', 'success');
+      },
+      error: () => {
+        this.toastService.show('Có lỗi xảy ra khi xuất file báo cáo.', 'error');
+      }
+    });
   }
 }

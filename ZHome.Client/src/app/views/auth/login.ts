@@ -30,7 +30,7 @@ import { ToastService } from '../../services/toast.service';
               class="form-control" 
               placeholder="Ví dụ: 0912345678" />
             @if (phoneInput.invalid && (phoneInput.dirty || phoneInput.touched)) {
-              <span class="error-text">Số điện thoại Việt Nam 10 chữ số không hợp lệ.</span>
+              <span class="error-text">Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng số 0 và chữ số thứ 2 là 3, 5, 7, 8 hoặc 9).</span>
             }
           </div>
 

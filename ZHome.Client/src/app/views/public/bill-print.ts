@@ -16,7 +16,7 @@ import { BillService } from '../../services/bill.service';
           ← Trở lại danh sách
         </button>
         <button (click)="printInvoice()" class="btn-action-print">
-          🖨️ In Hóa Đơn (A4 / K80)
+          ️ In Hóa Đơn (A4 / K80)
         </button>
       </div>
 
@@ -28,7 +28,7 @@ import { BillService } from '../../services/bill.service';
         </div>
       } @else if (errorMsg(); as error) {
         <div class="status-msg error-box">
-          <p class="error-title">⚠️ Lỗi truy xuất hóa đơn</p>
+          <p class="error-title">️ Lỗi truy xuất hóa đơn</p>
           <p>{{ error }}</p>
           <button routerLink="/" class="btn-action-back mt-3">Về Trang Chủ</button>
         </div>
@@ -177,26 +177,20 @@ import { BillService } from '../../services/bill.service';
           <div class="receipt-divider-thick"></div>
 
           <!-- Payment QR & Barcode Section -->
-          <div class="payment-qr-section">
-            <p class="payment-hint">QUÉT MÃ ĐỂ THANH TOÁN QUA MOBILE BANKING / ZALO PAY</p>
-            <div class="barcode-container">
-              <!-- Render a beautiful barcode using CSS stripes -->
-              <div class="css-barcode">
-                <div class="stripe s-w"></div><div class="stripe s-b"></div><div class="stripe s-w"></div><div class="stripe s-b"></div>
-                <div class="stripe s-w"></div><div class="stripe s-b-double"></div><div class="stripe s-w"></div><div class="stripe s-b"></div>
-                <div class="stripe s-w-double"></div><div class="stripe s-b"></div><div class="stripe s-w"></div><div class="stripe s-b-double"></div>
-                <div class="stripe s-w"></div><div class="stripe s-b"></div><div class="stripe s-w"></div><div class="stripe s-b"></div>
-                <div class="stripe s-w-double"></div><div class="stripe s-b-double"></div><div class="stripe s-w"></div><div class="stripe s-b"></div>
-                <div class="stripe s-w"></div><div class="stripe s-b"></div><div class="stripe s-w-double"></div><div class="stripe s-b"></div>
-                <div class="stripe s-w"></div><div class="stripe s-b"></div><div class="stripe s-w"></div><div class="stripe s-b-double"></div>
+          <div class="payment-qr-section text-center">
+            <p class="payment-hint">QUÉT MÃ ĐỂ THANH TOÁN QUA MOBILE BANKING (VIETQR)</p>
+            <div class="qr-print-box my-2">
+              <img [src]="getVietQrUrl(item)" alt="Mã VietQR Thanh Toán Hóa Đơn" class="printed-qr-img">
+              <div class="qr-bank-details mt-1">
+                <span class="text-xs text-muted">MBBank • STK: <strong>0987654321</strong> • DANG HOANG SON</span><br>
+                <span class="text-xs text-muted">Nội dung CK: <strong class="text-primary font-bold">HD{{ item.id }}</strong></span>
               </div>
-              <span class="barcode-text">MB-ZHOME-{{ item.id }}-{{ item.billingMonth }}{{ item.billingYear }}</span>
             </div>
 
             <!-- Certified ZHome Stamp Detail -->
             <div class="certification-footer-box">
               <p class="cert-text">
-                🛡️ <strong>ZHome Verification System</strong> <br>
+                ️ <strong>ZHome Verification System</strong> <br>
                 Hóa đơn này được bảo chứng bởi Công ty Cổ phần Quản lý Trọ ZHome. <br>
                 Mã số công chứng số hóa: <strong>ZH-{{ item.id }}-{{ item.billingMonth }}{{ item.billingYear }}-NT</strong>
               </p>
@@ -361,7 +355,7 @@ import { BillService } from '../../services/bill.service';
     .logo-z {
       width: 22px;
       height: 22px;
-      background: #6366f1;
+      background: #2563eb;
       color: #ffffff;
       font-weight: 900;
       font-size: 14px;
@@ -426,7 +420,7 @@ import { BillService } from '../../services/bill.service';
     }
     .font-bold { font-weight: 700; }
     .text-upper { text-transform: uppercase; }
-    .text-primary { color: #4f46e5; }
+    .text-primary { color: #2563eb; }
     
     .status-badge {
       font-weight: 700;
@@ -517,33 +511,17 @@ import { BillService } from '../../services/bill.service';
       letter-spacing: 0.5px;
       margin-bottom: 12px;
     }
-    .barcode-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      margin: 10px 0;
-      background: #fafafa;
-      padding: 10px;
-      border-radius: 6px;
-      border: 1px solid #f1f5f9;
+    .printed-qr-img {
+      width: 165px;
+      height: 165px;
+      object-fit: contain;
+      border: 2px solid #10b981;
+      border-radius: 12px;
+      padding: 6px;
+      background: #ffffff;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
     }
-    .css-barcode {
-      display: flex;
-      height: 38px;
-      width: 260px;
-      background: white;
-    }
-    .stripe {
-      height: 100%;
-    }
-    .s-w { width: 3px; background: white; }
-    .s-w-double { width: 6px; background: white; }
-    .s-b { width: 2px; background: black; }
-    .s-b-double { width: 5px; background: black; }
-    
-    .barcode-text {
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 0.68rem;
+    .qr-bank-details {
       letter-spacing: 2px;
       color: #0f172a;
       margin-top: 6px;
@@ -708,5 +686,12 @@ export class BillPrintComponent implements OnInit {
 
   printInvoice(): void {
     window.print();
+  }
+
+  getVietQrUrl(item: any): string {
+    if (!item) return '';
+    const amount = Math.max(0, (item.totalAmount || 0) - (item.paidAmount || 0));
+    const content = `HD${item.id}`;
+    return `https://img.vietqr.io/image/MBBank-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent('DANG HOANG SON')}`;
   }
 }

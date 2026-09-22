@@ -21,7 +21,7 @@ import { ToastService } from '../../services/toast.service';
         <div class="loading-state">Đang tải danh sách yêu cầu xác thực...</div>
       } @else if (verifications().length === 0) {
         <div class="glass-panel empty-state">
-          <span class="empty-icon">🎉</span>
+          <span class="empty-icon"></span>
           <h3>Không có yêu cầu xác thực nào cần xử lý</h3>
           <p class="text-muted mt-2">Hiện tại toàn bộ hồ sơ chủ trọ đã được giải quyết hoặc chưa có yêu cầu mới.</p>
         </div>
@@ -50,8 +50,8 @@ import { ToastService } from '../../services/toast.service';
                     </td>
                     <td>
                       <div class="contact-cell">
-                        <div>📞 {{ item.phone }}</div>
-                        <div class="email-val">📧 {{ item.email || 'Không cung cấp' }}</div>
+                        <div> {{ item.phone }}</div>
+                        <div class="email-val"> {{ item.email || 'Không cung cấp' }}</div>
                       </div>
                     </td>
                     <td>
@@ -61,11 +61,11 @@ import { ToastService } from '../../services/toast.service';
                       <div class="cccd-images-cell">
                         <div class="image-thumb-wrapper" (click)="zoomImage('http://localhost:5000' + item.cccdFrontUrl, 'Mặt trước CCCD')">
                           <img [src]="'http://localhost:5000' + item.cccdFrontUrl" alt="Mặt trước" class="cccd-thumb" />
-                          <span class="zoom-overlay">🔎 Xem</span>
+                          <span class="zoom-overlay"> Xem</span>
                         </div>
                         <div class="image-thumb-wrapper" (click)="zoomImage('http://localhost:5000' + item.cccdBackUrl, 'Mặt sau CCCD')">
                           <img [src]="'http://localhost:5000' + item.cccdBackUrl" alt="Mặt sau" class="cccd-thumb" />
-                          <span class="zoom-overlay">🔎 Xem</span>
+                          <span class="zoom-overlay"> Xem</span>
                         </div>
                       </div>
                     </td>
@@ -77,10 +77,10 @@ import { ToastService } from '../../services/toast.service';
                     <td>
                       <div class="actions-cell">
                         @if (item.status === 'Pending' || item.status === 'Rejected') {
-                          <button (click)="approve(item.userId)" class="btn btn-success btn-xs">Duyệt ✅</button>
+                          <button (click)="approve(item.userId)" class="btn btn-success btn-xs">Duyệt </button>
                         }
                         @if (item.status === 'Pending' || item.status === 'Approved') {
-                          <button (click)="openRejectModal(item.userId)" class="btn btn-danger btn-xs">Từ chối ❌</button>
+                          <button (click)="openRejectModal(item.userId)" class="btn btn-danger btn-xs">Từ chối </button>
                         }
                       </div>
                     </td>

@@ -109,32 +109,6 @@ namespace ZHome.API.Migrations
                     b.ToTable("contracts");
                 });
 
-            modelBuilder.Entity("ZHome.API.Models.Entities.District", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("districts");
-                });
-
             modelBuilder.Entity("ZHome.API.Models.Entities.Favorite", b =>
                 {
                     b.Property<long>("Id")
@@ -221,6 +195,42 @@ namespace ZHome.API.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("landlord_verifications");
+                });
+
+            modelBuilder.Entity("ZHome.API.Models.Entities.Location", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasColumnName("id");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Level")
+                        .HasColumnType("int")
+                        .HasColumnName("level");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)")
+                        .HasColumnName("name");
+
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("int")
+                        .HasColumnName("parent_id");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)")
+                        .HasColumnName("type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ParentId");
+
+                    b.ToTable("locations");
                 });
 
             modelBuilder.Entity("ZHome.API.Models.Entities.MatchingProfile", b =>
@@ -874,38 +884,6 @@ namespace ZHome.API.Migrations
                     b.ToTable("users");
                 });
 
-            modelBuilder.Entity("ZHome.API.Models.Entities.Ward", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasColumnName("id");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("DistrictId")
-                        .HasColumnType("int")
-                        .HasColumnName("district_id");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("name");
-
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("type");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DistrictId");
-
-                    b.ToTable("wards");
-                });
-
             modelBuilder.Entity("ZHome.API.Models.Entities.BillTransaction", b =>
                 {
                     b.HasOne("ZHome.API.Models.Entities.MonthlyBill", "MonthlyBill")
@@ -972,6 +950,16 @@ namespace ZHome.API.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("ZHome.API.Models.Entities.Location", b =>
+                {
+                    b.HasOne("ZHome.API.Models.Entities.Location", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("ZHome.API.Models.Entities.MatchingProfile", b =>
@@ -1093,20 +1081,9 @@ namespace ZHome.API.Migrations
                     b.Navigation("SubscriptionPackage");
                 });
 
-            modelBuilder.Entity("ZHome.API.Models.Entities.Ward", b =>
+            modelBuilder.Entity("ZHome.API.Models.Entities.Location", b =>
                 {
-                    b.HasOne("ZHome.API.Models.Entities.District", "District")
-                        .WithMany("Wards")
-                        .HasForeignKey("DistrictId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("District");
-                });
-
-            modelBuilder.Entity("ZHome.API.Models.Entities.District", b =>
-                {
-                    b.Navigation("Wards");
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("ZHome.API.Models.Entities.MonthlyBill", b =>

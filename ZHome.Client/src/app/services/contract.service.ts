@@ -34,4 +34,9 @@ export class ContractService {
     const url = contractId ? `${this.apiUrl}/my-rental?contractId=${contractId}` : `${this.apiUrl}/my-rental`;
     return this.http.get<any>(url);
   }
+
+  getLegalContractDocument(contractId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${contractId}/legal-document`);
+  }
 }
+

@@ -30,7 +30,7 @@ import { ReportService } from '../../services/report.service';
         </div>
       } @else if (errorMsg()) {
         <div class="empty-state error-panel">
-          <span class="icon">⚠️</span>
+          <span class="icon">️</span>
           <h3>Không tìm thấy dữ liệu</h3>
           <p>{{ errorMsg() }}</p>
         </div>
@@ -39,11 +39,11 @@ import { ReportService } from '../../services/report.service';
         <div class="rentals-list-grid">
           @for (r of rentalsList(); track r.contractId) {
             <div class="rental-list-card glass-panel" (click)="selectRental(r.contractId)">
-              <div class="home-icon-small">🏠</div>
+              <div class="home-icon-small"></div>
               <div class="rental-list-info">
                 <h3>Phòng {{ r.roomNumber }}</h3>
                 <p>{{ r.propertyTitle }}</p>
-                <span class="text-muted text-xs">📍 {{ r.propertyAddress }}</span>
+                <span class="text-muted text-xs"> {{ r.propertyAddress }}</span>
               </div>
               <div class="rental-list-price">
                 <strong>{{ r.roomPrice | number:'1.0-0' }}đ / tháng</strong>
@@ -60,13 +60,13 @@ import { ReportService } from '../../services/report.service';
             <!-- Property & Room Header Banner Card -->
             <div class="glass-panel room-hero-card">
               <div class="hero-header">
-                <span class="home-icon">🏠</span>
+                <span class="home-icon"></span>
                 <div class="hero-titles">
                   <h2>Phòng {{ data.roomNumber }}</h2>
                   <p class="property-title">
                     {{ data.propertyTitle }}
                     @if (data.isVerifiedTick) {
-                      <span class="verified-tick" title="Khu trọ chính chủ đã xác minh">✅</span>
+                      <span class="verified-tick" title="Khu trọ chính chủ đã xác minh"></span>
                     }
                   </p>
                 </div>
@@ -88,14 +88,14 @@ import { ReportService } from '../../services/report.service';
               </div>
               @if (canReport(data.startDate)) {
                 <div class="mt-3 text-right">
-                  <button class="btn-outline-primary btn-sm" (click)="openReportModal()">⭐ Đánh giá trọ</button>
+                  <button class="btn-outline-primary btn-sm" (click)="openReportModal()"> Đánh giá trọ</button>
                 </div>
               }
             </div>
 
             <!-- Contract details -->
             <div class="glass-panel info-section mt-4">
-              <h3>📄 Hợp đồng thuê</h3>
+              <h3> Hợp đồng thuê</h3>
               <div class="info-list">
                 <div class="info-row">
                   <span class="info-label">Mã hợp đồng:</span>
@@ -115,12 +115,17 @@ import { ReportService } from '../../services/report.service';
                 </div>
               </div>
 
+              <div class="mt-3" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-secondary btn-sm" (click)="openLegalContractModal(data.contractId)"> Xem & In Hợp Đồng Thuê Nhà</button>
+                <button class="btn btn-danger btn-sm" (click)="openIncidentModal()"> Báo Sự Cố / Bảo Trì</button>
+              </div>
+
               @if (data.amenities && data.amenities.length > 0) {
                 <div class="amenities-container mt-3">
                   <span class="info-label d-block mb-2">Tiện ích phòng trọ:</span>
                   <div class="amenities-tags">
                     @for (amenity of data.amenities; track amenity) {
-                      <span class="amenity-tag">✨ {{ amenity }}</span>
+                      <span class="amenity-tag"> {{ amenity }}</span>
                     }
                   </div>
                 </div>
@@ -129,7 +134,7 @@ import { ReportService } from '../../services/report.service';
 
             <!-- Landlord details -->
             <div class="glass-panel info-section mt-4">
-              <h3>🧑‍💼 Thông tin chủ trọ</h3>
+              <h3>‍ Thông tin chủ trọ</h3>
               <div class="landlord-card">
                 <div class="avatar-circle">
                   {{ data.landlordName.charAt(0) }}
@@ -143,17 +148,17 @@ import { ReportService } from '../../services/report.service';
               <div class="info-list mt-3">
                 <div class="info-row">
                   <span class="info-label">Số điện thoại:</span>
-                  <a href="tel:{{ data.landlordPhone }}" class="info-value contact-link">📞 {{ data.landlordPhone }}</a>
+                  <a href="tel:{{ data.landlordPhone }}" class="info-value contact-link"> {{ data.landlordPhone }}</a>
                 </div>
                 @if (data.landlordEmail) {
                   <div class="info-row">
                     <span class="info-label">Hòm thư điện tử:</span>
-                    <a href="mailto:{{ data.landlordEmail }}" class="info-value contact-link">✉️ {{ data.landlordEmail }}</a>
+                    <a href="mailto:{{ data.landlordEmail }}" class="info-value contact-link">️ {{ data.landlordEmail }}</a>
                   </div>
                 }
                 <div class="info-row">
                   <span class="info-label">Địa chỉ khu trọ:</span>
-                  <span class="info-value address-value">📍 {{ data.propertyAddress }}</span>
+                  <span class="info-value address-value"> {{ data.propertyAddress }}</span>
                 </div>
               </div>
             </div>
@@ -164,7 +169,7 @@ import { ReportService } from '../../services/report.service';
             <div class="glass-panel current-bill-card">
               <div class="bill-card-header">
                 <div>
-                  <h3>⚡ Chỉ số & Chi phí tháng này</h3>
+                  <h3> Chỉ số & Chi phí tháng này</h3>
                   @if (data.latestBill) {
                     <p class="text-muted">Cập nhật kỳ hóa đơn Tháng {{ data.latestBill.billingMonth }}/{{ data.latestBill.billingYear }}</p>
                   } @else {
@@ -183,7 +188,7 @@ import { ReportService } from '../../services/report.service';
                   <!-- Rent row -->
                   <div class="cost-row">
                     <div class="cost-details">
-                      <span class="cost-icon">🏠</span>
+                      <span class="cost-icon"></span>
                       <div>
                         <strong>Tiền phòng cố định</strong>
                         <p class="text-xs text-muted">Giá thuê được phân bổ theo hợp đồng</p>
@@ -195,10 +200,10 @@ import { ReportService } from '../../services/report.service';
                   <!-- Electricity row -->
                   <div class="cost-row">
                     <div class="cost-details">
-                      <span class="cost-icon">⚡</span>
+                      <span class="cost-icon"></span>
                       <div>
                         <strong>Tiền điện tiêu thụ</strong>
-                        <p class="text-xs text-muted">Chỉ số: {{ bill.electricityOldReading }} ➔ {{ bill.electricityNewReading }} ({{ bill.electricityNewReading - bill.electricityOldReading }} kWh) x 3.000đ</p>
+                        <p class="text-xs text-muted">Chỉ số: {{ bill.electricityOldReading }} → {{ bill.electricityNewReading }} ({{ bill.electricityNewReading - bill.electricityOldReading }} kWh) x 3.000đ</p>
                       </div>
                     </div>
                     <span class="cost-amount text-primary-color">{{ bill.electricityFee | number:'1.0-0' }}đ</span>
@@ -207,10 +212,10 @@ import { ReportService } from '../../services/report.service';
                   <!-- Water row -->
                   <div class="cost-row">
                     <div class="cost-details">
-                      <span class="cost-icon">💧</span>
+                      <span class="cost-icon"></span>
                       <div>
                         <strong>Tiền nước tiêu thụ</strong>
-                        <p class="text-xs text-muted">Chỉ số: {{ bill.waterOldReading }} ➔ {{ bill.waterNewReading }} ({{ bill.waterNewReading - bill.waterOldReading }} m³) x 10.000đ</p>
+                        <p class="text-xs text-muted">Chỉ số: {{ bill.waterOldReading }} → {{ bill.waterNewReading }} ({{ bill.waterNewReading - bill.waterOldReading }} m³) x 10.000đ</p>
                       </div>
                     </div>
                     <span class="cost-amount text-primary-color">{{ bill.waterFee | number:'1.0-0' }}đ</span>
@@ -219,7 +224,7 @@ import { ReportService } from '../../services/report.service';
                   <!-- Services row -->
                   <div class="cost-row">
                     <div class="cost-details">
-                      <span class="cost-icon">🧹</span>
+                      <span class="cost-icon"></span>
                       <div>
                         <strong>Phí dịch vụ chung</strong>
                         <p class="text-xs text-muted">Vệ sinh, internet, bảo vệ khu nhà</p>
@@ -232,7 +237,7 @@ import { ReportService } from '../../services/report.service';
                   @if (bill.repairDeduction > 0) {
                     <div class="cost-row deduction">
                       <div class="cost-details">
-                        <span class="cost-icon text-success">🛠️</span>
+                        <span class="cost-icon text-success">️</span>
                         <div>
                           <strong class="text-success">Khấu trừ sửa chữa</strong>
                           <p class="text-xs text-muted text-success">Chủ trọ hỗ trợ chi phí bảo trì</p>
@@ -282,11 +287,11 @@ import { ReportService } from '../../services/report.service';
                   <div class="bill-action-btn mt-4">
                     @if (bill.status !== 'Paid') {
                       <button (click)="payCurrentBill(bill.id, bill.remainingAmount)" class="btn btn-primary btn-block btn-lg">
-                        💳 Thanh toán trực tuyến ngay
+                         Thanh toán trực tuyến ngay
                       </button>
                     } @else {
                       <div class="payment-success-box">
-                        <span class="check-mark">✓</span>
+                        <span class="check-mark"></span>
                         <div>
                           <strong>Đã thanh toán thành công</strong>
                           <p class="text-xs text-muted">Vào lúc {{ bill.paidAt | date:'dd/MM/yyyy HH:mm' }}</p>
@@ -297,7 +302,7 @@ import { ReportService } from '../../services/report.service';
                 </div>
               } @else {
                 <div class="empty-bill-state mt-4">
-                  <span class="icon">📅</span>
+                  <span class="icon"></span>
                   <p>Hợp đồng của bạn chưa có chỉ số điện nước hoặc hóa đơn tiền trọ tháng này.</p>
                   <p class="text-muted text-xs">Vui lòng đợi chủ nhà cập nhật chỉ số và chốt hóa đơn.</p>
                 </div>
@@ -323,12 +328,12 @@ import { ReportService } from '../../services/report.service';
                 <label>Đánh giá (Sao)</label>
                 <div class="star-rating">
                   @for (star of [1,2,3,4,5]; track star) {
-                    <span class="star" [class.active]="star <= reportRating()" (click)="reportRating.set(star)">★</span>
+                    <span class="star" [class.active]="star <= reportRating()" (click)="reportRating.set(star)"> </span>
                   }
                 </div>
                 @if (reportRating() < 5) {
                   <p style="color: #d97706; font-size: 0.85rem; margin-top: 5px;">
-                    ⚠️ Đánh giá dưới 5 sao sẽ được gửi trực tiếp đến Chủ trọ dưới dạng yêu cầu khắc phục. Chủ trọ bắt buộc phải phản hồi lại ý kiến của bạn.
+                    ️ Đánh giá dưới 5 sao sẽ được gửi trực tiếp đến Chủ trọ dưới dạng yêu cầu khắc phục. Chủ trọ bắt buộc phải phản hồi lại ý kiến của bạn.
                   </p>
                 }
               </div>
@@ -346,6 +351,115 @@ import { ReportService } from '../../services/report.service';
             <div class="modal-footer">
               <button class="btn btn-outline" style="color: #333; border-color: #ddd;" (click)="closeReportModal()">Hủy</button>
               <button class="btn btn-primary" style="padding: 8px 16px;" (click)="submitReport()">Gửi đánh giá</button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Legal Contract Modal -->
+      @if (isContractModalOpen()) {
+        <div class="modal-backdrop">
+          <div class="modal-card legal-contract-card" style="max-width: 780px; width: 90%; max-height: 90vh; overflow-y: auto; background: #ffffff;">
+            <div class="modal-header" style="background: #1e3a8a; color: white;">
+              <h2> HỢP ĐỒNG THUÊ NHÀ TRỌ ĐIỆN TỬ</h2>
+              <button class="close-btn" style="color: white;" (click)="closeContractModal()">×</button>
+            </div>
+            <div class="modal-body" style="padding: 28px; line-height: 1.6; color: #1e293b;">
+              @if (isLoadingContractDoc()) {
+                <div class="loading-state">Đang tải bản hợp đồng...</div>
+              } @else if (contractDoc(); as doc) {
+                <div style="text-align: center; border-bottom: 2px solid #1e3a8a; padding-bottom: 16px; margin-bottom: 20px;">
+                  <h3 style="color: #1e3a8a; margin-bottom: 4px;">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h3>
+                  <p style="font-weight: 700; font-size: 0.9rem;">Độc lập - Tự do - Hạnh phúc</p>
+                  <h2 style="margin-top: 16px; color: #0f172a; font-weight: 800;">HỢP ĐỒNG CHO THUÊ NHÀ TRỌ</h2>
+                  <p style="font-size: 0.85rem; color: #64748b;">Mã số hợp đồng: #CON-{{ doc.contractId }} | Ngày lập: {{ doc.startDate | date:'dd/MM/yyyy' }}</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                  <h4 style="color: #1d4ed8; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">BÊN A (BÊN CHO THUÊ):</h4>
+                  <p><strong>Họ và tên:</strong> {{ doc.landlordFullName }}</p>
+                  <p><strong>Số điện thoại:</strong> {{ doc.landlordPhone }}</p>
+                  <p><strong>Số CCCD/CMND:</strong> {{ doc.landlordCccd }}</p>
+                  <p><strong>Email:</strong> {{ doc.landlordEmail }}</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                  <h4 style="color: #1d4ed8; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">BÊN B (BÊN THUÊ NHÀ):</h4>
+                  <p><strong>Họ và tên:</strong> {{ doc.tenantFullName }}</p>
+                  <p><strong>Số điện thoại:</strong> {{ doc.tenantPhone }}</p>
+                  <p><strong>Số CCCD/CMND:</strong> {{ doc.tenantCccd }}</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                  <h4 style="color: #1d4ed8; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">ĐIỀU 1: ĐỐI TƯỢNG VÀ THỜI HẠN THUÊ</h4>
+                  <p>- Bên A đồng ý cho Bên B thuê phòng số <strong>{{ doc.roomNumber }}</strong> thuộc địa chỉ: <strong>{{ doc.propertyAddress }}</strong> (Khu trọ: {{ doc.propertyTitle }}).</p>
+                  <p>- Diện tích sử dụng: <strong>{{ doc.area }} m²</strong>.</p>
+                  <p>- Thời hạn thuê: Từ ngày <strong>{{ doc.startDate | date:'dd/MM/yyyy' }}</strong> đến ngày <strong>{{ doc.endDate | date:'dd/MM/yyyy' }}</strong>.</p>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                  <h4 style="color: #1d4ed8; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px;">ĐIỀU 2: GIÁ THUÊ VÀ NGHĨA VỤ THANH TOÁN</h4>
+                  <p>- Giá thuê phòng: <strong>{{ doc.roomPrice | number:'1.0-0' }} VNĐ / tháng</strong>.</p>
+                  <p>- Tiền đặt cọc: <strong>{{ doc.depositAmount | number:'1.0-0' }} VNĐ</strong>.</p>
+                  <p>- Tiền điện, tiền nước và chi phí dịch vụ phát sinh hàng tháng sẽ được Bên A đo đạc và chốt hóa đơn vào cuối mỗi tháng.</p>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; margin-top: 40px; text-align: center;">
+                  <div>
+                    <strong>ĐẠI DIỆN BÊN B</strong><br/>
+                    <span style="font-size: 0.8rem; color: #64748b;">(Ký và ghi rõ họ tên)</span><br/><br/>
+                    <strong style="color: #2563eb;">{{ doc.tenantFullName }}</strong>
+                  </div>
+                  <div>
+                    <strong>ĐẠI DIỆN BÊN A</strong><br/>
+                    <span style="font-size: 0.8rem; color: #64748b;">(Xác thực qua ZHome Portal)</span><br/><br/>
+                    <strong style="color: #2563eb;">{{ doc.landlordFullName }} </strong>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeContractModal()">Đóng</button>
+              <button class="btn btn-primary" (click)="printContract()">️ In Hợp Đồng</button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Incident Ticket Modal -->
+      @if (isIncidentModalOpen()) {
+        <div class="modal-backdrop">
+          <div class="modal-card" style="max-width: 540px; width: 90%;">
+            <div class="modal-header" style="background: #dc2626; color: white;">
+              <h2> Báo Sự Cố & Yêu Cầu Bảo Trì</h2>
+              <button class="close-btn" style="color: white;" (click)="closeIncidentModal()">×</button>
+            </div>
+            <div class="modal-body">
+              <p class="text-muted mb-3">Vui lòng mô tả sự cố hoặc thiết bị hỏng hóc để Chủ trọ kịp thời xử lý.</p>
+              
+              <div class="form-group mb-3">
+                <label>Mức độ ưu tiên</label>
+                <select class="form-control" [value]="incidentPriority()" (change)="incidentPriority.set($any($event.target).value)">
+                  <option value="Urgent"> Khẩn cấp (Mất điện, rò nước, chập cháy)</option>
+                  <option value="High">️ Cao (Hỏng điều hòa, hỏng nóng lạnh)</option>
+                  <option value="Normal">️ Trung bình (Hỏng đèn, hỏng ổ cắm)</option>
+                  <option value="Low">ℹ️ Thấp (Đề xuất sửa chữa nhỏ)</option>
+                </select>
+              </div>
+              
+              <div class="form-group mb-3">
+                <label>Tiêu đề sự cố</label>
+                <input type="text" class="form-control" [value]="incidentTitle()" (input)="incidentTitle.set($any($event.target).value)" placeholder="Ví dụ: Điều hòa phòng chảy nước">
+              </div>
+
+              <div class="form-group mb-3">
+                <label>Chi tiết sự cố</label>
+                <textarea class="form-control" rows="4" [value]="incidentContent()" (input)="incidentContent.set($any($event.target).value)" placeholder="Mô tả cụ thể hiện trạng và thời gian phát hiện..."></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button class="btn btn-secondary" (click)="closeIncidentModal()">Hủy</button>
+              <button class="btn btn-danger" (click)="submitIncident()">Gửi Yêu Cầu</button>
             </div>
           </div>
         </div>
@@ -833,6 +947,15 @@ export class MyRentalComponent implements OnInit {
   reportContent = signal('');
   reportRating = signal(5);
 
+  isContractModalOpen = signal(false);
+  contractDoc = signal<any>(null);
+  isLoadingContractDoc = signal(false);
+
+  isIncidentModalOpen = signal(false);
+  incidentTitle = signal('');
+  incidentContent = signal('');
+  incidentPriority = signal('Normal');
+
   ngOnInit(): void {
     this.fetchMyRentals();
   }
@@ -970,4 +1093,67 @@ export class MyRentalComponent implements OnInit {
       }
     });
   }
+
+  openLegalContractModal(contractId: number): void {
+    this.isContractModalOpen.set(true);
+    this.isLoadingContractDoc.set(true);
+    this.contractService.getLegalContractDocument(contractId).subscribe({
+      next: (doc) => {
+        this.contractDoc.set(doc);
+        this.isLoadingContractDoc.set(false);
+      },
+      error: () => {
+        this.toastService.show('Không thể tải bản hợp đồng từ máy chủ.', 'error');
+        this.isLoadingContractDoc.set(false);
+      }
+    });
+  }
+
+  closeContractModal(): void {
+    this.isContractModalOpen.set(false);
+  }
+
+  printContract(): void {
+    window.print();
+  }
+
+  openIncidentModal(): void {
+    this.isIncidentModalOpen.set(true);
+    this.incidentTitle.set('');
+    this.incidentContent.set('');
+    this.incidentPriority.set('Normal');
+  }
+
+  closeIncidentModal(): void {
+    this.isIncidentModalOpen.set(false);
+  }
+
+  submitIncident(): void {
+    if (!this.incidentTitle().trim() || !this.incidentContent().trim()) {
+      this.toastService.show('Vui lòng nhập đầy đủ tiêu đề và nội dung báo sự cố', 'error');
+      return;
+    }
+
+    const priorityLabel = this.incidentPriority() === 'Urgent' ? '[KHẨN CẤP]' : (this.incidentPriority() === 'High' ? '[ƯU TIÊN CAO]' : '[SỰ CỐ]');
+    const fullTitle = `${priorityLabel} ${this.incidentTitle()}`.trim();
+
+    const req = {
+      title: fullTitle,
+      content: this.incidentContent(),
+      contractId: this.selectedContractId() || this.rental()?.contractId,
+      rating: undefined
+    };
+
+    this.reportService.createReport(req).subscribe({
+      next: () => {
+        this.toastService.show('Yêu cầu báo sự cố đã được gửi thành công tới Chủ trọ!', 'success');
+        this.closeIncidentModal();
+      },
+      error: (err) => {
+        const msg = err?.error?.message || 'Có lỗi xảy ra khi gửi báo sự cố.';
+        this.toastService.show(msg, 'error');
+      }
+    });
+  }
 }
+

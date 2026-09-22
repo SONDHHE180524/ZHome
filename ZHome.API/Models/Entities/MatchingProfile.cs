@@ -40,6 +40,28 @@ namespace ZHome.API.Models.Entities
         [Column("hometown")]
         public string? Hometown { get; set; }
 
+        [MaxLength(255)]
+        [Column("title")]
+        public string? Title { get; set; }
+
+        [MaxLength(150)]
+        [Column("university")]
+        public string? University { get; set; }
+
+        [Column("has_room")]
+        public bool HasRoom { get; set; } = false;
+
+        [MaxLength(255)]
+        [Column("address")]
+        public string? Address { get; set; }
+
+        [MaxLength(50)]
+        [Column("contact_phone")]
+        public string? ContactPhone { get; set; }
+
+        [Column("image_url")]
+        public string? ImageUrl { get; set; }
+
         [Column("description")]
         public string? Description { get; set; }
 

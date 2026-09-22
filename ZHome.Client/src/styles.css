@@ -3,48 +3,52 @@
 :root {
   --font-scale: 1;
 
-  /* Premium Light Palette (Indigo Glow) */
-  --bg-main: #f8fafc; /* Lighter slightly cool background */
-  --bg-card: rgba(255, 255, 255, 0.85);
-  --bg-card-hover: rgba(255, 255, 255, 0.98);
-  --border-color: rgba(15, 23, 42, 0.06);
-  --border-hover: rgba(99, 102, 241, 0.3);
+  /* Clean White Dominant Palette (Government & Corporate Standard) */
+  --bg-main: #f8fafc; /* Crisp, clean slate-white background */
+  --bg-card: #ffffff;
+  --bg-card-hover: #ffffff;
+  --border-color: #e2e8f0;
+  --border-hover: #bfdbfe;
 
-  /* Text colors */
-  --text-main: #0f172a;
-  --text-muted: #64748b;
-  --text-dark: #94a3b8;
+  /* Typography Contrast Hierarchy */
+  --text-main: #0f172a;   /* Deep Slate - Clear & sharp readability */
+  --text-muted: #475569;  /* Medium Slate - Body text */
+  --text-dark: #64748b;   /* Soft Slate - Captions & placeholders */
 
-  /* Brand Accents (Indigo & Blue) */
-  --color-primary: #4f46e5;      /* Indigo 600 */
-  --color-primary-light: #6366f1; /* Indigo 500 */
-  --color-secondary: #0ea5e9;    /* Sky 500 */
-  --color-success: #10b981;
-  --color-success-light: #34d399;
-  --color-danger: #e11d48;
-  --color-danger-light: #f43f5e;
-  --color-warning: #ea580c;
+  /* Brand Accents (Gentle Royal Blue & Clean White Tone) */
+  --color-primary: #2563eb;        /* Blue 600 - Government / Professional Blue */
+  --color-primary-dark: #1d4ed8;   /* Blue 700 - Hover state */
+  --color-primary-light: #3b82f6;  /* Blue 500 */
+  --color-primary-subtle: #eff6ff; /* Blue 50 - Background accent */
+  --color-primary-border: #bfdbfe; /* Blue 200 */
+  --color-secondary: #0284c7;      /* Sky 600 */
+  --color-success: #059669;        /* Emerald 600 */
+  --color-success-light: #10b981;
+  --color-danger: #dc2626;         /* Red 600 */
+  --color-danger-light: #ef4444;
+  --color-warning: #d97706;        /* Amber 600 */
   --color-info: #0284c7;
 
-  /* Gradients */
-  --grad-primary: linear-gradient(135deg, #4f46e5 0%, #0ea5e9 100%);
-  --grad-success: linear-gradient(135deg, #10b981 0%, #34d399 100%);
-  --grad-danger: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  --grad-dark: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-  --grad-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.5) 100%);
+  /* Gentle Gradients */
+  --grad-primary: linear-gradient(135deg, #1d4ed8 0%, #2563eb 50%, #0284c7 100%);
+  --grad-primary-soft: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+  --grad-success: linear-gradient(135deg, #059669 0%, #10b981 100%);
+  --grad-danger: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+  --grad-dark: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  --grad-glass: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
 
   /* UI Tokens */
   --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --radius-sm: 8px;
-  --radius-md: 16px;
-  --radius-lg: 24px;
-  --radius-xl: 32px;
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02), 0 1px 2px rgba(0, 0, 0, 0.03);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.03);
-  --shadow-lg: 0 12px 24px rgba(0, 0, 0, 0.05), 0 4px 8px rgba(0, 0, 0, 0.04);
-  --shadow-glass: 0 10px 40px -10px rgba(79, 70, 229, 0.15); /* Indigo glow */
-  --transition: all 0.3s cubic-bezier(0.25, 1, 0.5, 1);
-  --blur: blur(16px);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08), 0 2px 4px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 10px 25px rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.04);
+  --shadow-glass: 0 4px 20px rgba(37, 99, 235, 0.08);
+  --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  --blur: blur(12px);
 }
 
 /* Global Reset & Base */
@@ -81,8 +85,8 @@ body {
   min-height: 100vh;
   overflow-x: hidden;
   background-image:
-    radial-gradient(at 0% 0%, rgba(79, 70, 229, 0.05) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(14, 165, 233, 0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(37, 99, 235, 0.03) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(2, 132, 199, 0.03) 0px, transparent 50%);
   background-attachment: fixed;
 }
 
@@ -93,20 +97,20 @@ body.role-landlord {
 
 body.role-landlord .glass-panel,
 body.role-landlord .interactive-card {
-  padding: 32px 28px;
-  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.04);
+  padding: 28px 24px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
 }
 
 body.role-landlord .btn {
-  padding: 14px 28px;
-  font-size: 1.05rem;
+  padding: 12px 24px;
+  font-size: 1rem;
   border-radius: var(--radius-md);
   font-weight: 700;
 }
 
 body.role-landlord .form-control {
-  padding: 14px 18px;
-  font-size: 1.05rem;
+  padding: 12px 16px;
+  font-size: 1rem;
   border-radius: var(--radius-md);
 }
 
@@ -118,37 +122,37 @@ body.role-landlord label {
 
 body.role-landlord td,
 body.role-landlord th {
-  padding: 18px 20px;
-  font-size: 1.05rem;
+  padding: 16px 18px;
+  font-size: 1rem;
 }
 
 body.role-landlord th {
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 700;
 }
 
 body.role-landlord h1,
 body.role-landlord .h1 {
-  font-size: 2.3rem;
+  font-size: 2.1rem;
   font-weight: 800;
 }
 
 body.role-landlord h2,
 body.role-landlord .h2 {
-  font-size: 1.85rem;
+  font-size: 1.75rem;
   font-weight: 800;
 }
 
 body.role-landlord h3,
 body.role-landlord .h3 {
-  font-size: 1.35rem;
+  font-size: 1.3rem;
   font-weight: 700;
 }
 
 body.role-landlord p,
 body.role-landlord .card-sub {
   font-size: 0.95rem;
-  line-height: 1.65;
+  line-height: 1.6;
 }
 
 body.role-landlord .user-role-tag {
@@ -167,7 +171,7 @@ body.role-landlord .user-role-tag {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
+  background: #cbd5e1;
   border-radius: 4px;
 }
 
@@ -199,30 +203,27 @@ a {
 }
 
 a:hover {
-  color: var(--color-secondary);
+  color: var(--color-primary-dark);
 }
 
-/* Premium Layout Elements */
+/* Clean White Card Elements */
 .glass-panel {
   background: var(--bg-card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
-  box-shadow: var(--shadow-glass);
+  box-shadow: var(--shadow-sm);
   padding: 24px;
   transition: var(--transition);
 }
 
 .glass-panel:hover {
-  border-color: rgba(99, 102, 241, 0.15);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-md);
 }
 
 /* Interactive Cards */
 .interactive-card {
   background: var(--bg-card);
-  backdrop-filter: var(--blur);
-  -webkit-backdrop-filter: var(--blur);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-sm);
@@ -239,16 +240,16 @@ a:hover {
   top: 0;
   left: 0;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: var(--grad-primary);
   opacity: 0;
   transition: var(--transition);
 }
 
 .interactive-card:hover {
-  transform: translateY(-4px);
-  border-color: var(--border-hover);
-  box-shadow: var(--shadow-lg);
+  transform: translateY(-2px);
+  border-color: var(--color-primary-border);
+  box-shadow: var(--shadow-md);
   background: var(--bg-card-hover);
 }
 
@@ -276,7 +277,7 @@ label {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-sm);
-  padding: 12px 16px;
+  padding: 10px 14px;
   color: var(--text-main);
   font-size: 0.95rem;
   outline: none;
@@ -286,20 +287,20 @@ label {
 .form-control:focus {
   border-color: var(--color-primary);
   background: #ffffff;
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .form-control::placeholder {
   color: var(--text-dark);
 }
 
-/* Buttons with vibrant style */
+/* Clean Professional Buttons */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px 24px;
+  padding: 10px 20px;
   border-radius: var(--radius-sm);
   font-weight: 600;
   font-size: 0.95rem;
@@ -309,14 +310,15 @@ label {
 }
 
 .btn-primary {
-  background: var(--grad-primary);
+  background: var(--color-primary);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(79, 70, 229, 0.25);
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
 }
 
 .btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-primary:active {
@@ -324,25 +326,27 @@ label {
 }
 
 .btn-success {
-  background: var(--grad-success);
+  background: var(--color-success);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);
+  box-shadow: 0 2px 6px rgba(5, 150, 105, 0.2);
 }
 
 .btn-success:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
 }
 
 .btn-danger {
-  background: var(--grad-danger);
+  background: var(--color-danger);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(244, 63, 94, 0.25);
+  box-shadow: 0 2px 6px rgba(220, 38, 38, 0.2);
 }
 
 .btn-danger:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.4);
+  background: #b91c1c;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
 }
 
 .btn-secondary {
@@ -353,8 +357,9 @@ label {
 }
 
 .btn-secondary:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: var(--color-primary-dark);
 }
 
 /* Badge/Tag Elements */
@@ -362,38 +367,38 @@ label {
   display: inline-flex;
   align-items: center;
   padding: 4px 10px;
-  border-radius: 9999px;
+  border-radius: 6px;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
 }
 
 .badge-success {
-  background: rgba(16, 185, 129, 0.1);
-  color: var(--color-success-light);
-  border: 1px solid rgba(16, 185, 129, 0.2);
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
 }
 
 .badge-danger {
-  background: rgba(244, 63, 94, 0.1);
-  color: var(--color-danger-light);
-  border: 1px solid rgba(244, 63, 94, 0.2);
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
 }
 
 .badge-warning {
-  background: rgba(217, 119, 6, 0.1);
-  color: var(--color-warning);
-  border: 1px solid rgba(217, 119, 6, 0.2);
+  background: #fffbe6;
+  color: #b45309;
+  border: 1px solid #fde68a;
 }
 
 .badge-info {
-  background: rgba(8, 145, 178, 0.1);
-  color: var(--color-info);
-  border: 1px solid rgba(8, 145, 178, 0.2);
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
-/* Custom Table Grid */
+/* Government Portal Style Table Grid */
 .table-container {
   overflow-x: auto;
   margin-top: 15px;
@@ -409,18 +414,18 @@ table {
 }
 
 th {
-  background: #f8fafc;
-  color: var(--text-muted);
-  font-weight: 600;
+  background: #f0f7ff;
+  color: #1e3a8a;
+  font-weight: 700;
   font-size: 0.85rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  padding: 16px;
-  border-bottom: 1px solid var(--border-color);
+  padding: 14px 16px;
+  border-bottom: 2px solid #bfdbfe;
 }
 
 td {
-  padding: 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border-color);
   color: var(--text-main);
   font-size: 0.95rem;
@@ -435,20 +440,45 @@ tr:hover td {
 }
 
 /* Subtle Entry Animations */
-@keyframes fadeInUp {
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(16px);
   }
-
   to {
     opacity: 1;
-    transform: translateY(0);
   }
 }
 
 .animate-fade-in {
-  animation: fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Universal Fixed Modal Backdrop & Centering */
+.modal-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  background: rgba(15, 23, 42, 0.75) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  z-index: 999999 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 20px !important;
+  margin: 0 !important;
+}
+
+.modal-card {
+  margin: auto !important;
+  position: relative !important;
+  z-index: 1000000 !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35) !important;
 }
 
 /* Toast Messages */

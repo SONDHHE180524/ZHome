@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
 using ZHome.API.Models.DTOs;
-using ZHome.API.Models.DTOs;
 using ZHome.API.Models.Entities;
 using ZHome.API.Filters;
 
@@ -77,13 +76,18 @@ namespace ZHome.API.Controllers
                     Phone = request.TenantPhone,
                     FullName = request.TenantFullName,
                     RoleId = tenantRole.Id,
-                    CccdNumber = request.TenantIdCardNumber,
+                    CccdNumber = request.TenantIdCardNumber ?? string.Empty,
                     PasswordHash = BCrypt.Net.BCrypt.HashPassword("123456"), // Default password for automatically created tenant
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.Users.Add(tenantUser);
+                await _context.SaveChangesAsync();
+            }
+            else if (!string.IsNullOrWhiteSpace(request.TenantIdCardNumber) && string.IsNullOrWhiteSpace(tenantUser.CccdNumber))
+            {
+                tenantUser.CccdNumber = request.TenantIdCardNumber;
                 await _context.SaveChangesAsync();
             }
 
@@ -196,21 +200,30 @@ namespace ZHome.API.Controllers
                     .ThenInclude(r => r!.Property)
                 .Include(c => c.Tenant)
                 .Where(c => c.Room!.Property!.LandlordId == landlordId)
+                .OrderByDescending(c => c.CreatedAt)
                 .ToListAsync();
 
             var response = contracts.Select(c => new ContractResponseDto
             {
                 Id = c.Id,
+                PropertyId = c.Room?.PropertyId ?? 0,
+                PropertyTitle = c.Room?.Property?.Title ?? string.Empty,
+                PropertyAddress = c.Room?.Property?.Address ?? string.Empty,
                 RoomId = c.RoomId,
                 RoomNumber = c.Room?.RoomNumber ?? string.Empty,
-                PropertyTitle = c.Room?.Property?.Title ?? string.Empty,
                 TenantId = c.TenantId,
                 TenantFullName = c.Tenant?.FullName ?? string.Empty,
                 TenantPhone = c.Tenant?.Phone ?? string.Empty,
+                TenantCccd = c.Tenant?.CccdNumber ?? string.Empty,
+                TenantEmail = c.Tenant?.Email,
+                TenantAvatarUrl = c.Tenant?.AvatarUrl,
                 StartDate = c.StartDate,
                 EndDate = c.EndDate,
                 RoomPrice = c.RoomPrice,
-                Status = c.Status
+                DepositAmount = c.RoomPrice,
+                PaymentCycle = "1 tháng",
+                Status = c.Status,
+                CreatedAt = c.CreatedAt
             }).ToList();
 
             return Ok(response);
@@ -360,5 +373,67 @@ namespace ZHome.API.Controllers
 
             return Ok(response);
         }
+
+        // Get full printable legal contract document
+        [HttpGet("{id}/legal-document")]
+        public async Task<IActionResult> GetLegalContractDocument(long id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var contract = await _context.Contracts
+                .Include(c => c.Tenant)
+                .Include(c => c.Room)
+                    .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (contract == null)
+            {
+                return NotFound("Không tìm thấy hợp đồng.");
+            }
+
+            var isTenant = contract.TenantId == userId;
+            var isLandlord = contract.Room?.Property?.LandlordId == userId;
+            var isAdmin = User.IsInRole("Administrator");
+
+            if (!isTenant && !isLandlord && !isAdmin)
+            {
+                return Forbid("Bạn không có quyền xem bản hợp đồng này.");
+            }
+
+            var result = new LegalContractDocumentDto
+            {
+                ContractId = contract.Id,
+                StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                RoomPrice = contract.RoomPrice,
+                DepositAmount = contract.RoomPrice, // Standard 1-month deposit
+                Status = contract.Status,
+                
+                // Landlord
+                LandlordFullName = contract.Room?.Property?.Landlord?.FullName ?? "Chủ nhà ZHome",
+                LandlordPhone = contract.Room?.Property?.Landlord?.Phone ?? string.Empty,
+                LandlordCccd = contract.Room?.Property?.Landlord?.CccdNumber ?? "Chưa cập nhật",
+                LandlordEmail = contract.Room?.Property?.Landlord?.Email ?? string.Empty,
+
+                // Tenant
+                TenantFullName = contract.Tenant?.FullName ?? "Khách thuê ZHome",
+                TenantPhone = contract.Tenant?.Phone ?? string.Empty,
+                TenantCccd = contract.Tenant?.CccdNumber ?? "Chưa cập nhật",
+
+                // Room & Property
+                RoomNumber = contract.Room?.RoomNumber ?? string.Empty,
+                Area = contract.Room?.Area ?? 0,
+                PropertyTitle = contract.Room?.Property?.Title ?? string.Empty,
+                PropertyAddress = contract.Room?.Property?.Address ?? string.Empty
+            };
+
+            return Ok(result);
+        }
     }
 }
+

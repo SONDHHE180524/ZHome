@@ -1,6 +1,7 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
@@ -12,39 +13,208 @@ import { AuthService } from '../../services/auth.service';
   template: `
     <div class="landing-container animate-fade-in">
       
-      <!-- Premium Hero Banner -->
+      <!-- Government / Enterprise Portal Style Hero Banner -->
       <section class="hero-section">
         <div class="hero-content">
-          <h1>ZHome Lựa Chọn Chỗ Ở Tuyệt Vời 🌿</h1>
-          <p>Khám phá ngay các tin trọ HOT nhất, chất lượng, giá tốt tại Hà Nội.</p>
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 0.8rem; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 14px;">
+            <span>️ CỔNG THÔNG TIN QUẢN LÝ & TÌM KIẾM TRỌ</span>
+          </div>
+          <h1 style="color: #0f172a; font-size: 3rem; font-weight: 800; letter-spacing: -0.03em; margin-bottom: 12px;">Hệ Thống Nhà Trọ Uy Tín & Chất Lượng </h1>
+          <p style="color: #475569; font-size: 1.1rem; max-width: 680px; margin: 0 auto; line-height: 1.6;">Tra cứu phòng trọ chính chủ, đầy đủ tiện nghi, giá niêm yết công khai và được bảo thực trực tiếp bởi ZHome.</p>
+          
+          <!-- Quick Mode Switcher -->
+          <div class="hero-mode-switch-wrapper">
+            <button class="hero-mode-badge active" (click)="scrollToSearch()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              <span>Tìm phòng trọ</span>
+            </button>
+            <button class="hero-mode-badge match-btn" (click)="goToMatch()">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: -2px; margin-right: 4px;">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+              </svg>
+              <span>Sàn ghép trọ & Tìm bạn ở cùng</span>
+              <span class="pulse-badge-sm">MỚI</span>
+            </button>
+          </div>
         </div>
         
         <!-- Floating Search Pill -->
         <div class="search-pill-container glass-panel">
           <div class="search-pill">
             <div class="pill-group search-input-group">
-              <input type="text" [(ngModel)]="searchQuery" (input)="onFilterChange()" placeholder="Tên nhà, đường..." />
+              <input type="text" [(ngModel)]="searchQuery" (input)="onFilterChange()" placeholder="Bạn muốn tìm trọ ở đâu?" />
             </div>
             <div class="pill-divider"></div>
+            
             <div class="pill-group select-group">
-              <select [(ngModel)]="selectedDistrict" (change)="onFilterChange()">
-                <option value="">Tất cả khu vực</option>
+              <select [(ngModel)]="selectedDistrict" (change)="onDistrictChange()">
+                <option value="">Tất cả Quận/Huyện</option>
                 @for (d of districts(); track d.id) {
                   <option [value]="d.name">{{ d.name }}</option>
                 }
               </select>
             </div>
             <div class="pill-divider"></div>
+            
             <div class="pill-group select-group">
-              <select>
-                <option value="">Mức giá</option>
-                <option value="1">Dưới 2 triệu</option>
-                <option value="2">2 - 4 triệu</option>
-                <option value="3">Trên 4 triệu</option>
+              <select [(ngModel)]="selectedWard" (change)="onFilterChange()" [disabled]="!selectedDistrict">
+                <option value="">{{ selectedDistrict ? 'Tất cả Phường/Xã' : 'Chọn Quận/Huyện trước' }}</option>
+                @for (w of wards(); track w.id) {
+                  <option [value]="w.name">{{ w.name }}</option>
+                }
               </select>
             </div>
-            <button class="pill-search-btn" (click)="onFilterChange()">
-              Tìm kiếm
+            <div class="pill-divider"></div>
+
+            <!-- Mức giá Popover -->
+            <div class="popover-btn-wrapper">
+              <button class="pill-popover-trigger" (click)="togglePricePopover($event)">
+                <span class="trigger-icon">$</span>
+                <span class="trigger-label">{{ getPriceLabel() }}</span>
+                <span class="chevron" [style.transform]="showPricePopover ? 'rotate(180deg)' : 'none'">▼</span>
+              </button>
+              
+              @if (showPricePopover) {
+                <div class="filter-popover price-popover animate-fade-in" (click)="$event.stopPropagation()">
+                  <div class="popover-inputs-row">
+                    <div class="input-col">
+                      <label class="popover-label">Giá thấp nhất</label>
+                      <input type="number" class="popover-input" [(ngModel)]="minPriceInput" (input)="onPriceInputCustom()" placeholder="0" />
+                    </div>
+                    <div class="arrow-sep">→</div>
+                    <div class="input-col">
+                      <label class="popover-label">Giá cao nhất</label>
+                      <input type="number" class="popover-input" [(ngModel)]="maxPriceInput" (input)="onPriceInputCustom()" placeholder="10000" />
+                    </div>
+                  </div>
+                  
+                  <div class="range-slider-wrapper">
+                    <input type="range" min="0" max="50" step="1" [(ngModel)]="sliderValue" (input)="onSliderChange()" class="price-slider" />
+                  </div>
+
+                  <div class="popover-options-list">
+                    <div class="popover-option" [class.selected]="selectedPriceOption === 'all'" (click)="selectPriceOption('all')">
+                      <span>Tất cả mức giá</span>
+                      @if (selectedPriceOption === 'all') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedPriceOption === 'under1m'" (click)="selectPriceOption('under1m')">
+                      <span>Dưới 1 triệu</span>
+                      @if (selectedPriceOption === 'under1m') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedPriceOption === '1to10m'" (click)="selectPriceOption('1to10m')">
+                      <span>1 - 10 triệu</span>
+                      @if (selectedPriceOption === '1to10m') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedPriceOption === '10to30m'" (click)="selectPriceOption('10to30m')">
+                      <span>10 - 30 triệu</span>
+                      @if (selectedPriceOption === '10to30m') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedPriceOption === '30to50m'" (click)="selectPriceOption('30to50m')">
+                      <span>30 - 50 triệu</span>
+                      @if (selectedPriceOption === '30to50m') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedPriceOption === 'over50m'" (click)="selectPriceOption('over50m')">
+                      <span>Trên 50 triệu</span>
+                      @if (selectedPriceOption === 'over50m') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="popover-footer">
+                    <button class="btn-popover-reset" (click)="resetPriceFilter()"> Đặt lại</button>
+                    <button class="btn-popover-apply" (click)="applyPriceFilter()">Tìm ngay</button>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="pill-divider"></div>
+
+            <!-- Diện tích Popover -->
+            <div class="popover-btn-wrapper">
+              <button class="pill-popover-trigger" (click)="toggleAreaPopover($event)">
+                <span class="trigger-icon" style="font-size: 0.9rem;">m²</span>
+                <span class="trigger-label">{{ getAreaLabel() }}</span>
+                <span class="chevron" [style.transform]="showAreaPopover ? 'rotate(180deg)' : 'none'">▼</span>
+              </button>
+              
+              @if (showAreaPopover) {
+                <div class="filter-popover area-popover animate-fade-in" (click)="$event.stopPropagation()">
+                  <div class="popover-inputs-row">
+                    <div class="input-col">
+                      <label class="popover-label">Từ (m²)</label>
+                      <input type="number" class="popover-input" [(ngModel)]="minAreaInput" (input)="onAreaInputCustom()" placeholder="0" />
+                    </div>
+                    <div class="arrow-sep">→</div>
+                    <div class="input-col">
+                      <label class="popover-label">Đến (m²)</label>
+                      <input type="number" class="popover-input" [(ngModel)]="maxAreaInput" (input)="onAreaInputCustom()" placeholder="100" />
+                    </div>
+                  </div>
+
+                  <div class="popover-options-list">
+                    <div class="popover-option" [class.selected]="selectedAreaOption === 'all'" (click)="selectAreaOption('all')">
+                      <span>Tất cả diện tích</span>
+                      @if (selectedAreaOption === 'all') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedAreaOption === 'under20'" (click)="selectAreaOption('under20')">
+                      <span>Dưới 20 m²</span>
+                      @if (selectedAreaOption === 'under20') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedAreaOption === '20to30'" (click)="selectAreaOption('20to30')">
+                      <span>20 - 30 m²</span>
+                      @if (selectedAreaOption === '20to30') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedAreaOption === '30to50'" (click)="selectAreaOption('30to50')">
+                      <span>30 - 50 m²</span>
+                      @if (selectedAreaOption === '30to50') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                    <div class="popover-option" [class.selected]="selectedAreaOption === 'over50'" (click)="selectAreaOption('over50')">
+                      <span>Trên 50 m²</span>
+                      @if (selectedAreaOption === 'over50') {
+                        <span class="check-icon"></span>
+                      }
+                    </div>
+                  </div>
+
+                  <div class="popover-footer">
+                    <button class="btn-popover-reset" (click)="resetAreaFilter()"> Đặt lại</button>
+                    <button class="btn-popover-apply" (click)="applyAreaFilter()">Tìm ngay</button>
+                  </div>
+                </div>
+              }
+            </div>
+            <div class="pill-divider"></div>
+
+            <div class="pill-group checkbox-group" style="display: flex; align-items: center; gap: 8px; padding-right: 16px;">
+              <input type="checkbox" id="verifiedCheck" [(ngModel)]="verifiedHost" (change)="onFilterChange()" style="accent-color: var(--color-primary); cursor: pointer;" />
+              <label for="verifiedCheck" style="font-size: 0.9em; font-weight: 600; cursor: pointer; color: var(--text-main); margin: 0; white-space: nowrap;">Đã xác minh</label>
+            </div>
+            
+            <button class="pill-search-btn-orange" (click)="onFilterChange()">
+               Tìm kiếm
             </button>
           </div>
         </div>
@@ -52,20 +222,33 @@ import { AuthService } from '../../services/auth.service';
 
       <!-- Vacant Listings Grid -->
       <section class="listings-section">
-        <div class="section-header">
-          <h2>Lựa chọn chỗ ở HOT</h2>
-          <p class="section-subtitle">Lựa chọn chỗ ở HOT mà chúng tôi đề xuất cho bạn</p>
+        <div class="section-header-row">
+          <div class="section-header">
+            <h2 style="display: flex; align-items: center; gap: 8px;">
+              <span style="color: #ef4444;"></span> Nhà trọ, Phòng trọ nổi bật
+            </h2>
+            <p class="section-subtitle">Lựa chọn nhà trọ nổi bật & chất lượng tốt nhất dành cho bạn</p>
+          </div>
+          <button class="btn-view-all" (click)="resetFilters()">View all &rarr;</button>
         </div>
 
-        <!-- Filter Pills (Visual UI) -->
+        <!-- Filter Pills (Districts & Amenities) -->
         <div class="category-pills">
-          <button class="cat-pill" [class.active]="selectedDistrict === ''" (click)="setDistrictFilter('')">Tất Cả</button>
+          <button class="cat-pill" [class.active]="selectedDistrict === '' && selectedAmenity === ''" (click)="setDistrictFilter(''); selectedAmenity = ''; applyAmenityFilter();">Tất Cả</button>
+          <button class="cat-pill" [class.active]="selectedDistrict === 'Thạch Hoà'" (click)="setDistrictFilter('Thạch Hoà')">Thạch Hoà</button>
+          <button class="cat-pill" [class.active]="selectedDistrict === 'Tân Xã'" (click)="setDistrictFilter('Tân Xã')">Tân Xã</button>
+          <button class="cat-pill" [class.active]="selectedDistrict === 'Bình Yên'" (click)="setDistrictFilter('Bình Yên')">Bình Yên</button>
           <button class="cat-pill" [class.active]="selectedDistrict === 'Cầu Giấy'" (click)="setDistrictFilter('Cầu Giấy')">Cầu Giấy</button>
           <button class="cat-pill" [class.active]="selectedDistrict === 'Đống Đa'" (click)="setDistrictFilter('Đống Đa')">Đống Đa</button>
           <button class="cat-pill" [class.active]="selectedDistrict === 'Thanh Xuân'" (click)="setDistrictFilter('Thanh Xuân')">Thanh Xuân</button>
           <button class="cat-pill" [class.active]="selectedDistrict === 'Nam Từ Liêm'" (click)="setDistrictFilter('Nam Từ Liêm')">Nam Từ Liêm</button>
-          <div style="flex: 1;"></div>
-          <button class="view-all-btn" (click)="setDistrictFilter('')">View all →</button>
+
+          <div class="cat-divider"></div>
+
+          <button class="cat-pill" [class.active]="selectedAmenity === 'Điều hòa'" (click)="toggleAmenityFilter('Điều hòa')">️ Điều hòa</button>
+          <button class="cat-pill" [class.active]="selectedAmenity === 'Nóng lạnh'" (click)="toggleAmenityFilter('Nóng lạnh')"> Nóng lạnh</button>
+          <button class="cat-pill" [class.active]="selectedAmenity === 'Khép kín'" (click)="toggleAmenityFilter('Khép kín')"> Khép kín</button>
+          <button class="cat-pill" [class.active]="selectedAmenity === 'Thang máy'" (click)="toggleAmenityFilter('Thang máy')"> Thang máy</button>
         </div>
 
         @if (isLoading()) {
@@ -82,13 +265,15 @@ import { AuthService } from '../../services/auth.service';
             }
           </div>
 
-          @if (normalProperties().length > 0) {
-            <div class="section-header" style="margin-top: 40px;">
-              <h2>Nhà trọ được đề xuất</h2>
-              <p class="section-subtitle">Các lựa chọn nhà trọ khác dành cho bạn</p>
+          @if (groupedProperties().length > 0) {
+            <div class="section-header-row" style="margin-top: 48px;">
+              <div class="section-header">
+                <h2>Toàn bộ nhà trọ </h2>
+                <p class="section-subtitle">Khám phá tất cả các lựa chọn nhà trọ uy tín</p>
+              </div>
             </div>
             <div class="listings-grid">
-              @for (prop of normalProperties(); track prop.propertyId) {
+              @for (prop of groupedProperties(); track prop.propertyId) {
                 <ng-container *ngTemplateOutlet="propertyCard; context: {$implicit: prop}"></ng-container>
               }
             </div>
@@ -96,44 +281,58 @@ import { AuthService } from '../../services/auth.service';
         }
 
         <ng-template #propertyCard let-prop>
-          <div class="interactive-card property-card" (click)="openPropertyDetail(prop)" style="position: relative;">
-            @if (prop.subscriptionId === 2 || prop.subscriptionId === 3) {
-              <div class="hot-badge">🔥 HOT</div>
+          <div class="interactive-card property-card" (click)="openPropertyDetail(prop)">
+            @if (prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
+              <div class="hot-badge-large">
+                <svg class="hot-flame-icon" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12 23c-4.97 0-9-4.03-9-9 0-3.8 2.38-7.05 5.74-8.35.43-.16.9.11.97.56.09.56.32 1.54.89 2.2 1.05 1.21 2.2 1.34 2.9 2.59.8 1.43.25 3.32-.5 4.5 1.5-.7 3.5-2.7 3.5-5.5 0-.4.3-.7.7-.7.3 0 .5.1.7.3C20.3 12.3 21 14.5 21 17c0 4.97-4.03 9-9 9z"/>
+                </svg>
+                <span>HOT</span>
+              </div>
             }
 
             <div class="property-thumbnail">
-
               @if (prop.imageUrls && prop.imageUrls.length > 0) {
                 <img [src]="getImageUrl(prop.imageUrls[0])" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
               } @else {
                 <div class="placeholder-img" [style.background]="getRandomGradient(prop.propertyId)"></div>
               }
               
-              <div class="card-overlay-top" style="justify-content: flex-end; gap: 8px; align-items: center;">
+              <div class="card-overlay-top">
                 @if (prop.vacantRoomsCount > 0) {
-                  <span class="badge-pill-mint">Còn phòng</span>
+                  <span class="badge-status-prominent vacant">
+                    <span class="pulse-indicator"></span>
+                    CÒN TRỐNG ({{ prop.vacantRoomsCount }})
+                  </span>
                 } @else {
-                  <span class="badge-pill-mint" style="background: rgba(225, 29, 72, 0.9);">Hết phòng</span>
+                  <span class="badge-status-prominent full">HẾT PHÒNG</span>
                 }
-                <button class="icon-btn heart-btn" (click)="toggleFavorite(prop, $event)">
-                  {{ prop.isFavorite ? '❤️' : '🤍' }}
-                </button>
+                
+                <div class="top-action-icons">
+                  <button class="icon-btn-round" title="Xem tổng quan layout">
+                    <i class="fas fa-th-large"></i>
+                  </button>
+                  <button class="icon-btn-round heart-btn" (click)="toggleFavorite(prop, $event)" title="Lưu yêu thích">
+                    {{ prop.isFavorite ? '️' : '' }}
+                  </button>
+                </div>
               </div>
               
               <div class="card-overlay-bottom">
+                <span class="view-count-badge">️ {{ prop.viewCount || 9 }}</span>
                 <div class="pagination-dots">
                   <span class="dot active"></span>
                   <span class="dot"></span>
                   <span class="dot"></span>
                   <span class="dot"></span>
+                  <span class="dot"></span>
                 </div>
-                <span class="view-count-badge">👁️ {{ prop.viewCount || 0 }}</span>
               </div>
             </div>
 
             <div class="property-info">
               <h3 class="property-title">{{ prop.propertyTitle }}</h3>
-              <p class="property-address"><span class="pin-icon">📍</span> {{ prop.address }}</p>
+              <p class="property-address"><span class="pin-icon"></span> {{ prop.address }}</p>
               
               <div class="property-footer">
                 <div class="price-block">
@@ -141,151 +340,134 @@ import { AuthService } from '../../services/auth.service';
                   <span class="price-unit">/tháng</span>
                 </div>
                 <div class="rating-block">
-                  <span class="star-icon">⭐</span> {{ prop.averageRating | number:'1.1-1' }} ({{ prop.reviewCount }})
+                  <span class="star-icon"> </span> {{ prop.averageRating | number:'1.1-1' }}
                 </div>
               </div>
             </div>
           </div>
         </ng-template>
+
+        <!-- Floating Chat Widget Button -->
+        <a href="https://zalo.me" target="_blank" class="floating-chat-btn" title="Hỗ trợ & Chat ngay">
+          
+        </a>
       </section>
 
-      <!-- Property Detail Modal -->
-      @if (selectedProperty(); as prop) {
-        <div class="modal-backdrop animate-fade-in" (click)="closePropertyDetail()">
-          <div class="glass-panel modal-card max-w-900" (click)="$event.stopPropagation()">
-            <button (click)="closePropertyDetail()" class="modal-close-btn">&times;</button>
-            
-            <div class="modal-gallery" [style.background]="getRandomGradient(prop.propertyId)">
-              @if (prop.imageUrls && prop.imageUrls.length > 0) {
-                <img [src]="getImageUrl(prop.imageUrls[0])" alt="Property Gallery Image" class="modal-gallery-img" />
-              }
+      <!-- SÀN GHÉP TRỌ SINH VIÊN PROMO SECTION -->
+      <section class="roommate-promo-section glass-panel">
+        <div class="promo-inner-grid">
+          <div class="promo-text-content">
+            <div class="promo-pill-label">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              </svg>
+              <span>TÍNH NĂNG DÀNH CHO KHÁCH THUÊ</span>
+            </div>
+            <h2 class="promo-heading">Sàn Ghép Trọ & Tìm Bạn Cùng Phòng Thông Minh</h2>
+            <p class="promo-desc">
+              Bạn đang tìm bạn cùng phòng hợp tính cách để chia sẻ tiền phòng? Hoặc bạn đã thuê sẵn phòng và cần tìm người vào ở ghép ngay? 
+              ZHome Match kết nối sinh viên an toàn, minh bạch với thuật toán khớp lối sống tối ưu.
+            </p>
+
+            <div class="promo-features-list">
+              <div class="promo-feature-item">
+                <div class="f-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                </div>
+                <div class="f-text">
+                  <strong>AI Matchmaker thông minh</strong>
+                  <p>Tự động tính độ tương thích theo giờ giấc, thói quen sinh hoạt (ngủ muộn, thuốc lá, thú cưng...)</p>
+                </div>
+              </div>
+              <div class="promo-feature-item">
+                <div class="f-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="22" y1="12" x2="18" y2="12"/>
+                    <line x1="6" y1="12" x2="2" y2="12"/>
+                    <line x1="12" y1="6" x2="12" y2="2"/>
+                    <line x1="12" y1="22" x2="12" y2="18"/>
+                  </svg>
+                </div>
+                <div class="f-text">
+                  <strong>Sàn tin đăng sinh viên phong phú</strong>
+                  <p>Hàng trăm bài đăng tìm bạn ở ghép quanh các trường Bách Khoa, Quốc Gia, FPT, NEU, Xây Dựng...</p>
+                </div>
+              </div>
+              <div class="promo-feature-item">
+                <div class="f-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <div class="f-text">
+                  <strong>Liên hệ & kết nối trực tiếp</strong>
+                  <p>Xem ảnh phòng thực tế, trao đổi trực tiếp qua SĐT và Zalo chính chủ không qua môi giới.</p>
+                </div>
+              </div>
             </div>
 
-            <div class="modal-body">
-              <div class="modal-header-row">
-                <div class="header-text-block">
-                  <h2>{{ prop.propertyTitle }}</h2>
-                  <p class="modal-address">📍 {{ prop.address }}</p>
-                  @if (prop.isVerifiedTick) {
-                    <span class="badge badge-success" style="display: inline-block; margin-top: 8px;">🛡️ Khu trọ chính chủ (Đã xác minh)</span>
-                  }
-                </div>
-                <div class="modal-stats-badges">
-                  <span class="badge badge-primary font-bold">Tổng số phòng: {{ prop.totalRooms }}</span>
-                  <span class="badge badge-success font-bold" style="margin-left: 8px;">Đang trống: {{ prop.vacantRoomsCount }} phòng</span>
-                </div>
+            <div class="promo-actions-group">
+              <button (click)="goToMatch('board')" class="btn-promo-primary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;">
+                  <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                  <line x1="3" y1="9" x2="21" y2="9"/>
+                  <line x1="9" y1="21" x2="9" y2="9"/>
+                </svg>
+                <span>Khám Phá Sàn Ghép Trọ</span>
+              </button>
+              <button (click)="goToMatch('post')" class="btn-promo-secondary">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 6px; vertical-align: -2px;">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
+                </svg>
+                <span>Đăng Tin Tìm Ở Ghép</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="promo-card-preview">
+            <div class="interactive-preview-box">
+              <div class="preview-badge-row">
+                <span class="p-status-tag has-room">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -1px;">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                  </svg>
+                  <span>ĐÃ CÓ PHÒNG SẴN</span>
+                </span>
+                <span class="p-compat-tag">98% TƯƠNG THÍCH</span>
               </div>
-
-              <div class="modal-divider"></div>
-
-              <div class="modal-grid">
-                <div class="modal-main-content">
-                  @if (prop.description) {
-                    <div class="mb-4">
-                      <strong>Mô tả khu trọ:</strong>
-                      <p class="modal-desc">{{ prop.description }}</p>
-                    </div>
-                  }
-
-                  <h3 class="mb-3">Danh sách phòng</h3>
-                  <div class="vacant-rooms-list">
-                    @for (room of prop.rooms; track room.roomId) {
-                      <div class="vacant-room-item-card">
-                        <div class="room-item-header">
-                          <span class="room-number-title">🚪 Phòng {{ room.roomNumber }}</span>
-                          @if (room.status === 'Available') {
-                            <span class="status-badge-vacant">🟢 ĐANG TRỐNG</span>
-                          } @else {
-                            <span class="status-badge-vacant" style="color: #e11d48;">🔴 ĐÃ ĐẦY</span>
-                          }
-                        </div>
-                        <div class="room-item-specs">
-                          <div class="spec-col">
-                            <span class="spec-label">Giá thuê</span>
-                            <span class="spec-value price-val">{{ room.price | number:'1.0-0' }}đ/tháng</span>
-                          </div>
-                          <div class="spec-col">
-                            <span class="spec-label">Diện tích</span>
-                            <span class="spec-value">{{ room.area }} m²</span>
-                          </div>
-                          <div class="spec-col">
-                            <span class="spec-label">Tối đa</span>
-                            <span class="spec-value">{{ room.maxOccupants }} người</span>
-                          </div>
-                        </div>
-
-                        @if (room.amenities && room.amenities.length > 0) {
-                          <div class="room-item-amenities">
-                            <strong>Tiện ích: </strong>
-                            @for (am of room.amenities; track am) {
-                              <span class="amenity-badge-lite">{{ am }}</span>
-                            }
-                          </div>
-                        }
-                      </div>
-                    }
+              <h3 class="preview-title">Tìm 1 bạn Nam sinh viên ở ghép ngõ 8 Tân Xã, ĐH FPT</h3>
+              <div class="preview-meta-row">
+                <span>📍 Gần ĐH FPT Hòa Lạc</span>
+                <span class="preview-price">1.500.000đ/tháng</span>
+              </div>
+              <div class="preview-habits-tags">
+                <span class="p-tag active">Ngủ muộn</span>
+                <span class="p-tag clean">Không hút thuốc</span>
+                <span class="p-tag ok">Thú cưng OK</span>
+              </div>
+              <div class="preview-footer-row">
+                <div class="preview-author">
+                  <div class="author-avatar-badge">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/>
+                      <circle cx="12" cy="7" r="4"/>
+                    </svg>
+                  </div>
+                  <div>
+                    <strong>Nguyễn Văn An</strong>
+                    <span style="font-size: 0.75rem; color: #64748b; display: block;">Sinh viên K18 ĐH FPT</span>
                   </div>
                 </div>
-
-                <div class="modal-sidebar-info">
-                  <div class="landlord-card">
-                    <h4>Thông tin liên hệ</h4>
-                    <p class="landlord-name">
-                      👤 {{ prop.landlordName }}
-                      @if (prop.isVerifiedTick) {
-                        <span class="verified-tick" title="Chủ nhà đã xác minh">✅</span>
-                      }
-                    </p>
-                    <a href="tel:{{ prop.landlordPhone }}" class="btn btn-primary btn-block mt-3">Gọi điện liên hệ</a>
-                    <button class="btn btn-secondary btn-block mt-2" (click)="loadReports(prop.propertyId)" *ngIf="!showReports()">Xem Đánh Giá</button>
-                    <button class="btn btn-secondary btn-block mt-2" (click)="showReports.set(false)" *ngIf="showReports()">Đóng Đánh Giá</button>
-                  </div>
-                </div>
+                <button (click)="goToMatch('board')" class="btn-preview-contact">Liên hệ</button>
               </div>
-
-              <!-- Reports Section -->
-              @if (showReports()) {
-                <div class="modal-divider"></div>
-                <div class="reports-section mt-4 mb-4">
-                  <h3 class="mb-3">Đánh giá từ khách thuê</h3>
-                  
-                  @if (isLoadingReports()) {
-                    <p class="text-muted">Đang tải đánh giá...</p>
-                  } @else if (reports().length === 0) {
-                    <p class="text-muted">Chưa có đánh giá nào cho khu trọ này.</p>
-                  } @else {
-                    <div class="reports-list">
-                      @for (report of reports(); track report.id) {
-                        <div class="report-card mb-3" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px;">
-                          <div class="report-header" style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <strong>{{ report.tenantName }} <span style="color: #64748b; font-size: 0.9em; font-weight: normal;">(Phòng {{ report.roomNumber }})</span></strong>
-                            <div class="rating-stars" style="color: #fbbf24;">
-                              @for (i of [1, 2, 3, 4, 5]; track i) {
-                                <span>{{ i <= (report.rating || 5) ? '★' : '☆' }}</span>
-                              }
-                            </div>
-                          </div>
-                          <h5 style="margin: 0 0 5px 0;">{{ report.title }}</h5>
-                          <p style="margin: 0; color: #334155; font-size: 0.95em;">{{ report.content }}</p>
-                          <div style="font-size: 0.8em; color: #94a3b8; margin-top: 5px;">{{ report.createdAt | date:'dd/MM/yyyy HH:mm' }}</div>
-                          
-                          @if (report.landlordReply) {
-                            <div class="landlord-reply" style="margin-top: 12px; padding-top: 12px; border-top: 1px dashed #cbd5e1;">
-                              <strong style="color: #4f46e5;">Phản hồi từ Chủ trọ:</strong>
-                              <p style="margin: 4px 0 0 0; font-size: 0.9em; color: #475569;">{{ report.landlordReply }}</p>
-                              <div style="font-size: 0.75em; color: #94a3b8; margin-top: 4px;">Đã trả lời lúc: {{ report.repliedAt | date:'dd/MM/yyyy HH:mm' }}</div>
-                            </div>
-                          }
-                        </div>
-                      }
-                    </div>
-                  }
-                </div>
-              }
             </div>
           </div>
         </div>
-      }
+      </section>
 
     </div>
   `,
@@ -299,187 +481,402 @@ import { AuthService } from '../../services/auth.service';
     /* Hero Section */
     .hero-section {
       text-align: center;
-      padding: 60px 0 40px;
+      padding: 64px 20px 48px;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 32px;
+      background: radial-gradient(circle at 10% 20%, rgba(254, 243, 199, 0.35) 0%, rgba(239, 246, 255, 0.6) 50%, rgba(255, 255, 255, 1) 100%);
+      border-radius: 28px;
+      margin-bottom: 10px;
     }
     .hero-content h1 {
-      font-size: 3.5rem;
+      font-size: 3.2rem;
       margin-bottom: 12px;
       font-weight: 800;
       letter-spacing: -0.04em;
-      background: var(--grad-primary);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: #0f172a;
       line-height: 1.2;
     }
     .hero-content p {
       font-size: 1.15rem;
-      color: var(--text-muted);
-      max-width: 600px;
+      color: #475569;
+      max-width: 650px;
       margin: 0 auto;
     }
 
-    /* Floating Search Pill */
     .search-pill-container {
-      padding: 12px;
+      padding: 8px 12px;
       border-radius: 99px;
-      box-shadow: 0 12px 40px -10px rgba(79, 70, 229, 0.15);
-      background: rgba(255, 255, 255, 0.95);
+      box-shadow: 0 16px 40px -10px rgba(15, 23, 42, 0.08);
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.9);
       width: 100%;
-      max-width: 850px;
+      max-width: 1120px;
+      position: relative;
     }
     .search-pill {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 4px;
     }
     .pill-group {
       flex: 1;
-      padding: 4px 16px;
+      padding: 6px 10px;
+      min-width: 0;
     }
     .search-input-group {
-      flex: 1.5;
+      flex: 1.8;
     }
     .pill-divider {
       width: 1px;
-      height: 30px;
-      background: var(--border-color);
+      height: 32px;
+      background: #e2e8f0;
+      flex-shrink: 0;
     }
-    .pill-group input, .pill-group select {
+    .pill-group input[type="text"], .pill-group select {
       width: 100%;
       border: none;
       background: transparent;
-      font-size: 1rem;
-      font-weight: 500;
-      color: var(--text-main);
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #0f172a;
       outline: none;
       cursor: pointer;
+      text-overflow: ellipsis;
+      overflow: hidden;
+      white-space: nowrap;
+    }
+    .pill-group input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      margin: 0;
+      flex-shrink: 0;
     }
     .pill-group input::placeholder {
-      color: var(--text-dark);
+      color: #94a3b8;
       font-weight: 400;
     }
-    .pill-search-btn {
-      background: var(--color-warning); /* Orange/Amber accent */
+
+    /* Popover Controls */
+    .popover-btn-wrapper {
+      position: relative;
+    }
+    .pill-popover-trigger {
+      background: transparent;
+      border: none;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      font-size: 0.98rem;
+      font-weight: 600;
+      color: #0f172a;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .pill-popover-trigger:hover {
+      color: #2563eb;
+    }
+    .trigger-icon {
+      color: #0ea5e9;
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+    .chevron {
+      font-size: 0.65rem;
+      color: #64748b;
+      margin-left: 2px;
+      transition: transform 0.2s ease;
+    }
+
+    .filter-popover {
+      position: absolute;
+      top: calc(100% + 14px);
+      left: 50%;
+      transform: translateX(-50%);
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 12px 32px rgba(15, 23, 42, 0.15);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      text-align: left;
+    }
+    .price-popover {
+      width: 350px;
+    }
+    .area-popover {
+      width: 320px;
+    }
+
+    .popover-inputs-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+    }
+    .input-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .popover-label {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+    .popover-input {
+      width: 100%;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #0f172a;
+      text-align: center;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .popover-input:focus {
+      border-color: #0ea5e9;
+    }
+    .arrow-sep {
+      font-size: 1.1rem;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+
+    .range-slider-wrapper {
+      padding: 4px 0;
+    }
+    .price-slider {
+      width: 100%;
+      accent-color: #0ea5e9;
+      cursor: pointer;
+    }
+
+    .popover-options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-height: 240px;
+      overflow-y: auto;
+    }
+    .popover-option {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #334155;
+      cursor: pointer;
+      transition: background 0.15s ease;
+    }
+    .popover-option:hover {
+      background: #f8fafc;
+      color: #0f172a;
+    }
+    .popover-option.selected {
+      font-weight: 700;
+      color: #0f172a;
+    }
+    .check-icon {
+      width: 20px;
+      height: 20px;
+      background: #0ea5e9;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .popover-footer {
+      display: flex;
+      gap: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #f1f5f9;
+    }
+    .btn-popover-reset {
+      flex: 1;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #334155;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-popover-reset:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+    }
+    .btn-popover-apply {
+      flex: 1.2;
+      padding: 10px 16px;
+      border-radius: 8px;
+      border: none;
+      background: #1d4ed8;
+      color: white;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(29, 78, 216, 0.25);
+    }
+    .btn-popover-apply:hover {
+      background: #1e40af;
+      transform: translateY(-1px);
+    }
+
+    .pill-search-btn-orange {
+      background: linear-gradient(135deg, #ff5722 0%, #e64a19 100%);
       color: white;
       border: none;
-      padding: 14px 32px;
+      padding: 12px 30px;
       border-radius: 99px;
       font-weight: 700;
-      font-size: 1.05rem;
+      font-size: 0.98rem;
       cursor: pointer;
-      transition: var(--transition);
-      box-shadow: 0 4px 12px rgba(234, 88, 12, 0.3);
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 6px 20px rgba(255, 87, 34, 0.35);
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
     }
-    .pill-search-btn:hover {
+    .pill-search-btn-orange:hover {
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(234, 88, 12, 0.4);
-      background: #c2410c;
+      box-shadow: 0 10px 25px rgba(255, 87, 34, 0.5);
     }
 
     /* Section Headers */
-    .section-header {
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
       margin-bottom: 24px;
+    }
+    .section-header {
+      margin-bottom: 0;
     }
     .section-header h2 {
       font-size: 2.2rem;
       font-weight: 800;
       letter-spacing: -0.03em;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
+      color: #0f172a;
     }
     .section-subtitle {
-      color: var(--text-muted);
+      color: #64748b;
       font-size: 1.05rem;
+    }
+    .btn-view-all {
+      border: 1px solid #e2e8f0;
+      background: #ffffff;
+      color: #334155;
+      border-radius: 99px;
+      padding: 8px 22px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .btn-view-all:hover {
+      background: #f8fafc;
+      border-color: #cbd5e1;
+      color: #0f172a;
+      transform: translateX(2px);
     }
 
     /* Category Pills */
     .category-pills {
       display: flex;
-      gap: 12px;
-      margin-bottom: 30px;
+      gap: 8px;
+      margin-bottom: 32px;
       align-items: center;
       flex-wrap: wrap;
     }
     .cat-pill {
-      padding: 10px 24px;
+      padding: 8px 20px;
       border-radius: 99px;
-      border: 1px solid var(--border-color);
-      background: white;
-      color: var(--text-muted);
+      border: none;
+      background: transparent;
+      color: #64748b;
       font-weight: 600;
-      font-size: 0.95rem;
+      font-size: 0.98rem;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.2s ease;
     }
     .cat-pill:hover {
-      background: rgba(15, 23, 42, 0.02);
-      border-color: #cbd5e1;
+      color: #0f172a;
+      background: rgba(241, 245, 249, 0.8);
     }
     .cat-pill.active {
       background: #0f172a;
-      color: white;
-      border-color: #0f172a;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
     }
-    .view-all-btn {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      padding: 10px 20px;
-      border-radius: 99px;
-      font-weight: 600;
-      color: var(--text-main);
-      cursor: pointer;
-      transition: var(--transition);
-    }
-    .view-all-btn:hover {
-      background: white;
-      border-color: var(--text-dark);
+    .cat-divider {
+      width: 1px;
+      height: 20px;
+      background: #e2e8f0;
+      margin: 0 8px;
     }
 
     /* Listings Grid & Cards */
     .listings-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 24px;
     }
-    @media (max-width: 1400px) {
-      .listings-grid { grid-template-columns: repeat(4, 1fr); }
-    }
-    @media (max-width: 1100px) {
+    @media (max-width: 1200px) {
       .listings-grid { grid-template-columns: repeat(3, 1fr); }
     }
-    @media (max-width: 800px) {
+    @media (max-width: 850px) {
       .listings-grid { grid-template-columns: repeat(2, 1fr); }
     }
-    @media (max-width: 500px) {
+    @media (max-width: 550px) {
       .listings-grid { grid-template-columns: 1fr; }
     }
     .property-card {
       padding: 0;
-      border: 1px solid var(--border-color);
-      background: var(--bg-card);
-      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(226, 232, 240, 0.9);
+      background: #ffffff;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
       border-radius: 20px;
       overflow: hidden;
       display: flex;
       flex-direction: column;
       cursor: pointer;
-      transition: var(--transition);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
     .property-card:hover .thumbnail-img {
       transform: scale(1.05);
     }
     .property-card:hover {
-      transform: translateY(-8px);
-      box-shadow: var(--shadow-lg);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 35px -10px rgba(15, 23, 42, 0.12);
+      border-color: rgba(203, 213, 225, 0.9);
     }
     .property-thumbnail {
-      height: 280px;
+      height: 220px;
       position: relative;
       overflow: hidden;
       margin-bottom: 0;
+      border-radius: 20px 20px 0 0;
     }
     .thumbnail-img {
       width: 100%;
@@ -500,54 +897,105 @@ import { AuthService } from '../../services/auth.service';
       right: 12px;
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
+      align-items: center;
       z-index: 2;
     }
-    .badge-pill-mint {
-      background: rgba(79, 70, 229, 0.95);
-      color: white;
+    .hot-badge-large {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      z-index: 10;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 60%, #b91c1c 100%);
+      color: #ffffff;
+      font-size: 0.82rem;
+      font-weight: 900;
+      letter-spacing: 0.08em;
+      padding: 5px 12px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45);
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      animation: pulseHot 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseHot {
+      0%, 100% { transform: scale(1); box-shadow: 0 4px 14px rgba(220, 38, 38, 0.45); }
+      50% { transform: scale(1.06); box-shadow: 0 6px 20px rgba(220, 38, 38, 0.65); }
+    }
+
+    .hot-flame-icon {
+      width: 14px;
+      height: 14px;
+      fill: #ffffff;
+    }
+
+    .badge-status-prominent {
       padding: 6px 14px;
       border-radius: 99px;
       font-size: 0.8rem;
-      font-weight: 700;
-      backdrop-filter: blur(4px);
-    }
-    .hot-badge {
-      position: absolute;
-      top: 0;
-      left: 0;
-      background: linear-gradient(135deg, #ff0f7b 0%, #f89b29 100%);
-      padding: 8px 24px;
-      font-size: 1.15rem;
       font-weight: 800;
-      color: white;
-      z-index: 20;
-      border-radius: 20px 0 20px 0;
-      box-shadow: 3px 3px 15px rgba(255, 15, 123, 0.4);
-      letter-spacing: 1px;
-      display: flex;
+      letter-spacing: 0.03em;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-      text-transform: uppercase;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
     }
-    .icon-btn {
-      background: rgba(0, 0, 0, 0.3);
-      color: white;
-      border: none;
+
+    .badge-status-prominent.vacant {
+      background: #059669;
+      color: #ffffff;
+      border: 1.5px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 4px 12px rgba(5, 150, 105, 0.35);
+    }
+
+    .badge-status-prominent.full {
+      background: #dc2626;
+      color: #ffffff;
+      border: 1.5px solid rgba(255, 255, 255, 0.4);
+    }
+
+    .pulse-indicator {
+      width: 7px;
+      height: 7px;
+      background: #ffffff;
+      border-radius: 50%;
+      display: inline-block;
+      animation: pulseIndicator 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulseIndicator {
+      0% { transform: scale(0.9); opacity: 0.7; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.9); opacity: 0.7; }
+    }
+    .top-action-icons {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .icon-btn-round {
       width: 36px;
       height: 36px;
       border-radius: 50%;
+      background: rgba(255, 255, 255, 0.88);
+      backdrop-filter: blur(6px);
+      border: none;
       display: flex;
       align-items: center;
       justify-content: center;
+      color: #334155;
       cursor: pointer;
-      backdrop-filter: blur(4px);
-      transition: var(--transition);
-      font-size: 1rem;
+      transition: all 0.2s ease;
+      font-size: 0.95rem;
     }
-    .icon-btn:hover {
-      background: rgba(244, 63, 94, 0.9);
+    .icon-btn-round:hover {
+      background: #ffffff;
       transform: scale(1.1);
+      color: #0f172a;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
     }
 
     .card-overlay-bottom {
@@ -562,8 +1010,8 @@ import { AuthService } from '../../services/auth.service';
     }
     .pagination-dots {
       display: flex;
-      gap: 6px;
-      background: rgba(0,0,0,0.2);
+      gap: 5px;
+      background: rgba(0, 0, 0, 0.25);
       padding: 4px 8px;
       border-radius: 12px;
       backdrop-filter: blur(4px);
@@ -571,7 +1019,7 @@ import { AuthService } from '../../services/auth.service';
     .dot {
       width: 6px;
       height: 6px;
-      background: rgba(255,255,255,0.5);
+      background: rgba(255, 255, 255, 0.5);
       border-radius: 50%;
     }
     .dot.active {
@@ -579,10 +1027,10 @@ import { AuthService } from '../../services/auth.service';
       transform: scale(1.2);
     }
     .view-count-badge {
-      background: rgba(0, 0, 0, 0.6);
+      background: rgba(0, 0, 0, 0.55);
       color: white;
-      padding: 4px 8px;
-      border-radius: 6px;
+      padding: 4px 10px;
+      border-radius: 12px;
       font-size: 0.75rem;
       font-weight: 600;
       backdrop-filter: blur(4px);
@@ -590,31 +1038,31 @@ import { AuthService } from '../../services/auth.service';
 
     /* Property Info */
     .property-info {
-      padding: 20px;
+      padding: 16px 18px 20px;
       display: flex;
       flex-direction: column;
       flex: 1;
     }
     .property-title {
-      font-size: 1.15rem;
+      font-size: 1.12rem;
       font-weight: 700;
       margin-bottom: 4px;
-      color: var(--text-main);
+      color: #0f172a;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .property-address {
-      font-size: 0.9rem;
-      color: var(--text-muted);
+      font-size: 0.88rem;
+      color: #64748b;
       margin-bottom: 12px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
     .pin-icon {
-      font-size: 0.8rem;
-      opacity: 0.7;
+      font-size: 0.82rem;
+      opacity: 0.8;
     }
     .property-footer {
       display: flex;
@@ -630,24 +1078,322 @@ import { AuthService } from '../../services/auth.service';
     .price-value {
       font-size: 1.25rem;
       font-weight: 800;
-      color: var(--text-main);
+      color: #0f172a;
     }
     .price-unit {
       font-size: 0.85rem;
-      color: var(--text-muted);
+      color: #64748b;
       font-weight: 500;
     }
     .rating-block {
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 600;
-      color: var(--text-muted);
+      color: #475569;
       display: flex;
       align-items: center;
       gap: 4px;
     }
     .star-icon {
-      color: #fbbf24;
+      color: #f59e0b;
     }
+
+    /* Floating Chat Button */
+    .floating-chat-btn {
+      position: fixed;
+      bottom: 28px;
+      right: 28px;
+      width: 54px;
+      height: 54px;
+      background: #2563eb;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+      z-index: 1000;
+      text-decoration: none;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .floating-chat-btn:hover {
+      transform: scale(1.1);
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.5);
+    }
+    /* Hero Mode Switcher */
+    .hero-mode-switch-wrapper {
+      display: inline-flex;
+      gap: 12px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .hero-mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 99px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: #334155;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+      transition: all 0.25s ease;
+    }
+    .hero-mode-badge:hover {
+      transform: translateY(-2px);
+      border-color: #3b82f6;
+      color: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(59, 130, 246, 0.15);
+    }
+    .hero-mode-badge.active {
+      background: #1d4ed8;
+      color: #ffffff;
+      border-color: #1d4ed8;
+      box-shadow: 0 4px 14px rgba(29, 78, 216, 0.25);
+    }
+    .hero-mode-badge.match-btn {
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: #ffffff;
+      border-color: #0284c7;
+      box-shadow: 0 4px 14px rgba(2, 132, 199, 0.25);
+    }
+    .hero-mode-badge.match-btn:hover {
+      background: linear-gradient(135deg, #0369a1, #0284c7);
+      box-shadow: 0 6px 20px rgba(2, 132, 199, 0.35);
+    }
+    .pulse-badge-sm {
+      background: #ef4444;
+      color: #ffffff;
+      font-size: 0.65rem;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 99px;
+      letter-spacing: 0.04em;
+    }
+
+    /* Roommate Promo Section */
+    .roommate-promo-section {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #ffffff 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 28px;
+      padding: 44px 36px;
+      box-shadow: 0 20px 40px -15px rgba(2, 132, 199, 0.12);
+      margin-top: 20px;
+    }
+    .promo-inner-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 36px;
+      align-items: center;
+    }
+    @media (max-width: 900px) {
+      .promo-inner-grid { grid-template-columns: 1fr; }
+    }
+    .promo-pill-label {
+      display: inline-block;
+      background: #e0f2fe;
+      border: 1px solid #7dd3fc;
+      color: #0284c7;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 4px 14px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      letter-spacing: 0.05em;
+    }
+    .promo-heading {
+      font-size: 2.1rem;
+      font-weight: 800;
+      color: #0c4a6e;
+      margin: 0 0 12px 0;
+      line-height: 1.25;
+    }
+    .promo-desc {
+      color: #475569;
+      font-size: 1rem;
+      line-height: 1.6;
+      margin-bottom: 24px;
+    }
+    .promo-features-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .promo-feature-item {
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+    }
+    .promo-feature-item .f-icon {
+      font-size: 1.3rem;
+      width: 38px;
+      height: 38px;
+      background: #ffffff;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.1);
+      flex-shrink: 0;
+    }
+    .promo-feature-item .f-text strong {
+      display: block;
+      color: #0f172a;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
+    }
+    .promo-feature-item .f-text p {
+      margin: 0;
+      color: #64748b;
+      font-size: 0.85rem;
+      line-height: 1.45;
+    }
+    .promo-actions-group {
+      display: flex;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+    .btn-promo-primary {
+      background: linear-gradient(135deg, #0284c7, #0284c7);
+      color: #ffffff;
+      font-weight: 800;
+      font-size: 0.95rem;
+      padding: 13px 24px;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(2, 132, 199, 0.3);
+      transition: all 0.25s ease;
+    }
+    .btn-promo-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 24px rgba(2, 132, 199, 0.4);
+      background: #0369a1;
+    }
+    .btn-promo-secondary {
+      background: #ffffff;
+      color: #0284c7;
+      border: 1.5px solid #7dd3fc;
+      font-weight: 800;
+      font-size: 0.95rem;
+      padding: 12px 22px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+    .btn-promo-secondary:hover {
+      background: #f0f9ff;
+      border-color: #0284c7;
+    }
+
+    /* Preview Card Box */
+    .interactive-preview-box {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.08);
+      transform: rotate(1deg);
+      transition: all 0.3s ease;
+    }
+    .interactive-preview-box:hover {
+      transform: rotate(0deg) scale(1.02);
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.12);
+    }
+    .preview-badge-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .p-status-tag {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    .p-status-tag.has-room { background: #dcfce7; color: #15803d; }
+    .p-compat-tag {
+      font-size: 0.75rem;
+      font-weight: 800;
+      background: #e0f2fe;
+      color: #0284c7;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+    .preview-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 8px 0;
+      line-height: 1.35;
+    }
+    .preview-meta-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 12px;
+      font-weight: 600;
+    }
+    .preview-price {
+      color: #0284c7;
+      font-weight: 800;
+    }
+    .preview-habits-tags {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .p-tag {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
+    .p-tag.active { background: #e0f2fe; color: #0369a1; }
+    .p-tag.clean { background: #f1f5f9; color: #475569; }
+    .p-tag.ok { background: #fef3c7; color: #b45309; }
+
+    .preview-footer-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-top: 1px solid #f1f5f9;
+      padding-top: 14px;
+    }
+    .preview-author {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .author-avatar-badge {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: #e0f2fe;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+    .btn-preview-contact {
+      background: #0284c7;
+      color: #ffffff;
+      border: none;
+      font-size: 0.82rem;
+      font-weight: 800;
+      padding: 7px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
     .loading-state, .empty-state {
       text-align: center;
       padding: 60px;
@@ -659,270 +1405,229 @@ import { AuthService } from '../../services/auth.service';
     .empty-state button {
       margin-top: 15px;
     }
-    
-    /* Modal styles */
-    .modal-backdrop {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      z-index: 2000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    .modal-card {
-      width: 100%;
-      max-width: 800px;
-      padding: 0;
-      overflow: hidden;
-      position: relative;
-    }
-    .max-w-900 {
-      max-width: 900px;
-    }
-    .modal-close-btn {
-      position: absolute;
-      top: 16px;
-      right: 16px;
-      background: rgba(0, 0, 0, 0.5);
-      color: #ffffff;
-      border: none;
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      font-size: 1.5rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 10;
-      transition: var(--transition);
-    }
-    .modal-close-btn:hover {
-      background: var(--color-danger);
-    }
-    .modal-gallery {
-      height: 250px;
-      position: relative;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .modal-gallery-img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-    .modal-gallery-overlay {
-      position: absolute;
-      bottom: 16px;
-      left: 16px;
-    }
-    .modal-body {
-      padding: 30px;
-    }
-    .modal-header-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      flex-wrap: wrap;
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .header-text-block h2 {
-      font-size: 1.6rem;
-      font-weight: 800;
-      color: var(--text-main);
-    }
-    .modal-address {
-      font-size: 0.95rem;
-      color: var(--text-muted);
-      margin-top: 4px;
-    }
-    .modal-stats-badges {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .modal-divider {
-      height: 1px;
-      background: var(--border-color);
-      margin-bottom: 20px;
-    }
-    .modal-grid {
-      display: grid;
-      grid-template-columns: 1.7fr 1fr;
-      gap: 30px;
-    }
-    @media (max-width: 600px) {
-      .modal-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .modal-desc {
-      color: var(--text-muted);
-      margin-top: 6px;
-      line-height: 1.5;
-    }
-    
-    /* Vacant Rooms List */
-    .vacant-rooms-list {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-      max-height: 400px;
-      overflow-y: auto;
-      padding-right: 8px;
-    }
-    .vacant-room-item-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      transition: var(--transition);
-    }
-    .vacant-room-item-card:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--border-hover);
-    }
-    .room-item-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .room-number-title {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: var(--text-main);
-    }
-    .status-badge-vacant {
-      font-size: 0.85rem;
-      font-weight: 800;
-      color: var(--color-success);
-      letter-spacing: 0.05em;
-    }
-    .room-item-specs {
-      display: flex;
-      gap: 24px;
-      border-bottom: 1px dashed var(--border-color);
-      padding-bottom: 12px;
-    }
-    .spec-col {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-    .spec-label {
-      font-size: 0.75rem;
-      color: var(--text-dark);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-    }
-    .spec-value {
-      font-size: 0.95rem;
-      font-weight: 600;
-      color: var(--text-main);
-    }
-    .spec-value.price-val {
-      font-size: 1.1rem;
-      color: var(--color-primary-light);
-      font-weight: 700;
-    }
-    .room-item-amenities {
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      gap: 6px;
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-    .amenity-badge-lite {
-      background: rgba(255, 255, 255, 0.04);
-      color: var(--text-muted);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 0.75rem;
-      border: 1px solid var(--border-color);
-    }
-    .landlord-card {
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 20px;
-      text-align: center;
-    }
-    .landlord-card h4 {
-      margin-bottom: 15px;
-      font-size: 0.95rem;
-      text-transform: uppercase;
-      color: var(--text-muted);
-    }
-    .landlord-name {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: var(--text-main);
-      margin-bottom: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 6px;
-    }
-    .verified-tick {
-      font-size: 0.95rem;
-      animation: pulse-badge 2s infinite;
-    }
-    @keyframes pulse-badge {
-      0% { transform: scale(1); }
-      50% { transform: scale(1.1); }
-      100% { transform: scale(1); }
-    }
-    .landlord-phone {
-      font-size: 1rem;
-      color: var(--color-primary-light);
-      font-weight: 500;
-    }
-    .mt-4 { margin-top: 24px; }
-    .mt-3 { margin-top: 16px; }
-    .mb-3 { margin-bottom: 12px; }
-    .font-bold { font-weight: 700; }
   `]
 })
 export class LandingComponent implements OnInit {
   private readonly propertyService = inject(PropertyService);
   private readonly toastService = inject(ToastService);
   private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
 
   // States
   listings = signal<any[]>([]);
   isLoading = signal(true);
   districts = signal<any[]>([]);
+  wards = signal<any[]>([]);
   
-  // Grouped properties computed signal
   groupedProperties = signal<any[]>([]);
   hotProperties = signal<any[]>([]);
   normalProperties = signal<any[]>([]);
   
   selectedProperty = signal<any | null>(null);
 
-  // Reports States
-  showReports = signal<boolean>(false);
-  isLoadingReports = signal<boolean>(false);
-  reports = signal<any[]>([]);
-
   // Filter Models
   searchQuery = '';
   selectedDistrict = '';
+  selectedWard = '';
+  verifiedHost = false;
+  selectedAmenity = '';
+
+  // Popover controls
+  showPricePopover = false;
+  showAreaPopover = false;
+
+  // Price filter states
+  selectedPriceOption = 'all'; // 'all', 'under1m', '1to10m', '10to30m', '30to50m', 'over50m', 'custom'
   minPrice?: number;
   maxPrice?: number;
-  verifiedHost = false;
+  minPriceInput: number | null = 0;
+  maxPriceInput: number | null = 10000;
+  sliderValue = 50;
+
+  // Area filter states
+  selectedAreaOption = 'all'; // 'all', 'under20', '20to30', '30to50', 'over50', 'custom'
+  minArea?: number;
+  maxArea?: number;
+  minAreaInput: number | null = 0;
+  maxAreaInput: number | null = 100;
+
+  @HostListener('document:click', ['$event'])
+  onDocumentClick(event: MouseEvent): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.popover-btn-wrapper')) {
+      this.showPricePopover = false;
+      this.showAreaPopover = false;
+    }
+  }
+
+  togglePricePopover(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showAreaPopover = false;
+    this.showPricePopover = !this.showPricePopover;
+  }
+
+  toggleAreaPopover(event: MouseEvent): void {
+    event.stopPropagation();
+    this.showPricePopover = false;
+    this.showAreaPopover = !this.showAreaPopover;
+  }
+
+  selectPriceOption(option: string): void {
+    this.selectedPriceOption = option;
+    if (option === 'all') {
+      this.minPrice = undefined;
+      this.maxPrice = undefined;
+      this.minPriceInput = 0;
+      this.maxPriceInput = 10000;
+    } else if (option === 'under1m') {
+      this.minPrice = undefined;
+      this.maxPrice = 1000000;
+      this.minPriceInput = 0;
+      this.maxPriceInput = 1000;
+    } else if (option === '1to10m') {
+      this.minPrice = 1000000;
+      this.maxPrice = 10000000;
+      this.minPriceInput = 1000;
+      this.maxPriceInput = 10000;
+    } else if (option === '10to30m') {
+      this.minPrice = 10000000;
+      this.maxPrice = 30000000;
+      this.minPriceInput = 10000;
+      this.maxPriceInput = 30000;
+    } else if (option === '30to50m') {
+      this.minPrice = 30000000;
+      this.maxPrice = 50000000;
+      this.minPriceInput = 30000;
+      this.maxPriceInput = 50000;
+    } else if (option === 'over50m') {
+      this.minPrice = 50000000;
+      this.maxPrice = undefined;
+      this.minPriceInput = 50000;
+      this.maxPriceInput = 100000;
+    }
+  }
+
+  onPriceInputCustom(): void {
+    this.selectedPriceOption = 'custom';
+    if (this.minPriceInput != null) {
+      this.minPrice = this.minPriceInput * 1000;
+    } else {
+      this.minPrice = undefined;
+    }
+    if (this.maxPriceInput != null) {
+      this.maxPrice = this.maxPriceInput * 1000;
+    } else {
+      this.maxPrice = undefined;
+    }
+  }
+
+  onSliderChange(): void {
+    this.selectedPriceOption = 'custom';
+    this.minPriceInput = 0;
+    this.maxPriceInput = this.sliderValue * 1000;
+    this.minPrice = undefined;
+    this.maxPrice = this.maxPriceInput * 1000;
+  }
+
+  applyPriceFilter(): void {
+    this.showPricePopover = false;
+    this.fetchListings();
+  }
+
+  resetPriceFilter(): void {
+    this.selectPriceOption('all');
+    this.showPricePopover = false;
+    this.fetchListings();
+  }
+
+  getPriceLabel(): string {
+    if (this.selectedPriceOption === 'under1m') return 'Dưới 1 triệu';
+    if (this.selectedPriceOption === '1to10m') return '1 - 10 triệu';
+    if (this.selectedPriceOption === '10to30m') return '10 - 30 triệu';
+    if (this.selectedPriceOption === '30to50m') return '30 - 50 triệu';
+    if (this.selectedPriceOption === 'over50m') return 'Trên 50 triệu';
+    if (this.minPrice || this.maxPrice) return 'Mức giá chọn lọc';
+    return 'Mức giá';
+  }
+
+  selectAreaOption(option: string): void {
+    this.selectedAreaOption = option;
+    if (option === 'all') {
+      this.minArea = undefined;
+      this.maxArea = undefined;
+      this.minAreaInput = 0;
+      this.maxAreaInput = 100;
+    } else if (option === 'under20') {
+      this.minArea = undefined;
+      this.maxArea = 20;
+      this.minAreaInput = 0;
+      this.maxAreaInput = 20;
+    } else if (option === '20to30') {
+      this.minArea = 20;
+      this.maxArea = 30;
+      this.minAreaInput = 20;
+      this.maxAreaInput = 30;
+    } else if (option === '30to50') {
+      this.minArea = 30;
+      this.maxArea = 50;
+      this.minAreaInput = 30;
+      this.maxAreaInput = 50;
+    } else if (option === 'over50') {
+      this.minArea = 50;
+      this.maxArea = undefined;
+      this.minAreaInput = 50;
+      this.maxAreaInput = 200;
+    }
+  }
+
+  onAreaInputCustom(): void {
+    this.selectedAreaOption = 'custom';
+    this.minArea = this.minAreaInput != null ? this.minAreaInput : undefined;
+    this.maxArea = this.maxAreaInput != null ? this.maxAreaInput : undefined;
+  }
+
+  applyAreaFilter(): void {
+    this.showAreaPopover = false;
+    this.fetchListings();
+  }
+
+  resetAreaFilter(): void {
+    this.selectAreaOption('all');
+    this.showAreaPopover = false;
+    this.fetchListings();
+  }
+
+  getAreaLabel(): string {
+    if (this.selectedAreaOption === 'under20') return 'Dưới 20 m²';
+    if (this.selectedAreaOption === '20to30') return '20 - 30 m²';
+    if (this.selectedAreaOption === '30to50') return '30 - 50 m²';
+    if (this.selectedAreaOption === 'over50') return 'Trên 50 m²';
+    if (this.minArea || this.maxArea) return 'Diện tích chọn lọc';
+    return 'Diện tích';
+  }
+
+  toggleAmenityFilter(amenity: string): void {
+    if (this.selectedAmenity === amenity) {
+      this.selectedAmenity = '';
+    } else {
+      this.selectedAmenity = amenity;
+    }
+    this.applyAmenityFilter();
+  }
+
+  applyAmenityFilter(): void {
+    const rawList = this.listings();
+    if (!this.selectedAmenity) {
+      this.groupProperties(rawList);
+      return;
+    }
+
+    const filtered = rawList.filter(item => {
+      if (!item.amenities || item.amenities.length === 0) return false;
+      return item.amenities.some((a: string) => a.toLowerCase().includes(this.selectedAmenity.toLowerCase()));
+    });
+    this.groupProperties(filtered);
+  }
 
   ngOnInit(): void {
     this.fetchDistricts();
@@ -930,7 +1635,7 @@ export class LandingComponent implements OnInit {
   }
 
   fetchDistricts(): void {
-    this.propertyService.getDistricts().subscribe({
+    this.propertyService.getLocations().subscribe({
       next: (data) => {
         this.districts.set(data);
       },
@@ -945,8 +1650,11 @@ export class LandingComponent implements OnInit {
     this.propertyService.getListings({
       search: this.searchQuery,
       district: this.selectedDistrict,
+      ward: this.selectedWard,
       minPrice: this.minPrice,
       maxPrice: this.maxPrice,
+      minArea: this.minArea,
+      maxArea: this.maxArea,
       verifiedHost: this.verifiedHost
     }).subscribe({
       next: (data) => {
@@ -999,8 +1707,6 @@ export class LandingComponent implements OnInit {
         prop.minRoomPrice = item.price;
       }
 
-      // We assume prop.totalRooms is populated from item.totalRooms, which is the property's TotalRooms.
-      // If it's smaller than the rooms array length, we fallback to the array length.
       if (prop.totalRooms < prop.rooms.length) {
         prop.totalRooms = prop.rooms.length;
       }
@@ -1010,7 +1716,6 @@ export class LandingComponent implements OnInit {
     }
     
     const propsArray = Array.from(map.values()).map(prop => {
-      // isFavorite is already populated correctly from API, but we just want to ensure it remains a boolean
       prop.isFavorite = prop.rooms.some((r: any) => r.isFavorite);
       if (prop.vacantRoomsCount > 0 && prop.minVacantRoomPrice !== Infinity) {
         prop.minRoomPrice = prop.minVacantRoomPrice;
@@ -1025,7 +1730,6 @@ export class LandingComponent implements OnInit {
   applySorting(): void {
     const currentList = [...this.groupedProperties()];
     
-    // Sort everything comprehensively
     currentList.sort((a, b) => {
        const subA = a.subscriptionId || 1;
        const subB = b.subscriptionId || 1;
@@ -1076,51 +1780,41 @@ export class LandingComponent implements OnInit {
     this.fetchListings();
   }
 
+  onDistrictChange(): void {
+    this.selectedWard = '';
+    this.wards.set([]);
+    this.onFilterChange();
+    if (this.selectedDistrict) {
+      const districtObj = this.districts().find(d => d.name === this.selectedDistrict);
+      if (districtObj) {
+        this.propertyService.getChildren(districtObj.id).subscribe({
+          next: (data) => this.wards.set(data),
+          error: (err) => console.error(err)
+        });
+      }
+    }
+  }
+
   setDistrictFilter(districtName: string): void {
     this.selectedDistrict = districtName;
-    this.fetchListings();
+    this.onDistrictChange();
   }
 
   resetFilters(): void {
     this.searchQuery = '';
     this.selectedDistrict = '';
-    this.minPrice = undefined;
-    this.maxPrice = undefined;
+    this.selectedWard = '';
     this.verifiedHost = false;
+    this.selectPriceOption('all');
+    this.selectAreaOption('all');
+    this.wards.set([]);
     this.fetchListings();
   }
 
   openPropertyDetail(property: any): void {
-    property.viewCount = (property.viewCount || 0) + 1;
-    this.propertyService.incrementViewCount(property.propertyId).subscribe({
-      error: () => console.error('Failed to increment view count')
-    });
-    this.applySorting();
-
-    this.selectedProperty.set(property);
-    this.showReports.set(false);
-    this.reports.set([]);
-  }
-
-  closePropertyDetail(): void {
-    this.selectedProperty.set(null);
-    this.showReports.set(false);
-    this.reports.set([]);
-  }
-
-  loadReports(propertyId: number): void {
-    this.showReports.set(true);
-    this.isLoadingReports.set(true);
-    this.propertyService.getPropertyReports(propertyId).subscribe({
-      next: (data) => {
-        this.reports.set(data);
-        this.isLoadingReports.set(false);
-      },
-      error: (err) => {
-        this.toastService.show('Không thể tải đánh giá', 'error');
-        this.isLoadingReports.set(false);
-      }
-    });
+    if (property?.propertyId) {
+      this.router.navigate(['/phong-tro-detail', property.propertyId]);
+    }
   }
 
   onImageError(event: any): void {
@@ -1142,5 +1836,16 @@ export class LandingComponent implements OnInit {
       'linear-gradient(135deg, #0f2027 0%, #2c5364 100%)',
     ];
     return gradients[id % gradients.length];
+  }
+
+  goToMatch(tab: 'board' | 'post' | 'matches' = 'board'): void {
+    this.router.navigate(['/tenant/match'], { queryParams: { tab } });
+  }
+
+  scrollToSearch(): void {
+    const el = document.querySelector('.search-pill-container');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 }

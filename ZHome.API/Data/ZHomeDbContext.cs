@@ -24,14 +24,21 @@ namespace ZHome.API.Data
         public DbSet<TaxConfig> TaxConfigs { get; set; }
         public DbSet<ZHome.API.Models.Entities.ServiceProvider> ServiceProviders { get; set; }
         public DbSet<ServiceOrder> ServiceOrders { get; set; }
-        public DbSet<District> Districts { get; set; }
-        public DbSet<Ward> Wards { get; set; }
+        public DbSet<Location> Locations { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            // Location self-referencing relationship
+            modelBuilder.Entity<Location>()
+                .HasOne(l => l.Parent)
+                .WithMany(l => l.Children)
+                .HasForeignKey(l => l.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // Composite key for RoomAmenity
             modelBuilder.Entity<RoomAmenity>()

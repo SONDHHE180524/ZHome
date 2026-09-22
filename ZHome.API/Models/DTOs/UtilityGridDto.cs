@@ -7,15 +7,19 @@ namespace ZHome.API.Models.DTOs
     {
         public long RoomId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
+        public string PropertyTitle { get; set; } = string.Empty;
         public string TenantName { get; set; } = string.Empty;
         public decimal RoomPrice { get; set; }
         public decimal PreviousElectricityReading { get; set; }
         public decimal PreviousWaterReading { get; set; }
         public decimal CurrentElectricityReading { get; set; }
         public decimal CurrentWaterReading { get; set; }
-        public decimal ElectricityRate { get; set; } = 3000; // default rate
-        public decimal WaterRate { get; set; } = 10000;      // default rate
-        public decimal ServiceFee { get; set; } = 50000;      // default service fee
+        public decimal ElectricityRate { get; set; } = 3500; // default rate
+        public decimal WaterRate { get; set; } = 25000;      // default rate per m3
+        public string WaterCalculationMethod { get; set; } = "PerCubic"; // "PerCubic" or "PerPerson"
+        public int OccupantsCount { get; set; } = 1;
+        public decimal WaterPerPersonRate { get; set; } = 100000; // default 100k / person
+        public decimal ServiceFee { get; set; } = 100000;     // default service fee
         public decimal RepairDeduction { get; set; } = 0;
         
         // Added for bill status checking
@@ -59,9 +63,12 @@ namespace ZHome.API.Models.DTOs
         [Range(0, double.MaxValue, ErrorMessage = "Số nước mới phải lớn hơn hoặc bằng số nước cũ")]
         public decimal NewWaterReading { get; set; }
 
-        public decimal ElectricityRate { get; set; } = 3000;
-        public decimal WaterRate { get; set; } = 10000;
-        public decimal ServiceFee { get; set; } = 50000;
+        public decimal ElectricityRate { get; set; } = 3500;
+        public decimal WaterRate { get; set; } = 25000;
+        public string WaterCalculationMethod { get; set; } = "PerCubic";
+        public int OccupantsCount { get; set; } = 1;
+        public decimal WaterPerPersonRate { get; set; } = 100000;
+        public decimal ServiceFee { get; set; } = 100000;
         public decimal RepairDeduction { get; set; } = 0;
     }
 }

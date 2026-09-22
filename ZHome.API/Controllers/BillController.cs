@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
 using ZHome.API.Models.DTOs;
 using ZHome.API.Models.Entities;
+using ZHome.API.Services;
 using System.ComponentModel.DataAnnotations;
 using ZHome.API.Filters;
 
@@ -20,11 +21,22 @@ namespace ZHome.API.Controllers
     {
         private readonly ZHomeDbContext _context;
         private readonly Services.IEmailService _emailService;
+        private readonly Services.ISePayService _sePayService;
+        private readonly Services.PaymentOrderStore _orderStore;
+        private readonly Services.INotificationService _notificationService;
 
-        public BillController(ZHomeDbContext context, Services.IEmailService emailService)
+        public BillController(
+            ZHomeDbContext context,
+            Services.IEmailService emailService,
+            Services.ISePayService sePayService,
+            Services.PaymentOrderStore orderStore,
+            Services.INotificationService notificationService)
         {
             _context = context;
             _emailService = emailService;
+            _sePayService = sePayService;
+            _orderStore = orderStore;
+            _notificationService = notificationService;
         }
 
         // Get landlord bills
@@ -41,10 +53,14 @@ namespace ZHome.API.Controllers
             var bills = await _context.MonthlyBills
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Property)
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Contracts)
+                        .ThenInclude(c => c.Tenant)
                 .Include(b => b.Transactions)
                     .ThenInclude(t => t.Tenant)
                 .Where(b => b.Room!.Property!.LandlordId == landlordId)
-                .OrderByDescending(b => b.BillingYear)
+                .OrderBy(b => b.Status == "PendingConfirmation" ? 1 : (b.Status != "Paid" ? 2 : 3))
+                .ThenByDescending(b => b.BillingYear)
                 .ThenByDescending(b => b.BillingMonth)
                 .ThenBy(b => b.Room!.RoomNumber)
                 .ToListAsync();
@@ -70,7 +86,8 @@ namespace ZHome.API.Controllers
                 .Include(b => b.Transactions)
                     .ThenInclude(t => t.Tenant)
                 .Where(b => _context.Contracts.Any(c => c.TenantId == tenantId && c.RoomId == b.RoomId))
-                .OrderByDescending(b => b.BillingYear)
+                .OrderBy(b => b.Status == "PendingConfirmation" ? 1 : (b.Status != "Paid" ? 2 : 3))
+                .ThenByDescending(b => b.BillingYear)
                 .ThenByDescending(b => b.BillingMonth)
                 .ToListAsync();
 
@@ -89,30 +106,40 @@ namespace ZHome.API.Controllers
                 return Unauthorized();
             }
 
-            // Verify property belongs to landlord
-            var property = await _context.Properties
-                .FirstOrDefaultAsync(p => p.Id == propertyId && p.LandlordId == landlordId);
-            if (property == null)
+            IQueryable<Room> roomsQuery = _context.Rooms
+                .Include(r => r.Property)
+                .Include(r => r.Contracts)
+                    .ThenInclude(c => c.Tenant)
+                .Where(r => r.Property!.LandlordId == landlordId);
+
+            if (propertyId > 0)
             {
-                return NotFound("Khu trọ không tồn tại hoặc bạn không có quyền.");
+                var property = await _context.Properties
+                    .FirstOrDefaultAsync(p => p.Id == propertyId && p.LandlordId == landlordId);
+                if (property == null)
+                {
+                    return NotFound("Khu trọ không tồn tại hoặc bạn không có quyền.");
+                }
+                roomsQuery = roomsQuery.Where(r => r.PropertyId == propertyId);
             }
 
-            var activeContracts = await _context.Contracts
-                .Include(c => c.Room)
-                .Include(c => c.Tenant)
-                .Where(c => c.Room!.PropertyId == propertyId && c.Status == "Active")
+            var rooms = await roomsQuery
+                .OrderBy(r => r.PropertyId)
+                .ThenBy(r => r.RoomNumber)
                 .ToListAsync();
-
-            var groupedRooms = activeContracts.GroupBy(c => c.Room).ToList();
 
             var gridItems = new List<UtilityGridItemDto>();
 
-            foreach (var group in groupedRooms)
+            foreach (var room in rooms)
             {
-                var room = group.Key;
-                if (room == null) continue;
-                
-                var tenantNames = string.Join(", ", group.Select(c => c.Tenant!.FullName));
+                var activeContracts = room.Contracts.Where(c => c.Status == "Active").ToList();
+                string tenantNames = activeContracts.Any() 
+                    ? string.Join(", ", activeContracts.Select(c => c.Tenant?.FullName ?? "Khách thuê"))
+                    : (room.Status == "Rented" ? "Khách thuê" : "Chưa có HĐ / Phòng trống");
+
+                decimal roomPrice = activeContracts.Any() 
+                    ? activeContracts.First().RoomPrice 
+                    : room.Price;
 
                 // Find bill for the current period to get status
                 var existingBill = await _context.MonthlyBills
@@ -122,35 +149,67 @@ namespace ZHome.API.Controllers
                 bool isChecked = true;
                 long? existingId = null;
 
+                decimal prevElec = 0;
+                decimal prevWater = 0;
+                decimal currElec = 0;
+                decimal currWater = 0;
+                decimal elecRate = 3500;
+                decimal waterRate = 25000;
+                string waterMethod = "PerCubic";
+                int occupants = activeContracts.Count > 0 ? activeContracts.Count : Math.Max(1, room.MaxOccupants);
+                decimal waterPerPerson = 100000;
+                decimal serviceFee = 100000;
+                decimal repairDed = 0;
+
+                // Find latest bill prior to or at this period for previous readings
+                var latestPriorBill = await _context.MonthlyBills
+                    .Where(b => b.RoomId == room.Id && (b.BillingYear < year || (b.BillingYear == year && b.BillingMonth < month)))
+                    .OrderByDescending(b => b.BillingYear)
+                    .ThenByDescending(b => b.BillingMonth)
+                    .FirstOrDefaultAsync();
+
+                if (latestPriorBill != null)
+                {
+                    prevElec = latestPriorBill.ElectricityNewReading;
+                    prevWater = latestPriorBill.WaterNewReading;
+                }
+
                 if (existingBill != null)
                 {
                     status = existingBill.Status; // Unpaid, Partial, Paid
                     existingId = existingBill.Id;
-                    if (status == "Paid") isChecked = false; // Cannot overwrite paid bills
-                    else isChecked = false; // Default unchecked for created bills, user can check to overwrite
+                    isChecked = (status != "Paid");
+                    prevElec = existingBill.ElectricityOldReading;
+                    currElec = existingBill.ElectricityNewReading;
+                    prevWater = existingBill.WaterOldReading;
+                    currWater = existingBill.WaterNewReading;
+                    serviceFee = existingBill.ServiceFee;
+                    repairDed = existingBill.RepairDeduction;
                 }
-
-                // Find latest bill for previous readings
-                var latestBill = await _context.MonthlyBills
-                    .Where(b => b.RoomId == room.Id)
-                    .OrderByDescending(b => b.BillingYear)
-                    .ThenByDescending(b => b.BillingMonth)
-                    .FirstOrDefaultAsync();
+                else
+                {
+                    currElec = prevElec;
+                    currWater = prevWater;
+                }
 
                 gridItems.Add(new UtilityGridItemDto
                 {
                     RoomId = room.Id,
                     RoomNumber = room.RoomNumber,
+                    PropertyTitle = room.Property?.Title ?? string.Empty,
                     TenantName = tenantNames,
-                    RoomPrice = group.First().RoomPrice,
-                    PreviousElectricityReading = latestBill?.ElectricityNewReading ?? 0,
-                    PreviousWaterReading = latestBill?.WaterNewReading ?? 0,
-                    CurrentElectricityReading = latestBill?.ElectricityNewReading ?? 0,
-                    CurrentWaterReading = latestBill?.WaterNewReading ?? 0,
-                    ElectricityRate = 3000,
-                    WaterRate = 10000,
-                    ServiceFee = 50000,
-                    RepairDeduction = 0,
+                    RoomPrice = roomPrice,
+                    PreviousElectricityReading = prevElec,
+                    PreviousWaterReading = prevWater,
+                    CurrentElectricityReading = currElec,
+                    CurrentWaterReading = currWater,
+                    ElectricityRate = elecRate,
+                    WaterRate = waterRate,
+                    WaterCalculationMethod = waterMethod,
+                    OccupantsCount = occupants,
+                    WaterPerPersonRate = waterPerPerson,
+                    ServiceFee = serviceFee,
+                    RepairDeduction = repairDed,
                     ExistingBillStatus = status,
                     ExistingBillId = existingId,
                     IsChecked = isChecked
@@ -161,8 +220,7 @@ namespace ZHome.API.Controllers
         }
 
         // Submit utility grid readings and create monthly bills
-        [Authorize(Roles = "Landlord")]
-        [RequirePremium(99000)]
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpPost("utility-grid/submit")]
         public async Task<IActionResult> SubmitUtilityGrid([FromBody] UtilityGridSubmitDto request)
         {
@@ -172,18 +230,11 @@ namespace ZHome.API.Controllers
                 return Unauthorized();
             }
 
-            // Verify property belongs to landlord
-            var property = await _context.Properties
-                .AnyAsync(p => p.Id == request.PropertyId && p.LandlordId == landlordId);
-            if (!property)
-            {
-                return NotFound("Khu trọ không tồn tại hoặc bạn không có quyền.");
-            }
-
             foreach (var reading in request.Readings)
             {
                 var room = await _context.Rooms
-                    .FirstOrDefaultAsync(r => r.Id == reading.RoomId && r.PropertyId == request.PropertyId);
+                    .Include(r => r.Property)
+                    .FirstOrDefaultAsync(r => r.Id == reading.RoomId && r.Property!.LandlordId == landlordId);
 
                 if (room == null) continue;
 
@@ -191,6 +242,18 @@ namespace ZHome.API.Controllers
                     .Where(c => c.RoomId == room.Id && c.Status == "Active")
                     .FirstOrDefaultAsync();
                 var actualRoomPrice = activeContract != null ? activeContract.RoomPrice : room.Price;
+
+                // Calculate water fee based on method
+                decimal calculatedWaterFee = 0;
+                if (reading.WaterCalculationMethod == "PerPerson")
+                {
+                    var count = reading.OccupantsCount > 0 ? reading.OccupantsCount : 1;
+                    calculatedWaterFee = count * reading.WaterPerPersonRate;
+                }
+                else
+                {
+                    calculatedWaterFee = (reading.NewWaterReading - reading.OldWaterReading) * reading.WaterRate;
+                }
 
                 // Check if bill already exists for this room and billing period
                 var existingBill = await _context.MonthlyBills
@@ -212,7 +275,7 @@ namespace ZHome.API.Controllers
                     existingBill.ElectricityFee = (reading.NewElectricityReading - reading.OldElectricityReading) * reading.ElectricityRate;
                     existingBill.WaterOldReading = reading.OldWaterReading;
                     existingBill.WaterNewReading = reading.NewWaterReading;
-                    existingBill.WaterFee = (reading.NewWaterReading - reading.OldWaterReading) * reading.WaterRate;
+                    existingBill.WaterFee = calculatedWaterFee;
                     existingBill.ServiceFee = reading.ServiceFee;
                     existingBill.RepairDeduction = reading.RepairDeduction;
                     existingBill.TotalAmount = actualRoomPrice + existingBill.ElectricityFee + existingBill.WaterFee + reading.ServiceFee - reading.RepairDeduction;
@@ -224,7 +287,7 @@ namespace ZHome.API.Controllers
                 else
                 {
                     var electricityFee = (reading.NewElectricityReading - reading.OldElectricityReading) * reading.ElectricityRate;
-                    var waterFee = (reading.NewWaterReading - reading.OldWaterReading) * reading.WaterRate;
+                    var waterFee = calculatedWaterFee;
                     var totalAmount = actualRoomPrice + electricityFee + waterFee + reading.ServiceFee - reading.RepairDeduction;
 
                     var newBill = new MonthlyBill
@@ -266,7 +329,7 @@ namespace ZHome.API.Controllers
             public string Note { get; set; } = string.Empty;
         }
 
-        [Authorize(Roles = "Landlord")]
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpPost("supplementary")]
         public async Task<IActionResult> CreateSupplementaryBill([FromBody] CreateSupplementaryBillDto request)
         {
@@ -362,6 +425,285 @@ namespace ZHome.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Xác nhận thanh toán thành công!" });
+        }
+
+        public class NotifyTransferRequestDto
+        {
+            public decimal? Amount { get; set; }
+            public string? Note { get; set; }
+            public string? ProofImageBase64 { get; set; }
+            public string? ProofImageUrl { get; set; }
+        }
+
+        private static string? SaveTransferProofImage(long billId, string base64Data)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(base64Data)) return null;
+
+                var data = base64Data;
+                var extension = ".png";
+                if (data.Contains(","))
+                {
+                    var parts = data.Split(',');
+                    var header = parts[0];
+                    data = parts[1];
+                    if (header.Contains("image/jpeg") || header.Contains("image/jpg")) extension = ".jpg";
+                    else if (header.Contains("image/webp")) extension = ".webp";
+                }
+
+                var bytes = Convert.FromBase64String(data);
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "transfers");
+                if (!Directory.Exists(uploadsFolder)) Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = $"proof_bill_{billId}_{DateTime.UtcNow.Ticks}{extension}";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+                System.IO.File.WriteAllBytes(filePath, bytes);
+
+                return $"/uploads/transfers/{fileName}";
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Tenant notifies landlord that they transferred money (or re-sends proof photo)
+        [Authorize(Roles = "Tenant,Administrator")]
+        [HttpPost("{billId}/notify-transfer")]
+        public async Task<IActionResult> NotifyTransfer(long billId, [FromBody] NotifyTransferRequestDto? request)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var bill = await _context.MonthlyBills
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Contracts)
+                        .ThenInclude(c => c.Tenant)
+                .FirstOrDefaultAsync(b => b.Id == billId);
+
+            if (bill == null)
+            {
+                return NotFound(new { message = "Không tìm thấy hóa đơn." });
+            }
+
+            var activeContract = bill.Room?.Contracts?.FirstOrDefault(c => c.Status == "Active" && c.TenantId == userId);
+            if (!User.IsInRole("Administrator") && activeContract == null && !bill.Room!.Contracts.Any(c => c.TenantId == userId))
+            {
+                return Forbid();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            var tenantName = user?.FullName ?? "Khách thuê";
+
+            // Update status to PendingConfirmation
+            bill.Status = "PendingConfirmation";
+
+            if (!string.IsNullOrWhiteSpace(request?.ProofImageBase64))
+            {
+                var savedUrl = SaveTransferProofImage(bill.Id, request.ProofImageBase64);
+                if (!string.IsNullOrEmpty(savedUrl))
+                {
+                    bill.ProofImageUrl = savedUrl;
+                }
+            }
+            else if (!string.IsNullOrWhiteSpace(request?.ProofImageUrl))
+            {
+                bill.ProofImageUrl = request.ProofImageUrl;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request?.Note))
+            {
+                bill.Note = request.Note;
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send notification to landlord
+            var landlordId = bill.Room?.Property?.LandlordId;
+            if (landlordId.HasValue)
+            {
+                decimal amountReported = request?.Amount ?? (bill.TotalAmount - bill.PaidAmount);
+                if (amountReported <= 0) amountReported = bill.TotalAmount;
+
+                await _notificationService.CreateNotificationAsync(
+                    userId: landlordId.Value,
+                    title: "Khách thuê báo đã chuyển tiền phòng",
+                    message: $"Khách {tenantName} phòng {bill.Room?.RoomNumber} ({bill.Room?.Property?.Title}) vừa gửi ảnh xác nhận chuyển {amountReported:N0}đ tiền phòng kỳ {bill.BillingMonth}/{bill.BillingYear}. Vui lòng kiểm tra và duyệt!",
+                    type: "BillPayment",
+                    targetUrl: "/landlord/bills",
+                    referenceId: bill.Id
+                );
+            }
+
+            return Ok(new
+            {
+                message = "Đã gửi thông báo và minh chứng chuyển tiền tới chủ trọ thành công! Vui lòng chờ chủ trọ xác nhận.",
+                status = bill.Status,
+                proofImageUrl = bill.ProofImageUrl
+            });
+        }
+
+        public class ConfirmPaymentRequestDto
+        {
+            public decimal? Amount { get; set; }
+            public string? Note { get; set; }
+        }
+
+        // Landlord confirms receiving payment
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("{billId}/confirm-payment")]
+        public async Task<IActionResult> ConfirmPayment(long billId, [FromBody] ConfirmPaymentRequestDto? request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var bill = await _context.MonthlyBills
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Property)
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Contracts)
+                        .ThenInclude(c => c.Tenant)
+                .FirstOrDefaultAsync(b => b.Id == billId);
+
+            if (bill == null)
+            {
+                return NotFound(new { message = "Không tìm thấy hóa đơn." });
+            }
+
+            if (!User.IsInRole("Administrator") && bill.Room?.Property?.LandlordId != landlordId)
+            {
+                return Forbid();
+            }
+
+            decimal confirmAmount = request?.Amount ?? (bill.TotalAmount - bill.PaidAmount);
+            if (confirmAmount <= 0) confirmAmount = bill.TotalAmount;
+
+            bill.PaidAmount += confirmAmount;
+            if (bill.PaidAmount >= bill.TotalAmount)
+            {
+                bill.Status = "Paid";
+                bill.PaidAt = DateTime.UtcNow;
+            }
+            else
+            {
+                bill.Status = "Partial";
+            }
+
+            var activeContracts = bill.Room?.Contracts?.Where(c => c.Status == "Active").ToList() ?? new List<Contract>();
+            long tenantId = activeContracts.FirstOrDefault()?.TenantId ?? 0;
+
+            var transaction = new BillTransaction
+            {
+                MonthlyBillId = bill.Id,
+                TenantId = tenantId > 0 ? tenantId : landlordId,
+                Amount = confirmAmount,
+                CreatedAt = DateTime.UtcNow,
+                Note = !string.IsNullOrWhiteSpace(request?.Note) ? request.Note : "Chủ trọ xác nhận đã nhận chuyển khoản"
+            };
+
+            _context.BillTransactions.Add(transaction);
+            await _context.SaveChangesAsync();
+
+            // Send notification to tenant(s)
+            foreach (var contract in activeContracts)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    userId: contract.TenantId,
+                    title: "Chủ trọ đã xác nhận thanh toán tiền phòng",
+                    message: $"Hóa đơn tiền phòng tháng {bill.BillingMonth}/{bill.BillingYear} (Phòng {bill.Room?.RoomNumber}, {bill.Room?.Property?.Title}) số tiền {confirmAmount:N0}đ đã được chủ trọ xác nhận thành công!",
+                    type: "PaymentConfirmed",
+                    targetUrl: "/tenant/bills",
+                    referenceId: bill.Id
+                );
+            }
+
+            return Ok(new
+            {
+                message = "Đã xác nhận nhận tiền thành công!",
+                status = bill.Status,
+                paidAmount = bill.PaidAmount
+            });
+        }
+
+        public class RejectPaymentRequestDto
+        {
+            public string? Reason { get; set; }
+        }
+
+        // Landlord rejects payment report (e.g. didn't receive money yet)
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("{billId}/reject-payment")]
+        public async Task<IActionResult> RejectPayment(long billId, [FromBody] RejectPaymentRequestDto? request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var bill = await _context.MonthlyBills
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Property)
+                .Include(b => b.Room)
+                    .ThenInclude(r => r!.Contracts)
+                        .ThenInclude(c => c.Tenant)
+                .FirstOrDefaultAsync(b => b.Id == billId);
+
+            if (bill == null)
+            {
+                return NotFound(new { message = "Không tìm thấy hóa đơn." });
+            }
+
+            if (!User.IsInRole("Administrator") && bill.Room?.Property?.LandlordId != landlordId)
+            {
+                return Forbid();
+            }
+
+            if (bill.PaidAmount >= bill.TotalAmount)
+            {
+                bill.Status = "Paid";
+            }
+            else if (bill.PaidAmount > 0)
+            {
+                bill.Status = "Partial";
+            }
+            else
+            {
+                bill.Status = "Unpaid";
+            }
+
+            await _context.SaveChangesAsync();
+
+            // Send notification to tenant(s)
+            var activeContracts = bill.Room?.Contracts?.Where(c => c.Status == "Active").ToList() ?? new List<Contract>();
+            string reason = !string.IsNullOrWhiteSpace(request?.Reason) ? request.Reason : "Chưa kiểm tra thấy tiền vào tài khoản.";
+            foreach (var contract in activeContracts)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    userId: contract.TenantId,
+                    title: "Chủ trọ từ chối xác nhận thanh toán",
+                    message: $"Chủ trọ chưa xác nhận được khoản chuyển tiền cho hóa đơn tháng {bill.BillingMonth}/{bill.BillingYear} (Phòng {bill.Room?.RoomNumber}). Lý do: {reason}",
+                    type: "PaymentRejected",
+                    targetUrl: "/tenant/bills",
+                    referenceId: bill.Id
+                );
+            }
+
+            return Ok(new
+            {
+                message = "Đã từ chối xác nhận thanh toán.",
+                status = bill.Status
+            });
         }
 
         // Send email notification for a bill
@@ -581,17 +923,20 @@ namespace ZHome.API.Controllers
 
         private static BillResponseDto MapBillToDto(MonthlyBill b)
         {
-            var tenantName = "Phòng " + (b.Room?.RoomNumber ?? string.Empty);
-            // If we have transactions or if there's a better way to find the tenants, we could put it here.
+            var activeContract = b.Room?.Contracts?.FirstOrDefault(c => c.Status == "Active");
+            var tenantName = activeContract?.Tenant?.FullName ?? (b.Transactions?.FirstOrDefault()?.Tenant?.FullName ?? ("Phòng " + (b.Room?.RoomNumber ?? string.Empty)));
+            var tenantPhone = activeContract?.Tenant?.Phone ?? string.Empty;
             
             return new BillResponseDto
             {
                 Id = b.Id,
+                PropertyId = b.Room?.PropertyId ?? 0,
+                PropertyTitle = b.Room?.Property?.Title ?? string.Empty,
+                PropertyAddress = b.Room?.Property?.Address ?? string.Empty,
                 RoomId = b.RoomId,
                 TenantName = tenantName,
-                TenantPhone = string.Empty,
+                TenantPhone = tenantPhone,
                 RoomNumber = b.Room?.RoomNumber ?? string.Empty,
-                PropertyTitle = b.Room?.Property?.Title ?? string.Empty,
                 BillingMonth = b.BillingMonth,
                 BillingYear = b.BillingYear,
                 RoomFee = b.RoomFee,
@@ -607,6 +952,8 @@ namespace ZHome.API.Controllers
                 PaidAmount = b.PaidAmount,
                 Status = b.Status,
                 PaidAt = b.PaidAt,
+                Note = b.Note,
+                ProofImageUrl = b.ProofImageUrl,
                 Transactions = b.Transactions?.Select(t => new BillTransactionDto
                 {
                     Id = t.Id,
@@ -616,6 +963,191 @@ namespace ZHome.API.Controllers
                     Note = t.Note
                 }).ToList() ?? new List<BillTransactionDto>()
             };
+        }
+
+        [Authorize(Roles = "Tenant,Administrator")]
+        [HttpPost("create-sepay-payment")]
+        [HttpPost("create-payos-payment")] // Backwards compatibility alias
+        public async Task<IActionResult> CreateSePayPayment([FromBody] CreateBillSePayPaymentRequestDto request)
+        {
+            var tenantIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(tenantIdStr, out long tenantId))
+            {
+                return Unauthorized();
+            }
+
+            var bill = await _context.MonthlyBills
+                .Include(b => b.Room)
+                .FirstOrDefaultAsync(b => b.Id == request.BillId);
+
+            if (bill == null)
+            {
+                return NotFound(new { message = "Hóa đơn không tồn tại." });
+            }
+
+            decimal remainingAmount = bill.TotalAmount - bill.PaidAmount;
+            if (remainingAmount <= 0)
+            {
+                return BadRequest(new { message = "Hóa đơn này đã được thanh toán đầy đủ." });
+            }
+
+            decimal amountToPay = request.Amount > 0 ? Math.Min(request.Amount, remainingAmount) : remainingAmount;
+
+            var user = await _context.Users.FindAsync(tenantId);
+            string userEmail = user?.Email ?? "";
+
+            // Generate orderCode (unique numeric ID)
+            long orderCode = long.Parse(DateTime.UtcNow.ToString("yyMMddHHmmss") + Random.Shared.Next(10, 99));
+            string description = $"HD{bill.Id}";
+
+            var paymentResult = _sePayService.CreateBillPaymentInfo(
+                orderCode,
+                amountToPay,
+                bill.Id,
+                description,
+                userEmail
+            );
+
+            _orderStore.AddOrder(new PendingPaymentOrder
+            {
+                OrderCode = orderCode,
+                OrderType = "BILL",
+                UserId = tenantId,
+                BillId = bill.Id,
+                Amount = amountToPay,
+                Status = "PENDING"
+            });
+
+            return Ok(paymentResult);
+        }
+
+        [HttpGet("check-order-status/{orderCode}")]
+        public async Task<IActionResult> CheckOrderStatus(long orderCode)
+        {
+            var order = _orderStore.GetOrder(orderCode);
+            if (order == null)
+            {
+                return NotFound(new { message = "Đơn hàng không tồn tại." });
+            }
+
+            if (order.Status != "PAID")
+            {
+                string searchPattern = order.BillId.HasValue ? $"HD{order.BillId.Value}" : $"HD{orderCode}";
+                bool isPaidOnSePay = await _sePayService.CheckTransactionFromSePayAsync(searchPattern, order.Amount);
+                if (isPaidOnSePay && order.BillId.HasValue)
+                {
+                    _orderStore.MarkPaid(orderCode, out _);
+
+                    var bill = await _context.MonthlyBills.FindAsync(order.BillId.Value);
+                    if (bill != null)
+                    {
+                        bill.PaidAmount += order.Amount;
+                        if (bill.PaidAmount >= bill.TotalAmount)
+                        {
+                            bill.Status = "Paid";
+                            bill.PaidAt = DateTime.UtcNow;
+                        }
+                        else
+                        {
+                            bill.Status = "PartialPaid";
+                        }
+
+                        _context.BillTransactions.Add(new BillTransaction
+                        {
+                            MonthlyBillId = bill.Id,
+                            TenantId = order.UserId,
+                            Amount = order.Amount,
+                            Note = $"Thanh toán QR qua SePay (Mã đơn: {orderCode})",
+                            CreatedAt = DateTime.UtcNow
+                        });
+
+                        await _context.SaveChangesAsync();
+                    }
+                }
+            }
+
+            return Ok(new
+            {
+                orderCode = order.OrderCode,
+                orderType = order.OrderType,
+                status = order.Status,
+                isPaid = order.Status == "PAID",
+                billId = order.BillId,
+                amount = order.Amount,
+                paidAt = order.PaidAt
+            });
+        }
+
+        [HttpPost("simulate-sepay-success/{orderCode}")]
+        [HttpPost("simulate-payos-success/{orderCode}")] // Backwards compatibility alias
+        public async Task<IActionResult> SimulateSePaySuccess(long orderCode, [FromQuery] long? billId)
+        {
+            var order = _orderStore.GetOrder(orderCode);
+            long? targetBillId = order?.BillId ?? billId;
+            decimal amountToPay = order?.Amount ?? 0;
+            long userId = order?.UserId ?? 0;
+
+            if (order != null)
+            {
+                _orderStore.MarkPaid(orderCode, out _);
+            }
+
+            if (targetBillId.HasValue)
+            {
+                var bill = await _context.MonthlyBills.FindAsync(targetBillId.Value);
+                if (bill != null)
+                {
+                    if (amountToPay <= 0)
+                    {
+                        amountToPay = bill.TotalAmount - bill.PaidAmount;
+                    }
+                    if (amountToPay <= 0) amountToPay = bill.TotalAmount;
+
+                    bill.PaidAmount += amountToPay;
+                    if (bill.PaidAmount >= bill.TotalAmount)
+                    {
+                        bill.Status = "Paid";
+                        bill.PaidAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        bill.Status = "PartialPaid";
+                    }
+
+                    _context.BillTransactions.Add(new BillTransaction
+                    {
+                        MonthlyBillId = bill.Id,
+                        TenantId = userId,
+                        Amount = amountToPay,
+                        Note = $"Thanh toán QR qua SePay (Mã đơn: {orderCode})",
+                        CreatedAt = DateTime.UtcNow
+                    });
+
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new
+                    {
+                        message = "Thanh toán hóa đơn qua SePay thành công!",
+                        orderCode = orderCode,
+                        billId = bill.Id,
+                        status = bill.Status,
+                        paidAmount = bill.PaidAmount
+                    });
+                }
+            }
+
+            if (order == null)
+            {
+                return NotFound(new { message = "Mã đơn hàng không tồn tại." });
+            }
+
+            return Ok(new
+            {
+                message = "Thanh toán hóa đơn qua SePay thành công!",
+                orderCode = order.OrderCode,
+                billId = order.BillId,
+                amount = order.Amount
+            });
         }
     }
 }

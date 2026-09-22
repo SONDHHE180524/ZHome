@@ -17,4 +17,16 @@ export class DashboardService {
     }
     return this.http.get<any>(`${this.apiUrl}/overview`, { params });
   }
+
+  exportFinancialCsv(year?: number): Observable<Blob> {
+    let params = new HttpParams();
+    if (year) {
+      params = params.set('year', year.toString());
+    }
+    return this.http.get(`${this.apiUrl}/export-financial-csv`, {
+      params,
+      responseType: 'blob'
+    });
+  }
 }
+

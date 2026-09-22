@@ -6,11 +6,13 @@ namespace ZHome.API.Models.DTOs
     public class BillResponseDto
     {
         public long Id { get; set; }
+        public long PropertyId { get; set; }
+        public string PropertyTitle { get; set; } = string.Empty;
+        public string PropertyAddress { get; set; } = string.Empty;
         public long RoomId { get; set; }
         public string TenantName { get; set; } = string.Empty;
         public string TenantPhone { get; set; } = string.Empty;
         public string RoomNumber { get; set; } = string.Empty;
-        public string PropertyTitle { get; set; } = string.Empty;
         
         public int BillingMonth { get; set; }
         public int BillingYear { get; set; }
@@ -31,6 +33,8 @@ namespace ZHome.API.Models.DTOs
         public decimal RemainingAmount => TotalAmount - PaidAmount;
         public string Status { get; set; } = string.Empty;
         public DateTime? PaidAt { get; set; }
+        public string? Note { get; set; }
+        public string? ProofImageUrl { get; set; }
 
         public List<BillTransactionDto> Transactions { get; set; } = new();
     }

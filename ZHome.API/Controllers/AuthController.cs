@@ -19,17 +19,28 @@ namespace ZHome.API.Controllers
         private readonly ZHomeDbContext _context;
         private readonly TokenService _tokenService;
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _environment;
+        private readonly Services.INotificationService _notificationService;
 
-        public AuthController(ZHomeDbContext context, TokenService tokenService, Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment)
+        public AuthController(
+            ZHomeDbContext context, 
+            TokenService tokenService, 
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment,
+            Services.INotificationService notificationService)
         {
             _context = context;
             _tokenService = tokenService;
             _environment = environment;
+            _notificationService = notificationService;
         }
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
+            }
+
             if (await _context.Users.AnyAsync(u => u.Phone == request.Phone))
             {
                 return BadRequest("Số điện thoại này đã được sử dụng.");
@@ -99,6 +110,18 @@ namespace ZHome.API.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
+            // Notify Admin if Landlord requested verification
+            if (user.VerificationStatus == "Pending")
+            {
+                await _notificationService.NotifyAdminsAsync(
+                    title: "Yêu cầu xác minh chủ trọ mới",
+                    message: $"Chủ trọ {user.FullName} ({user.Phone}) vừa gửi hồ sơ xác minh CCCD/chính chủ. Vui lòng kiểm tra và duyệt!",
+                    type: "LandlordVerification",
+                    targetUrl: "/admin/verifications",
+                    referenceId: user.Id
+                );
+            }
+
             return Ok(new { message = "Đăng ký tài khoản thành công!" });
         }
 
@@ -143,6 +166,11 @@ namespace ZHome.API.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
+            }
+
             var user = await _context.Users
                 .Include(u => u.Role)
                 .FirstOrDefaultAsync(u => u.Phone == request.Phone);
@@ -209,6 +237,7 @@ namespace ZHome.API.Controllers
 
             var user = await _context.Users
                 .Include(u => u.Role)
+                .Include(u => u.SubscriptionPackage)
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null)
@@ -232,7 +261,11 @@ namespace ZHome.API.Controllers
                 FullName = user.FullName,
                 RoleName = user.Role?.RoleName ?? "Tenant",
                 AvatarUrl = user.AvatarUrl,
+                CccdNumber = user.CccdNumber,
+                VerificationStatus = user.VerificationStatus ?? "Unverified",
+                CreatedAt = user.CreatedAt,
                 SubscriptionId = user.SubscriptionId,
+                SubscriptionName = user.SubscriptionPackage?.Name ?? (user.SubscriptionId == 2 ? "Gói Cơ Bản" : (user.SubscriptionId == 3 ? "Gói Nâng Cao" : "Gói Miễn Phí")),
                 SubscriptionEndDate = user.SubscriptionEndDate
             });
         }
@@ -249,6 +282,7 @@ namespace ZHome.API.Controllers
 
             var user = await _context.Users
                 .Include(u => u.Role)
+                .Include(u => u.SubscriptionPackage)
                 .FirstOrDefaultAsync(u => u.Id == userId);
             if (user == null)
             {
@@ -265,6 +299,10 @@ namespace ZHome.API.Controllers
 
             user.FullName = request.FullName;
             user.Email = request.Email;
+            if (!string.IsNullOrWhiteSpace(request.CccdNumber))
+            {
+                user.CccdNumber = request.CccdNumber;
+            }
             user.UpdatedAt = DateTime.UtcNow;
 
             if (!string.IsNullOrEmpty(request.AvatarBase64))
@@ -289,8 +327,49 @@ namespace ZHome.API.Controllers
                 Email = user.Email,
                 FullName = user.FullName,
                 RoleName = user.Role?.RoleName ?? "Tenant",
-                AvatarUrl = user.AvatarUrl
+                AvatarUrl = user.AvatarUrl,
+                CccdNumber = user.CccdNumber,
+                VerificationStatus = user.VerificationStatus ?? "Unverified",
+                CreatedAt = user.CreatedAt,
+                SubscriptionId = user.SubscriptionId,
+                SubscriptionName = user.SubscriptionPackage?.Name ?? (user.SubscriptionId == 2 ? "Gói Cơ Bản" : (user.SubscriptionId == 3 ? "Gói Nâng Cao" : "Gói Miễn Phí")),
+                SubscriptionEndDate = user.SubscriptionEndDate
             });
+        }
+
+        [Authorize]
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null) return NotFound("Người dùng không tồn tại.");
+
+            bool isOldCorrect = false;
+            if (user.PasswordHash == request.OldPassword) isOldCorrect = true;
+            else
+            {
+                try { isOldCorrect = BCrypt.Net.BCrypt.Verify(request.OldPassword, user.PasswordHash); }
+                catch { isOldCorrect = false; }
+            }
+
+            if (!isOldCorrect) return BadRequest("Mật khẩu hiện tại không chính xác.");
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword) || request.NewPassword.Length < 6)
+            {
+                return BadRequest("Mật khẩu mới phải có ít nhất 6 ký tự.");
+            }
+
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã thay đổi mật khẩu thành công!" });
         }
     }
 }

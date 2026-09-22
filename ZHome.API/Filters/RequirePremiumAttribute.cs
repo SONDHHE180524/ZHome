@@ -61,9 +61,18 @@ namespace ZHome.API.Filters
             }
 
             var package = _context.SubscriptionPackages.FirstOrDefault(p => p.Id == user.SubscriptionId);
-            if (package == null || package.Price < _minPriceRequired)
+            if (package == null)
             {
-                context.Result = new ObjectResult(new { message = $"Tính năng này yêu cầu gói cước từ {_minPriceRequired:N0}đ/tháng trở lên. Vui lòng nâng cấp gói cước để sử dụng." })
+                context.Result = new ObjectResult(new { message = "Gói cước không hợp lệ. Vui lòng nâng cấp gói cước để sử dụng." });
+                return;
+            }
+
+            int requiredPackageId = _minPriceRequired >= 199000 ? 3 : 2;
+
+            if (package.Id < requiredPackageId && package.Price < _minPriceRequired)
+            {
+                string packageNameReq = requiredPackageId == 3 ? "Gói Nâng Cao" : "Gói Cơ Bản";
+                context.Result = new ObjectResult(new { message = $"Tính năng này yêu cầu {packageNameReq} trở lên. Vui lòng nâng cấp gói cước để sử dụng." })
                 {
                     StatusCode = 403
                 };

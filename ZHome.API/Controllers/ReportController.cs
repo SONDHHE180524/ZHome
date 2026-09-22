@@ -18,11 +18,16 @@ namespace ZHome.API.Controllers
     {
         private readonly ZHomeDbContext _context;
         private readonly Services.IEmailService _emailService;
+        private readonly Services.INotificationService _notificationService;
 
-        public ReportController(ZHomeDbContext context, Services.IEmailService emailService)
+        public ReportController(
+            ZHomeDbContext context,
+            Services.IEmailService emailService,
+            Services.INotificationService notificationService)
         {
             _context = context;
             _emailService = emailService;
+            _notificationService = notificationService;
         }
 
         // Submit report (Tenant only)
@@ -73,38 +78,53 @@ namespace ZHome.API.Controllers
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
 
-            // Nếu đánh giá dưới 5 sao, gửi thông báo bắt buộc phản hồi cho chủ trọ
-            if (report.Rating.HasValue && report.Rating.Value < 5 && report.ContractId.HasValue)
-            {
-                var contract = await _context.Contracts
-                    .Include(c => c.Room)
-                        .ThenInclude(r => r!.Property)
-                            .ThenInclude(p => p!.Landlord)
-                    .Include(c => c.Tenant)
-                    .FirstOrDefaultAsync(c => c.Id == report.ContractId.Value);
+            // Find contract & landlord info
+            var contract = await _context.Contracts
+                .Include(c => c.Room)
+                    .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
+                .Include(c => c.Tenant)
+                .FirstOrDefaultAsync(c => (request.ContractId.HasValue ? c.Id == request.ContractId.Value : (c.TenantId == tenantId && c.Status == "Active")));
 
-                if (contract?.Room?.Property?.Landlord != null && !string.IsNullOrWhiteSpace(contract.Room.Property.Landlord.Email))
-                {
-                    var landlord = contract.Room.Property.Landlord;
-                    var landlordEmail = landlord.Email;
-                    var subject = $"[ZHome - QUAN TRỌNG] Yêu cầu phản hồi báo cáo từ phòng {contract.Room.RoomNumber}";
-                    var emailBodyHtml = $@"
-                        <div style=""font-family: Arial, sans-serif; padding: 20px;"">
-                            <h2 style=""color: #e11d48;"">CẢNH BÁO: PHẢN ÁNH DƯỚI 5 SAO</h2>
-                            <p>Xin chào <strong>{landlord.FullName}</strong>,</p>
-                            <p>Bạn vừa nhận được một đánh giá/phản ánh <strong>{report.Rating} sao</strong> từ khách thuê <strong>{contract.Tenant?.FullName}</strong> ở phòng <strong>{contract.Room.RoomNumber}</strong> (Khu trọ: {contract.Room.Property.Title}).</p>
-                            <div style=""background: #f8fafc; padding: 15px; border-left: 4px solid #e11d48; margin: 15px 0;"">
-                                <strong>Tiêu đề:</strong> {report.Title}<br/>
-                                <strong>Nội dung:</strong> {report.Content}
-                            </div>
-                            <p style=""color: #b91c1c; font-weight: bold;"">Yêu cầu bắt buộc:</p>
-                            <p>Theo quy định của hệ thống, bạn cần truy cập ngay vào hệ thống ZHome để gửi phản hồi/cam kết khắc phục cho phản ánh này.</p>
-                            <p>Vui lòng đăng nhập ZHome, vào mục <strong>Quản lý Phản ánh</strong> để thực hiện.</p>
+            if (contract?.Room?.Property?.LandlordId != null)
+            {
+                var landlordId = contract.Room.Property.LandlordId;
+                var tenantName = contract.Tenant?.FullName ?? "Khách thuê";
+                var roomNumber = contract.Room?.RoomNumber ?? "";
+                var propTitle = contract.Room?.Property?.Title ?? "";
+
+                await _notificationService.CreateNotificationAsync(
+                    userId: landlordId,
+                    title: report.Rating.HasValue ? "Đánh giá mới từ khách thuê" : "Báo cáo sự cố mới",
+                    message: $"Phòng {roomNumber} ({tenantName} - {propTitle}) vừa gửi: \"{report.Title}\". Vui lòng kiểm tra và xử lý!",
+                    type: "IncidentReport",
+                    targetUrl: "/landlord/incidents",
+                    referenceId: report.Id
+                );
+            }
+
+            // Nếu đánh giá dưới 5 sao, gửi thông báo bắt buộc phản hồi cho chủ trọ
+            if (report.Rating.HasValue && report.Rating.Value < 5 && contract?.Room?.Property?.Landlord != null && !string.IsNullOrWhiteSpace(contract.Room.Property.Landlord.Email))
+            {
+                var landlord = contract.Room.Property.Landlord;
+                var landlordEmail = landlord.Email;
+                var subject = $"[ZHome - QUAN TRỌNG] Yêu cầu phản hồi báo cáo từ phòng {contract.Room?.RoomNumber}";
+                var emailBodyHtml = $@"
+                    <div style=""font-family: Arial, sans-serif; padding: 20px;"">
+                        <h2 style=""color: #e11d48;"">CẢNH BÁO: PHẢN ÁNH DƯỚI 5 SAO</h2>
+                        <p>Xin chào <strong>{landlord.FullName}</strong>,</p>
+                        <p>Bạn vừa nhận được một đánh giá/phản ánh <strong>{report.Rating} sao</strong> từ khách thuê <strong>{contract.Tenant?.FullName}</strong> ở phòng <strong>{contract.Room?.RoomNumber}</strong> (Khu trọ: {contract.Room?.Property?.Title}).</p>
+                        <div style=""background: #f8fafc; padding: 15px; border-left: 4px solid #e11d48; margin: 15px 0;"">
+                            <strong>Tiêu đề:</strong> {report.Title}<br/>
+                            <strong>Nội dung:</strong> {report.Content}
                         </div>
-                    ";
-                    
-                    _emailService.SendEmail(landlordEmail, subject, emailBodyHtml, out _);
-                }
+                        <p style=""color: #b91c1c; font-weight: bold;"">Yêu cầu bắt buộc:</p>
+                        <p>Theo quy định của hệ thống, bạn cần truy cập ngay vào hệ thống ZHome để gửi phản hồi/cam kết khắc phục cho phản ánh này.</p>
+                        <p>Vui lòng đăng nhập ZHome, vào mục <strong>Quản lý Phản ánh</strong> để thực hiện.</p>
+                    </div>
+                ";
+                
+                _emailService.SendEmail(landlordEmail, subject, emailBodyHtml, out _);
             }
 
             return Ok(new { message = "Gửi phản ánh sự cố thành công!" });
@@ -145,6 +165,7 @@ namespace ZHome.API.Controllers
                 .Include(r => r.Tenant)
                 .Include(r => r.Contract)
                     .ThenInclude(c => c!.Room)
+                        .ThenInclude(rm => rm!.Property)
                 .Where(r => r.Contract != null && r.Contract.Room != null && r.Contract.Room.Property != null && r.Contract.Room.Property.LandlordId == landlordId)
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new {
@@ -156,6 +177,8 @@ namespace ZHome.API.Controllers
                     r.LandlordReply,
                     r.RepliedAt,
                     r.CreatedAt,
+                    PropertyId = r.Contract!.Room!.PropertyId,
+                    PropertyTitle = r.Contract.Room.Property!.Title,
                     TenantName = r.Tenant!.FullName,
                     TenantPhone = r.Tenant.Phone,
                     RoomNumber = r.Contract!.Room!.RoomNumber
@@ -217,18 +240,18 @@ namespace ZHome.API.Controllers
         // Update report status (Landlord only)
         [Authorize(Roles = "Landlord,Administrator")]
         [HttpPut("{id}/status")]
-        public async Task<IActionResult> UpdateStatus(long id, [FromBody] string status)
+        public async Task<IActionResult> UpdateStatus(long id, [FromBody] ReportStatusDto request)
         {
             var report = await _context.Reports.FindAsync(id);
             if (report == null)
             {
-                return NotFound("Không tìm thấy phản ánh.");
+                return NotFound("Không tìm thấy phản ánh/sự cố.");
             }
 
-            report.Status = status;
+            report.Status = request.Status;
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Cập nhật trạng thái phản ánh thành công!" });
+            return Ok(new { message = "Cập nhật trạng thái thành công!" });
         }
 
         // Landlord reply to a report

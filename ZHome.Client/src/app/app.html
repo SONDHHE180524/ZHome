@@ -1,82 +1,246 @@
 <header class="navbar">
   <div class="nav-container">
-    <div class="nav-top-row" style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+    <div class="nav-top-row">
       
-      <!-- Premium SVG Logo -->
-      <a routerLink="/" class="brand" style="display: flex; align-items: center; gap: 10px; position: relative; padding: 4px 8px; border-radius: 12px; transition: all 0.3s ease;">
-        <div class="logo-wrapper" style="position: relative; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
-          <svg class="animated-logo" width="44" height="44" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(79, 70, 229, 0.3)); overflow: visible;">
-            <!-- Chimney Smoke -->
-            <circle class="smoke smoke-1" cx="76" cy="8" r="5" fill="#cbd5e1" opacity="0"/>
-            <circle class="smoke smoke-2" cx="76" cy="8" r="7" fill="#94a3b8" opacity="0"/>
-            <circle class="smoke smoke-3" cx="76" cy="8" r="6" fill="#cbd5e1" opacity="0"/>
-
-            <!-- Chimney -->
-            <path class="logo-chimney" d="M70 30 V12 A2 2 0 0 1 72 10 H80 A2 2 0 0 1 82 12 V38 Z" fill="url(#gradZ)"/>
-            
-            <!-- House Base -->
-            <path class="logo-base" d="M50 10 L10 45 V85 A5 5 0 0 0 15 90 H85 A5 5 0 0 0 90 85 V45 Z" fill="url(#gradZ)" opacity="0.95"/>
-            
-            <!-- Inner white Z line -->
+      <!-- Professional Portal Logo (Left) -->
+      <a routerLink="/" class="brand" (click)="closeAllMenus()">
+        <div class="logo-wrapper" style="position: relative; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+          <svg class="animated-logo" width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path class="logo-base" d="M50 10 L10 45 V85 A5 5 0 0 0 15 90 H85 A5 5 0 0 0 90 85 V45 Z" fill="url(#gradZGov)" opacity="0.95"/>
+            <path class="logo-chimney" d="M70 30 V14 A2 2 0 0 1 72 12 H78 A2 2 0 0 1 80 14 V38 Z" fill="url(#gradZGov)"/>
             <path class="logo-path" d="M35 45 H65 L35 70 H65" stroke="white" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-            
             <defs>
-              <linearGradient id="gradZ" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
-                <stop stop-color="#4f46e5"/>
-                <stop offset="1" stop-color="#0ea5e9"/>
+              <linearGradient id="gradZGov" x1="0" y1="0" x2="100" y2="100" gradientUnits="userSpaceOnUse">
+                <stop stop-color="#1d4ed8"/>
+                <stop offset="1" stop-color="#0284c7"/>
               </linearGradient>
             </defs>
           </svg>
         </div>
-        <span class="logo-text" style="font-size: 1.55rem; font-weight: 800; letter-spacing: -0.05em; background: var(--grad-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; transition: all 0.3s ease;">ZHome</span>
+        <div style="display: flex; flex-direction: column;">
+          <span class="logo-text">ZHome</span>
+          <span style="font-size: 0.65rem; font-weight: 800; color: var(--color-primary); letter-spacing: 0.05em; text-transform: uppercase; line-height: 1;">Cổng Quản Lý & Kết Nối Trọ</span>
+        </div>
       </a>
 
-      <!-- Center Navigation Links -->
-      <nav class="nav-links" style="display: flex; gap: 24px; margin-left: 20px; flex: 1; justify-content: center;">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">Trang chủ</a>
+      <!-- Center Navigation Links (Clean Facebook Tabs Style) -->
+      <nav class="nav-center">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="closeAllMenus()" class="nav-tab" title="Trang chủ">
+          <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <circle cx="12" cy="13" r="2.5"/>
+          </svg>
+          <span class="tab-label">Trang chủ</span>
+        </a>
+
+        <!-- Public & Tenant Match Roommate Tab -->
+        <a routerLink="/tenant/match" routerLinkActive="active" (click)="closeAllMenus()" class="nav-tab" title="Sàn tìm bạn ở ghép sinh viên">
+          <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span class="tab-label">Ghép trọ</span>
+        </a>
         
-        @if (authService.isLoggedIn() && authService.userRole() === 'Tenant') {
-          <a routerLink="/tenant/my-rental" routerLinkActive="active">Trọ của tôi</a>
-          <a routerLink="/tenant/match" routerLinkActive="active">ZHome Match</a>
-          <a routerLink="/tenant/bills" routerLinkActive="active">Hóa đơn</a>
-        }
-
         @if (authService.isLoggedIn() && (authService.userRole() === 'Landlord' || authService.userRole() === 'Administrator')) {
-          <a routerLink="/landlord/overview" routerLinkActive="active">Bảng điều khiển</a>
-          <a routerLink="/landlord/properties" routerLinkActive="active">Nhà & Phòng</a>
-          <a routerLink="/landlord/utility-grid" routerLinkActive="active">Điện nước</a>
-          <a routerLink="/landlord/bills" routerLinkActive="active">Công nợ</a>
-          <a routerLink="/landlord/transactions" routerLinkActive="active">Lịch sử GD</a>
-          <a routerLink="/landlord/reports" routerLinkActive="active">Đánh giá</a>
-          <a routerLink="/landlord/packages" routerLinkActive="active" style="color: var(--primary); font-weight: 600;">💎 Gói cước</a>
+          <a [routerLink]="authService.userRole() === 'Administrator' ? '/admin/dashboard' : '/landlord/overview'" routerLinkActive="active" (click)="closeAllMenus()" class="nav-tab" title="Bảng điều khiển">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="9"/>
+              <rect x="14" y="3" width="7" height="5"/>
+              <rect x="14" y="12" width="7" height="9"/>
+              <rect x="3" y="16" width="7" height="5"/>
+            </svg>
+            <span class="tab-label">Bảng điều khiển</span>
+          </a>
         }
 
-        @if (authService.isLoggedIn() && authService.userRole() === 'Administrator') {
-          <a routerLink="/admin/verifications" routerLinkActive="active">Duyệt chủ trọ</a>
+        @if (authService.isLoggedIn() && authService.userRole() === 'Tenant') {
+          <a routerLink="/tenant/my-rental" routerLinkActive="active" (click)="closeAllMenus()" class="nav-tab" title="Trọ của tôi">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m21 2-2 2m-1.5 1.5L14 9l-1.5-1.5L10 10l1.5 1.5L9 14l-1.5-1.5L5 15l1.5 1.5L4 19l2 2 3-3-1.5-1.5L10 14l1.5 1.5L14 13l-1.5-1.5L15 9l1.5 1.5L19 8l-1.5-1.5L20 4z"/>
+              <circle cx="7.5" cy="16.5" r="3.5"/>
+            </svg>
+            <span class="tab-label">Trọ của tôi</span>
+          </a>
+          <a routerLink="/tenant/bills" routerLinkActive="active" (click)="closeAllMenus()" class="nav-tab" title="Hóa đơn">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+            <span class="tab-label">Hóa đơn</span>
+          </a>
         }
       </nav>
 
-      <!-- Right Auth Actions -->
-      <div class="nav-auth" style="display: flex; align-items: center; gap: 16px;">
+      <!-- Right Action Toolbar -->
+      <div class="nav-actions">
+        <!-- Font Size Toggle -->
         <div class="font-size-toggle" title="Điều chỉnh cỡ chữ">
           <button (click)="setFontSize('normal')" [class.active-size]="fontSize() === 'normal'">A</button>
           <button (click)="setFontSize('large')" [class.active-size]="fontSize() === 'large'">A+</button>
         </div>
 
         @if (authService.isLoggedIn()) {
-          <div class="user-badge" routerLink="/profile" style="cursor: pointer;" title="Chỉnh sửa hồ sơ">
-            <span class="user-role-tag">{{ authService.userRole() === 'Administrator' ? 'Admin' : (authService.userRole() === 'Landlord' ? 'Chủ trọ' : 'Khách thuê') }}</span>
-            <span class="user-name">
-              {{ authService.userName() }}
-              @if (authService.session()?.role === 'Landlord' && authService.session()?.verificationStatus === 'Approved') {
-                <span style="margin-left: 4px; font-size: 0.95rem;" title="Đã xác minh">✅</span>
+          <!-- Smart Notification Bell -->
+          <div class="nav-dropdown-wrapper">
+            <button class="fb-icon-btn" [class.active]="isNotificationsOpen()" (click)="toggleNotifications()" title="Thông báo hệ thống">
+              <svg class="bell-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+                <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+              </svg>
+              @if (notificationService.unreadCount() > 0) {
+                <span class="notification-badge">{{ notificationService.unreadCount() }}</span>
               }
-            </span>
+            </button>
+
+            @if (isNotificationsOpen()) {
+              <div class="notification-dropdown">
+                <div class="notif-header">
+                  <strong>Thông báo ({{ notificationService.unreadCount() }} mới)</strong>
+                  @if (notificationService.unreadCount() > 0) {
+                    <button (click)="markAllNotificationsRead()" class="btn-text-sm">Đã đọc tất cả</button>
+                  }
+                </div>
+                <div class="notif-list">
+                  @if (notificationService.notifications().length === 0) {
+                    <div class="notif-empty p-3 text-center text-muted" style="font-size: 0.85rem;">
+                      Không có thông báo nào.
+                    </div>
+                  } @else {
+                    @for (n of notificationService.notifications(); track n.id) {
+                      <div class="notif-item" [class.unread]="!n.isRead" (click)="readNotification(n)">
+                        <div class="notif-type-icon">
+                          {{ getNotificationIcon(n.type) }}
+                        </div>
+                        <div class="notif-content">
+                          <strong class="notif-title">{{ n.title }}</strong>
+                          <p class="notif-desc">{{ n.message }}</p>
+                          <span class="notif-time">{{ getTimeAgo(n.createdAt) }}</span>
+                        </div>
+                        @if (!n.isRead) {
+                          <span class="unread-dot"></span>
+                        }
+                      </div>
+                    }
+                  }
+                </div>
+              </div>
+            }
           </div>
-          <button (click)="logout()" class="btn btn-secondary btn-sm">Đăng xuất</button>
+
+          <!-- Facebook-style User Avatar & Profile Dropdown Button -->
+          <div class="nav-dropdown-wrapper">
+            <button class="fb-avatar-btn" [class.active]="isProfileMenuOpen()" (click)="toggleProfileMenu()" title="Tài khoản cá nhân">
+              <div class="avatar-circle">
+                @if (authService.session()?.avatarUrl) {
+                  <img [src]="getAvatarUrl(authService.session()?.avatarUrl)" class="avatar-img" (error)="onAvatarImageError($event)" alt="Avatar" />
+                } @else {
+                  <img [src]="getDefaultAvatarSvg()" class="avatar-img" alt="Avatar" />
+                }
+              </div>
+              <span class="avatar-online-dot"></span>
+              <span class="chevron-arrow">▼</span>
+            </button>
+
+            @if (isProfileMenuOpen()) {
+              <div class="profile-dropdown">
+                <!-- User Summary Card / View & Edit Profile -->
+                <div class="profile-user-card" routerLink="/profile" (click)="closeAllMenus()">
+                  <div class="user-avatar-large">
+                    @if (authService.session()?.avatarUrl) {
+                      <img [src]="getAvatarUrl(authService.session()?.avatarUrl)" class="avatar-img" (error)="onAvatarImageError($event)" alt="Avatar" />
+                    } @else {
+                      <img [src]="getDefaultAvatarSvg()" class="avatar-img" alt="Avatar" />
+                    }
+                  </div>
+                  <div class="user-card-info">
+                    <div class="user-card-name">
+                      {{ authService.userName() }}
+                    </div>
+                    <div class="user-card-role-row">
+                      <span class="role-badge" [class.role-admin]="authService.userRole() === 'Administrator'" [class.role-landlord]="authService.userRole() === 'Landlord'" [class.role-tenant]="authService.userRole() === 'Tenant'">
+                        {{ authService.userRole() === 'Administrator' ? 'Quản trị viên' : (authService.userRole() === 'Landlord' ? 'Chủ trọ' : 'Khách thuê') }}
+                      </span>
+                    </div>
+                    <span class="user-card-link" style="color: #2563eb; font-weight: 700; font-size: 0.85rem; margin-top: 4px; display: inline-block;">Xem & chỉnh sửa hồ sơ →</span>
+                  </div>
+                </div>
+
+                <div class="menu-divider"></div>
+
+                <!-- Tenant Specific Quick Menu Links -->
+                @if (authService.userRole() === 'Tenant') {
+                  <div class="dropdown-item" routerLink="/tenant/my-rental" (click)="closeAllMenus()">
+                    <div class="item-icon-bg" style="background: #e0f2fe; color: #0284c7;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                    </div>
+                    <div class="item-text">
+                      <span class="item-title" style="font-weight: 700; color: #0f172a;">Trọ của tôi</span>
+                      <span style="font-size: 0.75rem; color: #64748b;">Hợp đồng & phòng đang thuê</span>
+                    </div>
+                  </div>
+
+                  <div class="dropdown-item" routerLink="/tenant/bills" (click)="closeAllMenus()">
+                    <div class="item-icon-bg" style="background: #fef3c7; color: #d97706;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                      </svg>
+                    </div>
+                    <div class="item-text">
+                      <span class="item-title" style="font-weight: 700; color: #0f172a;">Hóa đơn tiền phòng</span>
+                      <span style="font-size: 0.75rem; color: #64748b;">Tra cứu & thanh toán hóa đơn</span>
+                    </div>
+                  </div>
+
+                  <div class="dropdown-item" routerLink="/tenant/match" (click)="closeAllMenus()">
+                    <div class="item-icon-bg" style="background: #ecfdf5; color: #059669;">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                      </svg>
+                    </div>
+                    <div class="item-text">
+                      <span class="item-title" style="font-weight: 700; color: #0f172a;">Sàn ghép trọ & AI Match</span>
+                      <span style="font-size: 0.75rem; color: #64748b;">Tìm bạn cùng phòng phù hợp</span>
+                    </div>
+                  </div>
+
+                  <div class="menu-divider"></div>
+                }
+
+                <!-- Logout Button -->
+                <div class="dropdown-item logout-item" (click)="logout()">
+                  <div class="item-icon-bg logout-icon">
+                    <svg class="logout-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+                      <polyline points="16 17 21 12 16 7"/>
+                      <line x1="21" y1="12" x2="9" y2="12"/>
+                    </svg>
+                  </div>
+                  <div class="item-text">
+                    <span class="item-title" style="font-weight: 700; color: #dc2626;">Đăng xuất</span>
+                  </div>
+                </div>
+
+              </div>
+            }
+          </div>
         } @else {
-          <a routerLink="/login" class="btn btn-secondary btn-sm" style="border-radius: 20px;">Đăng nhập</a>
-          <a routerLink="/register" class="btn btn-primary btn-sm" style="border-radius: 20px; background: var(--grad-primary); border: none;">Đăng ký</a>
+          <a routerLink="/login" (click)="closeAllMenus()" class="btn btn-secondary btn-sm" style="border-radius: 8px;">Đăng nhập</a>
+          <a routerLink="/register" (click)="closeAllMenus()" class="btn btn-primary btn-sm" style="border-radius: 8px;">Đăng ký</a>
         }
       </div>
     </div>
@@ -87,14 +251,81 @@
   <router-outlet></router-outlet>
 </main>
 
+<!-- Official Portal Footer -->
+<footer class="portal-footer">
+  <div class="portal-footer-top">
+    <div class="footer-col">
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 12px;">
+        <span style="font-size: 1.4rem; font-weight: 800; color: #ffffff;">ZHome</span>
+        <span style="background: var(--color-primary-dark); color: white; font-size: 0.65rem; font-weight: 800; padding: 2px 6px; border-radius: 4px; text-transform: uppercase;">Portal</span>
+      </div>
+      <p>Cổng Thông Tin Quản Lý & Tìm Kiếm Trọ Uy Tín Hàng Đầu. Kết nối trực tiếp giữa Khách thuê và Chủ trọ với quy trình minh bạch, an toàn và chuyên nghiệp.</p>
+      <div class="contact-item">
+        <span class="contact-icon"></span>
+        <span>Khu Công Nghệ Cao Hòa Lạc, Thạch Thất, Hà Nội</span>
+      </div>
+      <div class="contact-item">
+        <span class="contact-icon"></span>
+        <span>Hotline hỗ trợ: 1900 6868 (8:00 - 20:00 Hàng ngày)</span>
+      </div>
+      <div class="contact-item">
+        <span class="contact-icon">️</span>
+        <span>Email hỗ trợ: hotro@zhome.vn</span>
+      </div>
+    </div>
+
+    <div class="footer-col">
+      <h4>Dành Cho Khách Thuê</h4>
+      <ul>
+        <li><a routerLink="/">Tìm kiếm nhà trọ</a></li>
+        <li><a routerLink="/tenant/match">Gợi ý phòng trọ ZHome Match</a></li>
+        <li><a routerLink="/tenant/my-rental">Quản lý trọ cá nhân</a></li>
+        <li><a routerLink="/tenant/bills">Tra cứu hóa đơn hàng tháng</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4>Dành Cho Chủ Trọ</h4>
+      <ul>
+        <li><a routerLink="/landlord/overview">Bảng phân tích tài chính</a></li>
+        <li><a routerLink="/landlord/properties">Quản lý danh sách nhà & phòng</a></li>
+        <li><a routerLink="/landlord/utility-grid">Ghi chỉ số điện nước</a></li>
+        <li><a routerLink="/landlord/packages">Đăng ký các gói cước ZHome</a></li>
+      </ul>
+    </div>
+
+    <div class="footer-col">
+      <h4>Cam Kết Uy Tín</h4>
+      <p>Hệ thống tự động bảo mật dữ liệu, xác minh danh tính chủ trọ và hóa đơn minh bạch đạt chuẩn số hóa dịch vụ công.</p>
+      <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); margin-top: 12px;">
+        <span style="font-size: 0.8rem; color: #94a3b8; display: block; margin-bottom: 4px;">Chứng nhận hệ thống:</span>
+        <strong style="color: #60a5fa; font-size: 0.88rem;"> Bảo mật SSL 256-bit & Xác minh tài khoản 2 lớp</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="portal-footer-bottom">
+    <div class="footer-bottom-container">
+      <div>
+        © 2026 ZHome - Hệ Thống Quản Lý & Kết Nối Nhà Trọ Thông Minh. Bản quyền thuộc về ZHome Vietnam.
+      </div>
+      <div class="footer-bottom-links">
+        <a href="javascript:void(0)">Điều khoản sử dụng</a>
+        <a href="javascript:void(0)">Chính sách bảo mật</a>
+        <a href="javascript:void(0)">Quy chế hoạt động</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
 <!-- Global Toast Container -->
 <div class="toast-container">
   @for (toast of toastService.toasts(); track toast.id) {
     <div class="toast toast-{{toast.type}}" (click)="toastService.remove(toast.id)">
       @if (toast.type === 'success') {
-        <span class="toast-icon">✓</span>
+        <span class="toast-icon"></span>
       } @else if (toast.type === 'error') {
-        <span class="toast-icon">✗</span>
+        <span class="toast-icon"></span>
       } @else {
         <span class="toast-icon">i</span>
       }
@@ -102,3 +333,28 @@
     </div>
   }
 </div>
+
+<!-- Real-time Top-Right Notification Toast (5-second auto-dismiss) -->
+@if (notificationService.activeToast(); as notif) {
+  <div class="realtime-notification-popup animate-slide-in-right" (click)="readNotification(notif)">
+    <div class="notif-popup-icon-col">
+      <div class="notif-popup-icon-badge">
+        {{ getNotificationIcon(notif.type) }}
+      </div>
+    </div>
+    <div class="notif-popup-body">
+      <div class="notif-popup-top">
+        <span class="notif-popup-tag">Thông Báo Mới</span>
+        <span class="notif-popup-timer-dot"></span>
+      </div>
+      <strong class="notif-popup-title">{{ notif.title }}</strong>
+      <p class="notif-popup-msg">{{ notif.message }}</p>
+      <div class="notif-popup-footer">
+        <span class="notif-popup-action">Nhấn để xem chi tiết →</span>
+      </div>
+    </div>
+    <button class="notif-popup-close-btn" (click)="$event.stopPropagation(); notificationService.dismissToast()" title="Đóng">&times;</button>
+    <div class="notif-popup-progress-bar"></div>
+  </div>
+}
+

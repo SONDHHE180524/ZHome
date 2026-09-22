@@ -41,4 +41,41 @@ export class BillService {
   getBillById(billId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/${billId}`);
   }
+
+  createSePayPayment(billId: number, amount: number): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/create-sepay-payment`, { billId, amount });
+  }
+
+  // Alias for compatibility
+  createPayOSPayment(billId: number, amount: number): Observable<any> {
+    return this.createSePayPayment(billId, amount);
+  }
+
+  checkOrderStatus(orderCode: number | string): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/check-order-status/${orderCode}`);
+  }
+
+  simulateSePaySuccess(orderCode: number | string, billId?: number): Observable<any> {
+    const url = billId 
+      ? `${this.apiUrl}/simulate-sepay-success/${orderCode}?billId=${billId}`
+      : `${this.apiUrl}/simulate-sepay-success/${orderCode}`;
+    return this.http.post<any>(url, {});
+  }
+
+  // Alias for compatibility
+  simulatePayOSSuccess(orderCode: number | string, billId?: number): Observable<any> {
+    return this.simulateSePaySuccess(orderCode, billId);
+  }
+
+  notifyTransfer(billId: number, data?: { amount?: number; note?: string; proofImageBase64?: string; proofImageUrl?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${billId}/notify-transfer`, data || {});
+  }
+
+  confirmPayment(billId: number, data?: { amount?: number; note?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${billId}/confirm-payment`, data || {});
+  }
+
+  rejectPayment(billId: number, data?: { reason?: string }): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${billId}/reject-payment`, data || {});
+  }
 }

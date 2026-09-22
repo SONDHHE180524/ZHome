@@ -15,7 +15,7 @@ export class PropertyService {
   }
 
   getProperty(id: number): Observable<any> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`);
+    return this.http.get<any>(`${this.apiUrl}/public/${id}`);
   }
 
   updatePropertyImage(id: number, imageBase64: string): Observable<any> {
@@ -30,6 +30,18 @@ export class PropertyService {
     return this.http.post<any>(`${this.apiUrl}/${propertyId}/room`, roomData);
   }
 
+  getLandlordRoomDetail(roomId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/room/${roomId}`);
+  }
+
+  updateRoom(roomId: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/room/${roomId}`, data);
+  }
+
+  deleteRoom(roomId: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/room/${roomId}`);
+  }
+
   incrementViewCount(propertyId: number): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${propertyId}/view`, {});
   }
@@ -37,22 +49,32 @@ export class PropertyService {
   getListings(filters: {
     search?: string;
     district?: string;
+    ward?: string;
     minPrice?: number;
     maxPrice?: number;
+    minArea?: number;
+    maxArea?: number;
     verifiedHost?: boolean;
   }): Observable<any[]> {
     let params = new HttpParams();
     if (filters.search) params = params.set('search', filters.search);
     if (filters.district) params = params.set('district', filters.district);
+    if (filters.ward) params = params.set('ward', filters.ward);
     if (filters.minPrice !== undefined && filters.minPrice !== null) params = params.set('minPrice', filters.minPrice.toString());
     if (filters.maxPrice !== undefined && filters.maxPrice !== null) params = params.set('maxPrice', filters.maxPrice.toString());
+    if (filters.minArea !== undefined && filters.minArea !== null) params = params.set('minArea', filters.minArea.toString());
+    if (filters.maxArea !== undefined && filters.maxArea !== null) params = params.set('maxArea', filters.maxArea.toString());
     if (filters.verifiedHost) params = params.set('verifiedHost', 'true');
 
     return this.http.get<any[]>(`${this.apiUrl}/listings`, { params });
   }
 
-  getDistricts(): Observable<any[]> {
-    return this.http.get<any[]>('http://localhost:5000/api/location/districts');
+  getLocations(level: number = 2): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:5000/api/location?level=${level}`);
+  }
+
+  getChildren(parentId: number): Observable<any[]> {
+    return this.http.get<any[]>(`http://localhost:5000/api/location/${parentId}/children`);
   }
 
   toggleFavorite(roomId: number): Observable<any> {

@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,23 +19,24 @@ namespace ZHome.API.Controllers
             _context = context;
         }
 
-        [HttpGet("districts")]
-        public async Task<IActionResult> GetDistricts()
+        [HttpGet]
+        public async Task<IActionResult> GetLocations([FromQuery] int level = 2)
         {
-            var districts = await _context.Districts
-                .OrderBy(d => d.Id)
+            var locations = await _context.Locations
+                .Where(l => l.Level == level)
+                .OrderBy(l => l.Name)
                 .ToListAsync();
-            return Ok(districts);
+            return Ok(locations);
         }
 
-        [HttpGet("districts/{districtId}/wards")]
-        public async Task<IActionResult> GetWards(int districtId)
+        [HttpGet("{parentId}/children")]
+        public async Task<IActionResult> GetChildren(int parentId)
         {
-            var wards = await _context.Wards
-                .Where(w => w.DistrictId == districtId)
-                .OrderBy(w => w.Id)
+            var children = await _context.Locations
+                .Where(l => l.ParentId == parentId)
+                .OrderBy(l => l.Name)
                 .ToListAsync();
-            return Ok(wards);
+            return Ok(children);
         }
     }
 }

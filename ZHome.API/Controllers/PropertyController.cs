@@ -37,10 +37,13 @@ namespace ZHome.API.Controllers
             }
 
             var properties = await _context.Properties
+                .AsNoTracking()
                 .Include(p => p.Rooms)
                     .ThenInclude(r => r.Amenities)
                 .Include(p => p.Rooms)
                     .ThenInclude(r => r.Images)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Contracts)
                 .Where(p => p.LandlordId == landlordId)
                 .ToListAsync();
 
@@ -48,7 +51,79 @@ namespace ZHome.API.Controllers
             return Ok(response);
         }
 
-        // Get single property details
+        // Get single property public details for Detail View
+        [AllowAnonymous]
+        [HttpGet("public/{id}")]
+        public async Task<IActionResult> GetPublicPropertyDetail(long id)
+        {
+            var property = await _context.Properties
+                .AsNoTracking()
+                .Include(p => p.Landlord)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Amenities)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (property == null)
+            {
+                return NotFound(new { message = "Khu trọ không tồn tại." });
+            }
+
+            var allImages = new List<string>();
+            if (!string.IsNullOrEmpty(property.ImageUrl))
+            {
+                allImages.Add(property.ImageUrl);
+            }
+            foreach (var room in property.Rooms)
+            {
+                foreach (var img in room.Images)
+                {
+                    if (!string.IsNullOrEmpty(img.MediaUrl) && !allImages.Contains(img.MediaUrl))
+                    {
+                        allImages.Add(img.MediaUrl);
+                    }
+                }
+            }
+
+            var roomsDto = property.Rooms.Select(r => new RoomResponseDto
+            {
+                Id = r.Id,
+                PropertyId = r.PropertyId,
+                RoomNumber = r.RoomNumber,
+                Price = r.Price,
+                Area = r.Area,
+                MaxOccupants = r.MaxOccupants,
+                Status = r.Status,
+                Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
+                ImageUrls = r.Images.Select(i => i.MediaUrl).ToList()
+            }).OrderBy(r => r.RoomNumber).ToList();
+
+            var totalRooms = property.Rooms.Count;
+            var vacantRoomsCount = property.Rooms.Count(r => r.Status == "Available");
+
+            return Ok(new
+            {
+                PropertyId = property.Id,
+                PropertyTitle = property.Title,
+                Description = property.Description,
+                Address = property.Address,
+                Latitude = property.Latitude,
+                Longitude = property.Longitude,
+                IsVerifiedTick = property.IsVerifiedTick,
+                ViewCount = property.ViewCount,
+                PropertyImageUrl = property.ImageUrl,
+                LandlordId = property.LandlordId,
+                LandlordName = property.Landlord?.FullName ?? "Chủ trọ ZHome",
+                LandlordPhone = property.Landlord?.Phone ?? "1900 6868",
+                TotalRooms = totalRooms,
+                VacantRoomsCount = vacantRoomsCount,
+                ImageUrls = allImages,
+                Rooms = roomsDto
+            });
+        }
+
+        // Get single property details for Landlord/Admin edit
         [Authorize(Roles = "Landlord,Administrator")]
         [HttpGet("{id}")]
         public async Task<IActionResult> GetProperty(long id)
@@ -194,9 +269,9 @@ namespace ZHome.API.Controllers
             // Check room limits
             var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == landlordId);
             var currentPackageId = landlord?.SubscriptionId ?? 1;
-            var totalRooms = await _context.Rooms.CountAsync(r => r.Property.LandlordId == landlordId);
+            var totalRooms = await _context.Rooms.CountAsync(r => r.Property != null && r.Property.LandlordId == landlordId);
 
-            int maxRooms = 25; // Default for Free
+            int maxRooms = 10; // Default for Free
             if (currentPackageId == 2) maxRooms = 70; // Basic
             else if (currentPackageId == 3) maxRooms = 150; // Advanced
             else if (currentPackageId > 3) maxRooms = 999999; // Fallback for unexpected higher tiers
@@ -237,6 +312,22 @@ namespace ZHome.API.Controllers
                 }
             }
 
+            if (request.ImageBase64s != null && request.ImageBase64s.Any())
+            {
+                foreach (var base64 in request.ImageBase64s)
+                {
+                    if (!string.IsNullOrEmpty(base64))
+                    {
+                        try
+                        {
+                            var imgUrl = SaveBase64Image(base64, "room", room.Id.ToString());
+                            _context.RoomImages.Add(new RoomImage { RoomId = room.Id, MediaUrl = imgUrl, MediaType = "Image" });
+                        }
+                        catch { }
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
 
             // Reload room with relationships
@@ -248,14 +339,232 @@ namespace ZHome.API.Controllers
             return Ok(MapRoomToDto(createdRoom));
         }
 
+        // Get single room detail for Landlord
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpGet("room/{roomId}")]
+        public async Task<IActionResult> GetRoomDetailForLandlord(long roomId)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var room = await _context.Rooms
+                .Include(r => r.Property)
+                .Include(r => r.Amenities)
+                .Include(r => r.Images)
+                .FirstOrDefaultAsync(r => r.Id == roomId);
+
+            if (room == null || room.Property == null)
+            {
+                return NotFound(new { message = "Không tìm thấy phòng trọ." });
+            }
+
+            if (room.Property.LandlordId != landlordId && !User.IsInRole("Administrator"))
+            {
+                return StatusCode(403, new { message = "Bạn không có quyền xem thông tin phòng trọ này." });
+            }
+
+            var activeContracts = await _context.Contracts
+                .Include(c => c.Tenant)
+                .Where(c => c.RoomId == roomId && c.Status == "Active")
+                .Select(c => new RoomContractTenantDto
+                {
+                    ContractId = c.Id,
+                    TenantId = c.TenantId,
+                    TenantFullName = c.Tenant != null ? c.Tenant.FullName : string.Empty,
+                    TenantPhone = c.Tenant != null ? c.Tenant.Phone : string.Empty,
+                    TenantIdCardNumber = c.Tenant != null ? c.Tenant.CccdNumber ?? string.Empty : string.Empty,
+                    StartDate = c.StartDate,
+                    EndDate = c.EndDate,
+                    RoomPrice = c.RoomPrice,
+                    DepositAmount = c.RoomPrice, // 1 month deposit default
+                    PaymentCycle = "Thanh toán hàng tháng",
+                    Status = c.Status,
+                    CreatedAt = c.CreatedAt
+                })
+                .ToListAsync();
+
+            var recentBills = await _context.MonthlyBills
+                .Where(b => b.RoomId == roomId)
+                .OrderByDescending(b => b.BillingYear)
+                .ThenByDescending(b => b.BillingMonth)
+                .Take(12)
+                .Select(b => new RoomBillSummaryDto
+                {
+                    BillId = b.Id,
+                    BillingMonth = b.BillingMonth,
+                    BillingYear = b.BillingYear,
+                    ElectricityUsage = b.ElectricityNewReading - b.ElectricityOldReading,
+                    WaterUsage = b.WaterNewReading - b.WaterOldReading,
+                    TotalAmount = b.TotalAmount,
+                    PaidAmount = b.PaidAmount,
+                    Status = b.Status,
+                    PaidAt = b.PaidAt
+                })
+                .ToListAsync();
+
+            var dto = new RoomDetailLandlordDto
+            {
+                Id = room.Id,
+                PropertyId = room.PropertyId,
+                PropertyTitle = room.Property.Title,
+                PropertyAddress = room.Property.Address,
+                RoomNumber = room.RoomNumber,
+                Price = room.Price,
+                Area = room.Area,
+                MaxOccupants = room.MaxOccupants,
+                Status = room.Status,
+                Amenities = room.Amenities.Select(a => a.AmenityName).ToList(),
+                ImageUrls = room.Images.Select(i => i.MediaUrl).ToList(),
+                ActiveContracts = activeContracts,
+                RecentBills = recentBills
+            };
+
+            return Ok(dto);
+        }
+
+        // Update room details for Landlord
+        [Authorize(Roles = "Landlord")]
+        [HttpPut("room/{roomId}")]
+        public async Task<IActionResult> UpdateRoom(long roomId, [FromBody] RoomUpdateDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var room = await _context.Rooms
+                .Include(r => r.Property)
+                .Include(r => r.Amenities)
+                .Include(r => r.Images)
+                .FirstOrDefaultAsync(r => r.Id == roomId);
+
+            if (room == null || room.Property == null)
+            {
+                return NotFound(new { message = "Không tìm thấy phòng trọ." });
+            }
+
+            if (room.Property.LandlordId != landlordId)
+            {
+                return StatusCode(403, new { message = "Bạn không có quyền chỉnh sửa phòng trọ này." });
+            }
+
+            if (room.RoomNumber != request.RoomNumber &&
+                await _context.Rooms.AnyAsync(r => r.PropertyId == room.PropertyId && r.RoomNumber == request.RoomNumber))
+            {
+                return BadRequest(new { message = "Số phòng này đã tồn tại trong khu trọ." });
+            }
+
+            room.RoomNumber = request.RoomNumber;
+            room.Price = request.Price;
+            room.Area = request.Area;
+            room.MaxOccupants = request.MaxOccupants;
+
+            if (!string.IsNullOrEmpty(request.Status))
+            {
+                var hasActiveContracts = await _context.Contracts.AnyAsync(c => c.RoomId == roomId && c.Status == "Active");
+                if (hasActiveContracts && request.Status == "Available")
+                {
+                    room.Status = "Rented";
+                }
+                else
+                {
+                    room.Status = request.Status;
+                }
+            }
+
+            _context.RoomAmenities.RemoveRange(room.Amenities);
+            if (request.Amenities != null && request.Amenities.Any())
+            {
+                foreach (var amName in request.Amenities.Distinct())
+                {
+                    _context.RoomAmenities.Add(new RoomAmenity { RoomId = room.Id, AmenityName = amName });
+                }
+            }
+
+            if (request.ExistingImageUrls != null)
+            {
+                var toRemove = room.Images.Where(i => !request.ExistingImageUrls.Contains(i.MediaUrl)).ToList();
+                _context.RoomImages.RemoveRange(toRemove);
+            }
+
+            if (request.NewImageBase64s != null && request.NewImageBase64s.Any())
+            {
+                foreach (var base64 in request.NewImageBase64s)
+                {
+                    if (!string.IsNullOrEmpty(base64))
+                    {
+                        try
+                        {
+                            var imgUrl = SaveBase64Image(base64, "room", room.Id.ToString());
+                            _context.RoomImages.Add(new RoomImage { RoomId = room.Id, MediaUrl = imgUrl, MediaType = "Image" });
+                        }
+                        catch { }
+                    }
+                }
+            }
+
+            await _context.SaveChangesAsync();
+
+            return await GetRoomDetailForLandlord(roomId);
+        }
+
+        // Delete room
+        [Authorize(Roles = "Landlord")]
+        [HttpDelete("room/{roomId}")]
+        public async Task<IActionResult> DeleteRoom(long roomId)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var room = await _context.Rooms
+                .Include(r => r.Property)
+                .Include(r => r.Amenities)
+                .Include(r => r.Images)
+                .FirstOrDefaultAsync(r => r.Id == roomId);
+
+            if (room == null || room.Property == null)
+            {
+                return NotFound(new { message = "Không tìm thấy phòng trọ." });
+            }
+
+            if (room.Property.LandlordId != landlordId)
+            {
+                return StatusCode(403, new { message = "Bạn không có quyền xóa phòng trọ này." });
+            }
+
+            var hasActiveContracts = await _context.Contracts.AnyAsync(c => c.RoomId == roomId && c.Status == "Active");
+            if (hasActiveContracts)
+            {
+                return BadRequest(new { message = "Không thể xóa phòng đang có hợp đồng thuê hoạt động. Vui lòng làm thủ tục trả phòng trước khi xóa." });
+            }
+
+            _context.RoomAmenities.RemoveRange(room.Amenities);
+            _context.RoomImages.RemoveRange(room.Images);
+            _context.Rooms.Remove(room);
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã xóa phòng trọ thành công." });
+        }
+
         // Public marketplace search and filter listings
         [AllowAnonymous]
         [HttpGet("listings")]
         public async Task<IActionResult> SearchListings(
             [FromQuery] string? search,
             [FromQuery] string? district,
+            [FromQuery] string? ward,
             [FromQuery] decimal? minPrice,
             [FromQuery] decimal? maxPrice,
+            [FromQuery] double? minArea,
+            [FromQuery] double? maxArea,
             [FromQuery] bool? verifiedHost)
         {
             long? loggedInUserId = null;
@@ -286,11 +595,14 @@ namespace ZHome.API.Controllers
             // Removed filter: query = query.Where(r => r.Status == "Available");
             // To allow showing both available and full rooms on the homepage
 
-            // Gói Miễn Phí (1 or null) chỉ hiển thị tin đăng trong 3 ngày
-            var threeDaysAgo = DateTime.UtcNow.AddDays(-3);
+            // Lọc thời hạn hiển thị tin đăng theo gói cước (nếu có cấu hình cụ thể):
+            var now = DateTime.UtcNow;
             query = query.Where(r => 
-                (r.Property!.Landlord!.SubscriptionId != null && r.Property!.Landlord!.SubscriptionId != 1) 
-                || r.Property.CreatedAt >= threeDaysAgo);
+                r.Property!.Landlord!.SubscriptionEndDate == null || 
+                r.Property.Landlord.SubscriptionEndDate >= now ||
+                r.Property.Landlord.SubscriptionId == null ||
+                r.Property.Landlord.SubscriptionId >= 1
+            );
 
             if (!string.IsNullOrEmpty(search))
             {
@@ -304,6 +616,11 @@ namespace ZHome.API.Controllers
                 query = query.Where(r => r.Property!.Address.Contains(district));
             }
 
+            if (!string.IsNullOrEmpty(ward))
+            {
+                query = query.Where(r => r.Property!.Address.Contains(ward));
+            }
+
             if (minPrice.HasValue && minPrice.Value >= 0)
             {
                 decimal safeMin = Math.Min(minPrice.Value, 999999999.99m);
@@ -314,6 +631,18 @@ namespace ZHome.API.Controllers
             {
                 decimal safeMax = Math.Min(maxPrice.Value, 999999999.99m);
                 query = query.Where(r => r.Price <= safeMax);
+            }
+
+            if (minArea.HasValue && minArea.Value >= 0)
+            {
+                decimal safeMinArea = (decimal)minArea.Value;
+                query = query.Where(r => r.Area >= safeMinArea);
+            }
+
+            if (maxArea.HasValue && maxArea.Value >= 0)
+            {
+                decimal safeMaxArea = (decimal)maxArea.Value;
+                query = query.Where(r => r.Area <= safeMaxArea);
             }
 
             if (verifiedHost.HasValue && verifiedHost.Value)
@@ -348,6 +677,7 @@ namespace ZHome.API.Controllers
                 LandlordName = r.Property?.Landlord?.FullName ?? "Chủ nhà ẩn danh",
                 LandlordPhone = r.Property?.Landlord?.Phone ?? string.Empty,
                 TotalRooms = r.Property?.Rooms?.Count ?? 0,
+                VacantRoomsCount = r.Property?.Rooms?.Count(rm => rm.Status == "Available") ?? 0,
                 RoomId = r.Id,
                 RoomNumber = r.RoomNumber,
                 Price = r.Price,
@@ -435,6 +765,10 @@ namespace ZHome.API.Controllers
 
         private static RoomResponseDto MapRoomToDto(Room r)
         {
+            var activeCount = r.Contracts != null
+                ? r.Contracts.Count(c => c.Status == "Active")
+                : (r.Status == "Rented" ? 1 : 0);
+
             return new RoomResponseDto
             {
                 Id = r.Id,
@@ -443,6 +777,8 @@ namespace ZHome.API.Controllers
                 Price = r.Price,
                 Area = r.Area,
                 MaxOccupants = r.MaxOccupants,
+                BedsCount = 1,
+                ActiveTenantsCount = activeCount,
                 Status = r.Status,
                 Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
                 ImageUrls = r.Images.Select(i => i.MediaUrl).ToList()

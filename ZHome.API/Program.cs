@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ZHome.API.Data;
+using ZHome.API.Models;
 using ZHome.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,15 +13,24 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ZHomeDbContext>(options =>
     options.UseSqlServer(connectionString));
-// 2. Register Custom Services
+
+// 2. Register Payment (SePay & PayOS) Settings & Services
+builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
+builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
+builder.Services.AddSingleton<PaymentOrderStore>();
+builder.Services.AddScoped<ISePayService, SePayService>();
+builder.Services.AddScoped<IPayOSService, PayOSService>();
+
+// 3. Register Custom Services
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
 
-// 3. Configure Controllers and Routing
+// 4. Configure Controllers and Routing
 builder.Services.AddControllers();
 
-// 4. Configure Swagger
+// 5. Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -48,7 +58,7 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 5. Configure JWT Authentication
+// 6. Configure JWT Authentication
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "ZHome_SuperSecretKeyThatIsAtLeast32BytesLongForSecurity_2026";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ZHome.API";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ZHome.Client";
@@ -71,7 +81,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// 6. Configure CORS
+// 7. Configure CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("CorsPolicy", policy =>
@@ -84,6 +94,66 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// Ensure matching_profiles columns and notifications table exist
+using (var scope = app.Services.CreateScope())
+{
+    try
+    {
+        var dbContext = scope.ServiceProvider.GetRequiredService<ZHomeDbContext>();
+        dbContext.Database.ExecuteSqlRaw(@"
+            IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'notifications')
+            BEGIN
+                CREATE TABLE [dbo].[notifications] (
+                    [id] BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
+                    [user_id] BIGINT NOT NULL,
+                    [title] NVARCHAR(200) NOT NULL,
+                    [message] NVARCHAR(MAX) NOT NULL,
+                    [type] NVARCHAR(50) NOT NULL DEFAULT 'System',
+                    [target_url] NVARCHAR(255) NULL,
+                    [reference_id] BIGINT NULL,
+                    [is_read] BIT NOT NULL DEFAULT 0,
+                    [created_at] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
+                    CONSTRAINT [FK_notifications_users] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users]([id]) ON DELETE CASCADE
+                );
+                CREATE INDEX [IX_notifications_user_id] ON [dbo].[notifications]([user_id]);
+                CREATE INDEX [IX_notifications_is_read] ON [dbo].[notifications]([is_read]);
+            END;
+
+            IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'matching_profiles')
+            BEGIN
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'title')
+                    ALTER TABLE matching_profiles ADD title NVARCHAR(255) NULL;
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'university')
+                    ALTER TABLE matching_profiles ADD university NVARCHAR(150) NULL;
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'has_room')
+                    ALTER TABLE matching_profiles ADD has_room BIT NOT NULL DEFAULT 0;
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'address')
+                    ALTER TABLE matching_profiles ADD address NVARCHAR(255) NULL;
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'contact_phone')
+                    ALTER TABLE matching_profiles ADD contact_phone NVARCHAR(50) NULL;
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'image_url')
+                    ALTER TABLE matching_profiles ADD image_url NVARCHAR(MAX) NULL;
+            END;
+
+            IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'monthly_bills')
+            BEGIN
+                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'monthly_bills' AND COLUMN_NAME = 'proof_image_url')
+                    ALTER TABLE monthly_bills ADD proof_image_url NVARCHAR(500) NULL;
+
+                IF EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'chk_bill_status')
+                BEGIN
+                    ALTER TABLE [dbo].[monthly_bills] DROP CONSTRAINT [chk_bill_status];
+                    ALTER TABLE [dbo].[monthly_bills] ADD CONSTRAINT [chk_bill_status] CHECK ([status] IN ('Paid', 'Unpaid', 'Partial', 'PendingConfirmation', 'PartialPaid', 'Rejected'));
+                END;
+            END;
+        ");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB Auto-Migration Warning] {ex.Message}");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
