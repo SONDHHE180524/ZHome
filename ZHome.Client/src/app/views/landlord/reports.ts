@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../services/toast.service';
 import { PropertyService } from '../../services/property.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-landlord-reports',
@@ -443,7 +444,7 @@ export class LandlordReportsComponent implements OnInit {
 
   fetchReports(): void {
     this.isLoading.set(true);
-    this.http.get<any[]>('http://localhost:5000/api/report/all').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/report/all`).subscribe({
       next: (data) => {
         this.allReports.set(data);
         this.isLoading.set(false);
@@ -469,7 +470,7 @@ export class LandlordReportsComponent implements OnInit {
     if (!this.replyContent.trim()) return;
     
     this.isSubmitting.set(true);
-    this.http.put(`http://localhost:5000/api/report/${reportId}/reply`, { replyContent: this.replyContent }).subscribe({
+    this.http.put(`${environment.apiUrl}/report/${reportId}/reply`, { replyContent: this.replyContent }).subscribe({
       next: () => {
         this.toastService.show('Đã gửi phản hồi thành công!', 'success');
         this.isSubmitting.set(false);

@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { AuthService } from './services/auth.service';
 import { ToastService } from './services/toast.service';
 import { NotificationService, NotificationItem } from './services/notification.service';
+import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
@@ -168,7 +169,7 @@ export class App implements OnInit, OnDestroy {
     if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('data:')) {
       return avatarUrl;
     }
-    return 'http://localhost:5000' + avatarUrl;
+    return environment.baseUrl + avatarUrl;
   }
 
   getDefaultAvatarSvg(): string {

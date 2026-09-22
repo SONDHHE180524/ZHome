@@ -1,6 +1,7 @@
 import { Injectable, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface UserSession {
   token: string;
@@ -19,7 +20,7 @@ export interface UserSession {
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly apiUrl = 'http://localhost:5000/api/auth';
+  private readonly apiUrl = `${environment.apiUrl}/auth`;
   
   // Create a signal for the current user session
   readonly session = signal<UserSession | null>(this.loadSessionFromStorage());

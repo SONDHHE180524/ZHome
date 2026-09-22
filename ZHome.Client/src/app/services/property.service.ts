@@ -1,12 +1,13 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class PropertyService {
-  private readonly apiUrl = 'http://localhost:5000/api/property';
+  private readonly apiUrl = `${environment.apiUrl}/property`;
 
   constructor(private http: HttpClient) {}
 
@@ -70,11 +71,11 @@ export class PropertyService {
   }
 
   getLocations(level: number = 2): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:5000/api/location?level=${level}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/location?level=${level}`);
   }
 
   getChildren(parentId: number): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:5000/api/location/${parentId}/children`);
+    return this.http.get<any[]>(`${environment.apiUrl}/location/${parentId}/children`);
   }
 
   toggleFavorite(roomId: number): Observable<any> {
@@ -82,6 +83,6 @@ export class PropertyService {
   }
 
   getPropertyReports(propertyId: number): Observable<any[]> {
-    return this.http.get<any[]>(`http://localhost:5000/api/report/property/${propertyId}`);
+    return this.http.get<any[]>(`${environment.apiUrl}/report/property/${propertyId}`);
   }
 }

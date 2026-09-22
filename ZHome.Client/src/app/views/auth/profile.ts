@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-user-profile',
@@ -724,7 +725,7 @@ export class ProfileComponent implements OnInit {
 
   getImageUrl(url?: string): string {
     if (!url) return '';
-    return url.startsWith('/') ? `http://localhost:5000${url}` : url;
+    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
   }
 
   onFileSelected(event: any): void {

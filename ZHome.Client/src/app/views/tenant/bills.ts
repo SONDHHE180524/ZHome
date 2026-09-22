@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { BillService } from '../../services/bill.service';
 import { ReportService } from '../../services/report.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tenant-bills',
@@ -805,7 +806,7 @@ export class TenantBillsComponent implements OnInit, OnDestroy {
     this.payOSData.set(null);
     this.transferNote = bill.note || '';
     this.proofImageBase64 = null;
-    this.proofImagePreview = bill.proofImageUrl ? (bill.proofImageUrl.startsWith('http') ? bill.proofImageUrl : 'http://localhost:5000' + bill.proofImageUrl) : null;
+    this.proofImagePreview = bill.proofImageUrl ? (bill.proofImageUrl.startsWith('http') ? bill.proofImageUrl : environment.baseUrl + bill.proofImageUrl) : null;
     this.showPayModal.set(true);
 
     this.createPaymentQR();

@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { ToastService } from '../../services/toast.service';
 import { PropertyService } from '../../services/property.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-landlord-incidents',
@@ -602,7 +603,7 @@ export class LandlordIncidentsComponent implements OnInit {
 
   fetchIncidents(): void {
     this.isLoading.set(true);
-    this.http.get<any[]>('http://localhost:5000/api/report/all').subscribe({
+    this.http.get<any[]>(`${environment.apiUrl}/report/all`).subscribe({
       next: (data) => {
         this.allIncidents.set(data);
         this.isLoading.set(false);
@@ -624,7 +625,7 @@ export class LandlordIncidentsComponent implements OnInit {
   }
 
   updateStatus(incidentId: number, status: string): void {
-    this.http.put(`http://localhost:5000/api/report/${incidentId}/status`, { status }).subscribe({
+    this.http.put(`${environment.apiUrl}/report/${incidentId}/status`, { status }).subscribe({
       next: () => {
         this.toastService.show(`Đã cập nhật trạng thái sự cố: ${this.getStatusLabel(status)}`, 'success');
         this.fetchIncidents();
@@ -649,7 +650,7 @@ export class LandlordIncidentsComponent implements OnInit {
     if (!this.replyMessage.trim()) return;
 
     this.isSubmitting.set(true);
-    this.http.put(`http://localhost:5000/api/report/${incidentId}/reply`, { replyContent: this.replyMessage }).subscribe({
+    this.http.put(`${environment.apiUrl}/report/${incidentId}/reply`, { replyContent: this.replyMessage }).subscribe({
       next: () => {
         this.toastService.show('Đã gửi phản hồi cho khách thuê thành công!', 'success');
         this.isSubmitting.set(false);

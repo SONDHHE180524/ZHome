@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-verifications',
@@ -59,13 +60,13 @@ import { ToastService } from '../../services/toast.service';
                     </td>
                     <td>
                       <div class="cccd-images-cell">
-                        <div class="image-thumb-wrapper" (click)="zoomImage('http://localhost:5000' + item.cccdFrontUrl, 'Mặt trước CCCD')">
-                          <img [src]="'http://localhost:5000' + item.cccdFrontUrl" alt="Mặt trước" class="cccd-thumb" />
-                          <span class="zoom-overlay"> Xem</span>
+                        <div class="image-thumb-wrapper" (click)="zoomImage(getImageUrl(item.cccdFrontUrl), 'Mặt trước CCCD')">
+                          <img [src]="getImageUrl(item.cccdFrontUrl)" alt="Mặt trước" class="cccd-thumb" />
+                          <span class="zoom-overlay">🔍 Xem</span>
                         </div>
-                        <div class="image-thumb-wrapper" (click)="zoomImage('http://localhost:5000' + item.cccdBackUrl, 'Mặt sau CCCD')">
-                          <img [src]="'http://localhost:5000' + item.cccdBackUrl" alt="Mặt sau" class="cccd-thumb" />
-                          <span class="zoom-overlay"> Xem</span>
+                        <div class="image-thumb-wrapper" (click)="zoomImage(getImageUrl(item.cccdBackUrl), 'Mặt sau CCCD')">
+                          <img [src]="getImageUrl(item.cccdBackUrl)" alt="Mặt sau" class="cccd-thumb" />
+                          <span class="zoom-overlay">🔍 Xem</span>
                         </div>
                       </div>
                     </td>
@@ -451,5 +452,10 @@ export class AdminVerificationsComponent implements OnInit {
 
   closeZoom(): void {
     this.zoomedImageUrl.set(null);
+  }
+
+  getImageUrl(url?: string): string {
+    if (!url) return '';
+    return url.startsWith('http') ? url : environment.baseUrl + url;
   }
 }

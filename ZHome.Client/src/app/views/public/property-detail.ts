@@ -4,6 +4,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-property-detail',
@@ -933,7 +934,7 @@ export class PropertyDetailComponent implements OnInit {
   getImageUrl(url: string): string {
     if (!url) return '';
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `http://localhost:5000${url}`;
+    return `${environment.baseUrl}${url}`;
   }
 
   onImageError(event: any) {

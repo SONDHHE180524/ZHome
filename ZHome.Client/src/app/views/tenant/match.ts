@@ -5,6 +5,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MatchService } from '../../services/match.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-tenant-match',
@@ -2467,6 +2468,6 @@ export class TenantMatchComponent implements OnInit {
   getImageUrl(url?: string): string {
     if (!url) return 'assets/default-room.jpg';
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
-    return `http://localhost:5000${url}`;
+    return `${environment.baseUrl}${url}`;
   }
 }

@@ -5,6 +5,7 @@ import { RouterLink } from '@angular/router';
 import { BillService } from '../../services/bill.service';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-landlord-bills',
@@ -1317,7 +1318,7 @@ export class LandlordBillsComponent implements OnInit {
 
   getFullImageUrl(url: string): string {
     if (!url) return '';
-    return url.startsWith('http') ? url : 'http://localhost:5000' + url;
+    return url.startsWith('http') ? url : environment.baseUrl + url;
   }
 
   // Computed: available rooms for selected property

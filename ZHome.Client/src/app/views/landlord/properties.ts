@@ -6,6 +6,7 @@ import { ContractService } from '../../services/contract.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-landlord-properties',
@@ -2579,7 +2580,7 @@ export class LandlordPropertiesComponent implements OnInit {
 
   getImageUrl(url: string): string {
     if (!url) return '';
-    return url.startsWith('/') ? `http://localhost:5000${url}` : url;
+    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
   }
 
   // Add Room handlers

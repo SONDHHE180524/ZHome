@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../environments/environment';
 
 export interface NotificationItem {
   id: number;
@@ -23,7 +24,7 @@ export class NotificationService {
   private readonly http = inject(HttpClient);
   private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
-  private readonly apiUrl = 'http://localhost:5000/api/notification';
+  private readonly apiUrl = `${environment.apiUrl}/notification`;
 
   readonly notifications = signal<NotificationItem[]>([]);
   readonly unreadCount = signal<number>(0);

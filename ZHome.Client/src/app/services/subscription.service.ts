@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface SePayPaymentResponse {
   orderCode: number;
@@ -8,17 +9,31 @@ export interface SePayPaymentResponse {
   qrCodeUrl: string;
   amount: number;
   description: string;
-  bankName: string;
-  accountNo: string;
-  accountName: string;
+  bankName?: string;
+  accountNo?: string;
+  accountName?: string;
   status: string;
-  packageName: string;
-  months: number;
-  isMock: boolean;
+  packageName?: string;
+  months?: number;
+  isMock?: boolean;
 }
 
 // Alias for backwards compatibility
 export type PayOSPaymentResponse = SePayPaymentResponse;
+
+export interface UserSubscriptionInfo {
+  hasActiveSubscription: boolean;
+  packageName: string;
+  packageId: number;
+  price: number;
+  startDate?: string;
+  endDate?: string;
+  status: string;
+  transactionStatus?: string;
+  paidAt?: string;
+  subscriptionId?: number;
+  subscriptionEndDate?: string;
+}
 
 export interface OrderStatusResponse {
   orderCode: number;
@@ -36,7 +51,7 @@ export interface OrderStatusResponse {
   providedIn: 'root'
 })
 export class SubscriptionService {
-  private readonly apiUrl = 'http://localhost:5000/api/Subscription';
+  private readonly apiUrl = `${environment.apiUrl}/Subscription`;
 
   constructor(private http: HttpClient) {}
 
