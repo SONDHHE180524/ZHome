@@ -7,6 +7,9 @@ using ZHome.API.Data;
 using ZHome.API.Models;
 using ZHome.API.Services;
 
+// Cho phép Npgsql xử lý DateTime kiểu cũ (Unspecified/Local) giống SQL Server
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ==========================================
