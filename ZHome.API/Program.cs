@@ -21,13 +21,16 @@ builder.Services.AddDbContext<ZHomeDbContext>(options =>
 });
 
 // ==========================================
-// 2. CẤU HÌNH CORS (XỬ LÝ TRIỆT ĐỂ LỖI ORIGIN TRÊN RENDER)
+// 2. CẤU HÌNH CORS (KHẮC PHỤC LỖI ORIGIN VÀ CREDENTIALS TRÊN RENDER)
 // ==========================================
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.SetIsOriginAllowed(_ => true) // Chấp nhận mọi domain gọi đến
+        policy.WithOrigins(
+                    "https://zhome-fe.onrender.com",
+                    "http://localhost:4200"
+              )
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -99,7 +102,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ==========================================
-// 6. BUILD APP (CHỈ GỌI DUY NHẤT 1 LẦN Ở ĐÂY)
+// 6. BUILD APP (CHỈ GỌI 1 LẦN)
 // ==========================================
 var app = builder.Build();
 
@@ -154,7 +157,7 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ==========================================
-// 8. CẤU HÌNH PIPELINE (THỨ TỰ BẮT BUỘC)
+// 8. CẤU HÌNH PIPELINE MIDDLEWARE
 // ==========================================
 app.UseSwagger();
 app.UseSwaggerUI(c =>
@@ -163,11 +166,31 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+// Giữ header CORS ngay cả khi controller xảy ra ngoại lệ không mong muốn
+app.UseExceptionHandler(errorApp =>
+{
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+        if (exceptionHandlerPathFeature?.Error != null)
+        {
+            var result = System.Text.Json.JsonSerializer.Serialize(new
+            {
+                error = exceptionHandlerPathFeature.Error.Message,
+                detail = exceptionHandlerPathFeature.Error.InnerException?.Message
+            });
+            await context.Response.WriteAsync(result);
+        }
+    });
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();
 
-// UseCors PHẢI đứng sau UseRouting và TRƯỚC UseAuthentication/UseAuthorization
+// CORS bắt buộc đứng sau UseRouting và trước UseAuthentication / UseAuthorization
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
