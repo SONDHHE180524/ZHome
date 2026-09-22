@@ -54,14 +54,14 @@ namespace ZHome.API.Services
             int amountInt = (int)Math.Round(amount);
             string encodedDes = Uri.EscapeDataString(description);
             string template = !string.IsNullOrWhiteSpace(_settings.QrTemplate) ? _settings.QrTemplate : "compact2";
-            string bankCode = !string.IsNullOrWhiteSpace(_settings.BankCode) ? _settings.BankCode.Trim() : "MBBank";
+            string bankCode = !string.IsNullOrWhiteSpace(_settings.BankCode) ? _settings.BankCode.Trim() : "VietinBank";
             if (bankCode.Equals("VietTinBank", StringComparison.OrdinalIgnoreCase)) bankCode = "VietinBank";
             if (bankCode.Equals("VietComBank", StringComparison.OrdinalIgnoreCase)) bankCode = "Vietcombank";
             if (bankCode.Equals("Techcom", StringComparison.OrdinalIgnoreCase)) bankCode = "Techcombank";
             if (bankCode.Equals("MB", StringComparison.OrdinalIgnoreCase)) bankCode = "MBBank";
 
-            string accNo = !string.IsNullOrWhiteSpace(_settings.AccountNumber) ? _settings.AccountNumber.Trim() : "0987654321";
-            string accName = !string.IsNullOrWhiteSpace(_settings.AccountName) ? _settings.AccountName.Trim() : "DANG HOANG SON";
+            string accNo = !string.IsNullOrWhiteSpace(_settings.AccountNumber) ? _settings.AccountNumber.Trim() : "888819661666";
+            string accName = !string.IsNullOrWhiteSpace(_settings.AccountName) ? _settings.AccountName.Trim() : "NGUYEN THANH TUNG";
 
             // SePay official QR format
             string qrUrl = $"https://qr.sepay.vn/img?acc={accNo}&bank={bankCode}&amount={amountInt}&des={encodedDes}&template={template}";

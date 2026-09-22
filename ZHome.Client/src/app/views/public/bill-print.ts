@@ -182,7 +182,7 @@ import { BillService } from '../../services/bill.service';
             <div class="qr-print-box my-2">
               <img [src]="getVietQrUrl(item)" alt="Mã VietQR Thanh Toán Hóa Đơn" class="printed-qr-img">
               <div class="qr-bank-details mt-1">
-                <span class="text-xs text-muted">MBBank • STK: <strong>0987654321</strong> • DANG HOANG SON</span><br>
+                <span class="text-xs text-muted">VietinBank • STK: <strong>888819661666</strong> • NGUYEN THANH TUNG</span><br>
                 <span class="text-xs text-muted">Nội dung CK: <strong class="text-primary font-bold">HD{{ item.id }}</strong></span>
               </div>
             </div>
@@ -692,6 +692,6 @@ export class BillPrintComponent implements OnInit {
     if (!item) return '';
     const amount = Math.max(0, (item.totalAmount || 0) - (item.paidAmount || 0));
     const content = `HD${item.id}`;
-    return `https://img.vietqr.io/image/MBBank-0987654321-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent('DANG HOANG SON')}`;
+    return `https://img.vietqr.io/image/VietinBank-888819661666-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent('NGUYEN THANH TUNG')}`;
   }
 }

@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ZHome.API.Data;
+using ZHome.API.Models;
 using ZHome.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -49,9 +50,14 @@ builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// Cấu hình cài đặt thanh toán (SePay & PayOS) từ appsettings.json
+builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
+builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
+
 // Các service thanh toán (SePay & PayOS)
 builder.Services.AddScoped<ISePayService, SePayService>();
-builder.Services.AddSingleton<PaymentOrderStore>(); // Đã bổ sung để sửa lỗi 500
+builder.Services.AddScoped<IPayOSService, PayOSService>();
+builder.Services.AddSingleton<PaymentOrderStore>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
