@@ -21,7 +21,7 @@ builder.Services.AddDbContext<ZHomeDbContext>(options =>
 });
 
 // ==========================================
-// 2. CẤU HÌNH CORS (KHẮC PHỤC LỖI ORIGIN VÀ CREDENTIALS TRÊN RENDER)
+// 2. CẤU HÌNH CORS (CHO PHÉP FRONTEND RENDER & LOCALHOST)
 // ==========================================
 builder.Services.AddCors(options =>
 {
@@ -38,19 +38,23 @@ builder.Services.AddCors(options =>
 });
 
 // ==========================================
-// 3. ĐĂNG KÝ CÁC DỊCH VỤ (SERVICES)
+// 3. ĐĂNG KÝ CÁC DỊCH VỤ (DEPENDENCY INJECTION)
 // ==========================================
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddHttpClient();
+
+// Các services nghiệp vụ
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+// Các service thanh toán (SePay & PayOS)
 builder.Services.AddScoped<ISePayService, SePayService>();
-builder.Services.AddHttpClient(); // Thêm nếu SePayService có gọi API bên ngoài qua HttpClient
+builder.Services.AddSingleton<PaymentOrderStore>(); // Đã bổ sung để sửa lỗi 500
+
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-
-
 
 // ==========================================
 // 4. CẤU HÌNH SWAGGER UI
@@ -106,7 +110,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 builder.Services.AddAuthorization();
 
 // ==========================================
-// 6. BUILD APP (CHỈ GỌI 1 LẦN)
+// 6. BUILD APP
 // ==========================================
 var app = builder.Build();
 
@@ -170,7 +174,6 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
-// Giữ header CORS ngay cả khi controller xảy ra ngoại lệ không mong muốn
 app.UseExceptionHandler(errorApp =>
 {
     errorApp.Run(async context =>
@@ -194,7 +197,7 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
-// CORS bắt buộc đứng sau UseRouting và trước UseAuthentication / UseAuthorization
+// CORS bắt buộc đặt giữa UseRouting và UseAuthentication
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
