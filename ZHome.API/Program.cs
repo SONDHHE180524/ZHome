@@ -4,55 +4,58 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using ZHome.API.Data;
-using ZHome.API.Models;
 using ZHome.API.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add DB Context (Auto-detect PostgreSQL/Supabase or SQL Server)
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+// ==========================================
+// 1. CẤU HÌNH DATABASE (PostgreSQL / Supabase)
+// ==========================================
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ZHomeDbContext>(options =>
 {
-    if (connectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase) ||
-        connectionString.Contains("Username=", StringComparison.OrdinalIgnoreCase) ||
-        connectionString.Contains("5432") ||
-        connectionString.Contains("supabase", StringComparison.OrdinalIgnoreCase))
+    if (!string.IsNullOrEmpty(connectionString))
     {
         options.UseNpgsql(connectionString);
     }
-    else
-    {
-        options.UseSqlServer(connectionString);
-    }
 });
 
-// 2. Register Payment (SePay & PayOS) Settings & Services
-builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
-builder.Services.Configure<PayOSSettings>(builder.Configuration.GetSection("PayOS"));
-builder.Services.AddSingleton<PaymentOrderStore>();
-builder.Services.AddScoped<ISePayService, SePayService>();
-builder.Services.AddScoped<IPayOSService, PayOSService>();
+// ==========================================
+// 2. CẤU HÌNH CORS (XỬ LÝ TRIỆT ĐỂ LỖI ORIGIN TRÊN RENDER)
+// ==========================================
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
+    {
+        policy.SetIsOriginAllowed(_ => true) // Chấp nhận mọi domain gọi đến
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
-// 3. Register Custom Services
+// ==========================================
+// 3. ĐĂNG KÝ CÁC DỊCH VỤ (SERVICES)
+// ==========================================
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
-// 4. Configure Controllers and Routing
 builder.Services.AddControllers();
-
-// 5. Configure Swagger
 builder.Services.AddEndpointsApiExplorer();
+
+// ==========================================
+// 4. CẤU HÌNH SWAGGER UI
+// ==========================================
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "ZHome API", Version = "v1" });
-    
-    // Add JWT authentication support in Swagger UI
+
     var securityScheme = new OpenApiSecurityScheme
     {
         Name = "JWT Authentication",
-        Description = "Nhập token JWT của bạn: Bearer {token}",
+        Description = "Nhập token JWT: Bearer {token}",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.Http,
         Scheme = "bearer",
@@ -70,7 +73,9 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// 6. Configure JWT Authentication
+// ==========================================
+// 5. CẤU HÌNH JWT AUTHENTICATION
+// ==========================================
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "ZHome_SuperSecretKeyThatIsAtLeast32BytesLongForSecurity_2026";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ZHome.API";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ZHome.Client";
@@ -93,21 +98,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// 7. Configure CORS
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("CorsPolicy", policy =>
-    {
-        policy.SetIsOriginAllowed(origin => new Uri(origin).Host == "localhost")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
-    });
-});
-
+// ==========================================
+// 6. BUILD APP (CHỈ GỌI DUY NHẤT 1 LẦN Ở ĐÂY)
+// ==========================================
 var app = builder.Build();
 
-// Ensure matching_profiles columns and notifications table exist
+// ==========================================
+// 7. DI TRÚ CƠ SỞ DỮ LIỆU TỰ ĐỘNG
+// ==========================================
 using (var scope = app.Services.CreateScope())
 {
     try
@@ -148,56 +146,6 @@ using (var scope = app.Services.CreateScope())
                 END $$;
             ");
         }
-        else
-        {
-            dbContext.Database.ExecuteSqlRaw(@"
-                IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'notifications')
-                BEGIN
-                    CREATE TABLE [dbo].[notifications] (
-                        [id] BIGINT IDENTITY(1,1) NOT NULL PRIMARY KEY,
-                        [user_id] BIGINT NOT NULL,
-                        [title] NVARCHAR(200) NOT NULL,
-                        [message] NVARCHAR(MAX) NOT NULL,
-                        [type] NVARCHAR(50) NOT NULL DEFAULT 'System',
-                        [target_url] NVARCHAR(255) NULL,
-                        [reference_id] BIGINT NULL,
-                        [is_read] BIT NOT NULL DEFAULT 0,
-                        [created_at] DATETIME2 NOT NULL DEFAULT GETUTCDATE(),
-                        CONSTRAINT [FK_notifications_users] FOREIGN KEY ([user_id]) REFERENCES [dbo].[users]([id]) ON DELETE CASCADE
-                    );
-                    CREATE INDEX [IX_notifications_user_id] ON [dbo].[notifications]([user_id]);
-                    CREATE INDEX [IX_notifications_is_read] ON [dbo].[notifications]([is_read]);
-                END;
-
-                IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'matching_profiles')
-                BEGIN
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'title')
-                        ALTER TABLE matching_profiles ADD title NVARCHAR(255) NULL;
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'university')
-                        ALTER TABLE matching_profiles ADD university NVARCHAR(150) NULL;
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'has_room')
-                        ALTER TABLE matching_profiles ADD has_room BIT NOT NULL DEFAULT 0;
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'address')
-                        ALTER TABLE matching_profiles ADD address NVARCHAR(255) NULL;
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'contact_phone')
-                        ALTER TABLE matching_profiles ADD contact_phone NVARCHAR(50) NULL;
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'matching_profiles' AND COLUMN_NAME = 'image_url')
-                        ALTER TABLE matching_profiles ADD image_url NVARCHAR(MAX) NULL;
-                END;
-
-                IF EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'monthly_bills')
-                BEGIN
-                    IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'monthly_bills' AND COLUMN_NAME = 'proof_image_url')
-                        ALTER TABLE monthly_bills ADD proof_image_url NVARCHAR(500) NULL;
-
-                    IF EXISTS (SELECT * FROM sys.check_constraints WHERE name = 'chk_bill_status')
-                    BEGIN
-                        ALTER TABLE [dbo].[monthly_bills] DROP CONSTRAINT [chk_bill_status];
-                        ALTER TABLE [dbo].[monthly_bills] ADD CONSTRAINT [chk_bill_status] CHECK ([status] IN ('Paid', 'Unpaid', 'Partial', 'PendingConfirmation', 'PartialPaid', 'Rejected'));
-                    END;
-                END;
-            ");
-        }
     }
     catch (Exception ex)
     {
@@ -205,19 +153,22 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+// ==========================================
+// 8. CẤU HÌNH PIPELINE (THỨ TỰ BẮT BUỘC)
+// ==========================================
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ZHome API v1");
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "ZHome API v1");
+    c.RoutePrefix = "swagger";
+});
 
 app.UseStaticFiles();
 
-app.UseCors("CorsPolicy");
+app.UseRouting();
+
+// UseCors PHẢI đứng sau UseRouting và TRƯỚC UseAuthentication/UseAuthorization
+app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
 app.UseAuthorization();
