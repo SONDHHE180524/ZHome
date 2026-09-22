@@ -45,8 +45,12 @@ builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 
+builder.Services.AddScoped<ISePayService, SePayService>();
+builder.Services.AddHttpClient(); // Thêm nếu SePayService có gọi API bên ngoài qua HttpClient
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+
 
 // ==========================================
 // 4. CẤU HÌNH SWAGGER UI
