@@ -144,7 +144,14 @@ export class LoginComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        const errText = err.error || 'Số điện thoại hoặc mật khẩu không chính xác.';
+        let errText = 'Số điện thoại hoặc mật khẩu không chính xác.';
+        if (typeof err.error === 'string') {
+          errText = err.error;
+        } else if (err.error?.message) {
+          errText = err.error.message;
+        } else if (err.error?.error) {
+          errText = err.error.error;
+        }
         this.errorMessage.set(errText);
         this.toastService.show(errText, 'error');
       }

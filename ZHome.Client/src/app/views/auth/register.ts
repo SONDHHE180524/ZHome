@@ -20,21 +20,38 @@ import { ToastService } from '../../services/toast.service';
           
           <!-- Role selector switcher -->
           <div class="form-group">
-            <label>Bạn tham gia với tư cách</label>
+            <label class="role-group-label">Bạn tham gia với tư cách</label>
             <div class="role-selector">
               <div 
                 class="role-option" 
                 [class.selected]="roleName === 'Tenant'" 
                 (click)="setRole('Tenant')">
-                <span class="role-icon"></span>
-                <span class="role-title">Sinh viên / Tenant</span>
+                <div class="role-check">
+                  <span class="check-circle"></span>
+                </div>
+                <div class="role-icon-box">
+                  <span class="role-icon">🎓</span>
+                </div>
+                <div class="role-info">
+                  <span class="role-title">Sinh viên / Người thuê</span>
+                  <span class="role-desc">Tìm phòng & tìm bạn ghép</span>
+                </div>
               </div>
+
               <div 
                 class="role-option" 
                 [class.selected]="roleName === 'Landlord'" 
                 (click)="setRole('Landlord')">
-                <span class="role-icon"></span>
-                <span class="role-title">Chủ nhà / Landlord</span>
+                <div class="role-check">
+                  <span class="check-circle"></span>
+                </div>
+                <div class="role-icon-box">
+                  <span class="role-icon">🔑</span>
+                </div>
+                <div class="role-info">
+                  <span class="role-title">Chủ nhà / Cho thuê</span>
+                  <span class="role-desc">Đăng tin & quản lý phòng</span>
+                </div>
               </div>
             </div>
           </div>
@@ -234,40 +251,104 @@ import { ToastService } from '../../services/toast.service';
       flex-direction: column;
       gap: 15px;
     }
+    .role-group-label {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 8px;
+      font-size: 0.9rem;
+      display: block;
+    }
     .role-selector {
-      display: flex;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 12px;
       margin-bottom: 5px;
     }
     .role-option {
-      flex: 1;
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-sm);
-      padding: 12px;
+      position: relative;
+      border: 2px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 14px 10px;
       display: flex;
       flex-direction: column;
       align-items: center;
+      text-align: center;
       gap: 8px;
       cursor: pointer;
-      background: rgba(255, 255, 255, 0.02);
-      transition: var(--transition);
+      background: #f8fafc;
+      transition: all 0.25s ease;
+      user-select: none;
     }
     .role-option:hover {
-      border-color: rgba(99, 102, 241, 0.4);
-      background: rgba(255, 255, 255, 0.05);
+      border-color: #60a5fa;
+      background: #eff6ff;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
     }
     .role-option.selected {
-      border-color: var(--color-primary);
-      background: rgba(99, 102, 241, 0.1);
-      box-shadow: 0 0 10px rgba(99, 102, 241, 0.2);
+      border-color: #2563eb;
+      background: #eff6ff;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.16);
     }
-    .role-icon {
-      font-size: 1.6rem;
+    .role-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4rem;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.04);
+      transition: all 0.25s ease;
+    }
+    .role-option.selected .role-icon-box {
+      border-color: #93c5fd;
+      background: #dbeafe;
+      transform: scale(1.06);
+    }
+    .role-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
     }
     .role-title {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #0f172a;
+      transition: color 0.25s ease;
+    }
+    .role-option.selected .role-title {
+      color: #1d4ed8;
+    }
+    .role-desc {
+      font-size: 0.72rem;
+      color: #64748b;
+      line-height: 1.25;
+      font-weight: 500;
+    }
+    .role-option.selected .role-desc {
+      color: #2563eb;
+    }
+    .role-check {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+    }
+    .check-circle {
+      display: block;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid #cbd5e1;
+      background: #ffffff;
+      transition: all 0.25s ease;
+    }
+    .role-option.selected .check-circle {
+      border-color: #2563eb;
+      background: #2563eb;
+      box-shadow: inset 0 0 0 3px #ffffff;
     }
     .btn-block {
       width: 100%;
@@ -420,7 +501,14 @@ export class RegisterComponent {
       },
       error: (err) => {
         this.isLoading.set(false);
-        const errText = err.error || 'Có lỗi xảy ra trong quá trình đăng ký.';
+        let errText = 'Có lỗi xảy ra trong quá trình đăng ký.';
+        if (typeof err.error === 'string') {
+          errText = err.error;
+        } else if (err.error?.message) {
+          errText = err.error.message;
+        } else if (err.error?.error) {
+          errText = err.error.error;
+        }
         this.errorMessage.set(errText);
         this.toastService.show(errText, 'error');
       }

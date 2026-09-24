@@ -90,4 +90,22 @@ namespace ZHome.API.Models.DTOs
         [MinLength(6, ErrorMessage = "Mật khẩu mới phải có ít nhất 6 ký tự")]
         public string NewPassword { get; set; } = string.Empty;
     }
+
+    public class CreateAdminRequest
+    {
+        [Required(ErrorMessage = "Số điện thoại không được để trống")]
+        [RegularExpression(@"^0[35789]\d{8}$", ErrorMessage = "Số điện thoại di động không hợp lệ")]
+        public string Phone { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Họ và tên không được để trống")]
+        [MaxLength(100)]
+        public string FullName { get; set; } = string.Empty;
+
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
+        public string? Email { get; set; }
+
+        [Required(ErrorMessage = "Mật khẩu không được để trống")]
+        [MinLength(8, ErrorMessage = "Mật khẩu quản trị viên phải từ 8 ký tự trở lên")]
+        public string Password { get; set; } = string.Empty;
+    }
 }
