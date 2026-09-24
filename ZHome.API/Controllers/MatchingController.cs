@@ -31,7 +31,32 @@ namespace ZHome.API.Controllers
         // Public endpoint to list all active roommate listings (Sàn Đăng Bài Tìm Ở Ghép)
         [AllowAnonymous]
         [HttpGet("posts")]
-        public async Task<IActionResult> GetPublicPosts([FromQuery] string? university, [FromQuery] bool? hasRoom, [FromQuery] string? gender, [FromQuery] decimal? maxPrice, [FromQuery] string? search)
+        public async Task<IActionResult> GetPublicPosts(
+            [FromQuery] string? university, 
+            [FromQuery] bool? hasRoom, 
+            [FromQuery] string? gender, 
+            [FromQuery] decimal? minPrice, 
+            [FromQuery] decimal? maxPrice, 
+            [FromQuery] string? search,
+            [FromQuery] string? district,
+            [FromQuery] string? ward,
+            [FromQuery] bool? smoke,
+            [FromQuery] bool? sleepLate,
+            [FromQuery] bool? hasPet,
+            [FromQuery] string? hometown,
+            [FromQuery] string? amenities,
+            [FromQuery] string? surroundings,
+            [FromQuery] string? occupation,
+            [FromQuery] string? ageRange,
+            [FromQuery] int? roommatesWanted,
+            [FromQuery] string? leaseTerm,
+            [FromQuery] string? moveInTime,
+            [FromQuery] int? occupantsPerRoom,
+            [FromQuery] decimal? budgetPerPerson,
+            [FromQuery] string? personality,
+            [FromQuery] string? cookFrequency,
+            [FromQuery] string? inviteFriends,
+            [FromQuery] string? otherCriteria)
         {
             IQueryable<MatchingProfile> query = _context.MatchingProfiles
                 .AsNoTracking()
@@ -40,7 +65,8 @@ namespace ZHome.API.Controllers
 
             if (!string.IsNullOrWhiteSpace(university))
             {
-                query = query.Where(p => p.University != null && p.University.Contains(university));
+                var uniTerm = university.Trim().ToLower();
+                query = query.Where(p => p.University != null && p.University.ToLower().Contains(uniTerm));
             }
 
             if (hasRoom.HasValue)
@@ -50,12 +76,116 @@ namespace ZHome.API.Controllers
 
             if (!string.IsNullOrWhiteSpace(gender) && gender != "Any")
             {
-                query = query.Where(p => p.Gender == gender || p.RoommateGenderPreference == gender);
+                query = query.Where(p => p.Gender == gender || p.RoommateGenderPreference == gender || p.RoommateGenderPreference == "Any");
+            }
+
+            if (minPrice.HasValue && minPrice.Value > 0)
+            {
+                query = query.Where(p => p.BudgetMax >= minPrice.Value);
             }
 
             if (maxPrice.HasValue && maxPrice.Value > 0)
             {
-                query = query.Where(p => p.BudgetMax <= maxPrice.Value || p.BudgetMin <= maxPrice.Value);
+                query = query.Where(p => p.BudgetMin <= maxPrice.Value);
+            }
+
+            if (budgetPerPerson.HasValue && budgetPerPerson.Value > 0)
+            {
+                query = query.Where(p => p.BudgetMin <= budgetPerPerson.Value || p.BudgetMax <= budgetPerPerson.Value * 2);
+            }
+
+            if (!string.IsNullOrWhiteSpace(district))
+            {
+                var distTerm = district.Trim().ToLower();
+                query = query.Where(p => (p.Address != null && p.Address.ToLower().Contains(distTerm)) ||
+                                         (p.University != null && p.University.ToLower().Contains(distTerm)) ||
+                                         (p.Title != null && p.Title.ToLower().Contains(distTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(ward))
+            {
+                var wardTerm = ward.Trim().ToLower();
+                query = query.Where(p => p.Address != null && p.Address.ToLower().Contains(wardTerm));
+            }
+
+            if (smoke.HasValue)
+            {
+                query = query.Where(p => p.Smoke == smoke.Value);
+            }
+
+            if (sleepLate.HasValue)
+            {
+                query = query.Where(p => p.SleepLate == sleepLate.Value);
+            }
+
+            if (hasPet.HasValue)
+            {
+                query = query.Where(p => p.HasPet == hasPet.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(hometown))
+            {
+                var htTerm = hometown.Trim().ToLower();
+                query = query.Where(p => p.Hometown != null && p.Hometown.ToLower().Contains(htTerm));
+            }
+
+            if (!string.IsNullOrWhiteSpace(occupation) && occupation != "All")
+            {
+                var occTerm = occupation.Trim().ToLower();
+                query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(occTerm)) ||
+                                         (p.Title != null && p.Title.ToLower().Contains(occTerm)) ||
+                                         (p.University != null && p.University.ToLower().Contains(occTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(personality) && personality != "All")
+            {
+                var perTerm = personality.Trim().ToLower();
+                query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(perTerm)) ||
+                                         (p.Title != null && p.Title.ToLower().Contains(perTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(cookFrequency) && cookFrequency != "All")
+            {
+                var cookTerm = cookFrequency.Trim().ToLower();
+                query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(cookTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(inviteFriends) && inviteFriends != "All")
+            {
+                var friendTerm = inviteFriends.Trim().ToLower();
+                query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(friendTerm)));
+            }
+
+            if (!string.IsNullOrWhiteSpace(amenities))
+            {
+                var amenityList = amenities.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var amenity in amenityList)
+                {
+                    var aLower = amenity.ToLower();
+                    query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(aLower)) ||
+                                             (p.Title != null && p.Title.ToLower().Contains(aLower)));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(surroundings))
+            {
+                var surrList = surroundings.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var surr in surrList)
+                {
+                    var sLower = surr.ToLower();
+                    query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(sLower)) ||
+                                             (p.Address != null && p.Address.ToLower().Contains(sLower)) ||
+                                             (p.Title != null && p.Title.ToLower().Contains(sLower)));
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(otherCriteria))
+            {
+                var critTerm = otherCriteria.Trim().ToLower();
+                query = query.Where(p => (p.Description != null && p.Description.ToLower().Contains(critTerm)) ||
+                                         (p.Title != null && p.Title.ToLower().Contains(critTerm)) ||
+                                         (p.Hometown != null && p.Hometown.ToLower().Contains(critTerm)) ||
+                                         (p.Address != null && p.Address.ToLower().Contains(critTerm)));
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -64,6 +194,8 @@ namespace ZHome.API.Controllers
                 query = query.Where(p => (p.Title != null && p.Title.ToLower().Contains(term)) ||
                                          (p.Description != null && p.Description.ToLower().Contains(term)) ||
                                          (p.Address != null && p.Address.ToLower().Contains(term)) ||
+                                         (p.University != null && p.University.ToLower().Contains(term)) ||
+                                         (p.Hometown != null && p.Hometown.ToLower().Contains(term)) ||
                                          (p.Student != null && p.Student.FullName.ToLower().Contains(term)));
             }
 
@@ -175,8 +307,31 @@ namespace ZHome.API.Controllers
             profile.RoommateGenderPreference = request.RoommateGenderPreference;
             profile.IsActive = true;
 
-            // Handle base64 image upload for post image
-            if (!string.IsNullOrEmpty(request.ImageBase64))
+            // Handle base64 image upload for post image (support single or multiple)
+            if (request.ImagesBase64 != null && request.ImagesBase64.Any())
+            {
+                var uploadedUrls = new List<string>();
+                foreach (var base64 in request.ImagesBase64.Where(b => !string.IsNullOrWhiteSpace(b)))
+                {
+                    if (base64.StartsWith("http", StringComparison.OrdinalIgnoreCase) || base64.StartsWith("/uploads", StringComparison.OrdinalIgnoreCase))
+                    {
+                        uploadedUrls.Add(base64);
+                    }
+                    else
+                    {
+                        var url = await SaveBase64ImageAsync(base64);
+                        if (!string.IsNullOrEmpty(url))
+                        {
+                            uploadedUrls.Add(url);
+                        }
+                    }
+                }
+                if (uploadedUrls.Any())
+                {
+                    profile.ImageUrl = string.Join(",", uploadedUrls);
+                }
+            }
+            else if (!string.IsNullOrEmpty(request.ImageBase64))
             {
                 var uploadedUrl = await SaveBase64ImageAsync(request.ImageBase64);
                 if (!string.IsNullOrEmpty(uploadedUrl))

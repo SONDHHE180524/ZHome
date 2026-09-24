@@ -166,6 +166,9 @@ using (var scope = app.Services.CreateScope())
                 END $$;
             ");
         }
+
+        // Tự động seed bổ sung đầy đủ danh sách Xã/Thị trấn/Phường cho tất cả 30 quận huyện Hà Nội
+        await LocationSeeder.SeedMissingLocationsAsync(dbContext);
     }
     catch (Exception ex)
     {

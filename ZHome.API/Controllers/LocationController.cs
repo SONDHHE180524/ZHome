@@ -24,7 +24,8 @@ namespace ZHome.API.Controllers
         {
             var locations = await _context.Locations
                 .Where(l => l.Level == level)
-                .OrderBy(l => l.Name)
+                .OrderBy(l => l.Type == "Quận" ? 0 : (l.Type == "Thị xã" ? 1 : 2))
+                .ThenBy(l => l.Name)
                 .ToListAsync();
             return Ok(locations);
         }
@@ -34,9 +35,29 @@ namespace ZHome.API.Controllers
         {
             var children = await _context.Locations
                 .Where(l => l.ParentId == parentId)
-                .OrderBy(l => l.Name)
+                .OrderBy(l => l.Type == "Phường" ? 0 : (l.Type == "Thị trấn" ? 1 : 2))
+                .ThenBy(l => l.Name)
                 .ToListAsync();
             return Ok(children);
+        }
+
+        [HttpGet("coverage")]
+        public async Task<IActionResult> GetCoverage()
+        {
+            var districts = await _context.Locations
+                .Where(l => l.Level == 2)
+                .Select(d => new
+                {
+                    d.Id,
+                    d.Name,
+                    d.Type,
+                    ChildrenCount = _context.Locations.Count(c => c.ParentId == d.Id)
+                })
+                .OrderBy(d => d.ChildrenCount)
+                .ThenBy(d => d.Name)
+                .ToListAsync();
+
+            return Ok(districts);
         }
     }
 }
