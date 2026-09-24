@@ -11,6 +11,7 @@ namespace ZHome.API.Models.DTOs
         public string? ContactPhone { get; set; }
         public string? ImageUrl { get; set; }
         public string? ImageBase64 { get; set; }
+        public List<string>? ImagesBase64 { get; set; }
 
         [Required]
         public string Gender { get; set; } = "Male";
