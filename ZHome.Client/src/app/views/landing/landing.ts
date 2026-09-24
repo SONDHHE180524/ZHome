@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, HostListener } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -54,8 +54,19 @@ import { environment } from '../../../environments/environment';
             <div class="pill-group select-group">
               <select [(ngModel)]="selectedDistrict" (change)="onDistrictChange()">
                 <option value="">Tất cả Quận/Huyện</option>
-                @for (d of districts(); track d.id) {
-                  <option [value]="d.name">{{ d.name }}</option>
+                @if (urbanDistricts().length > 0) {
+                  <optgroup label="── 12 QUẬN NỘI THÀNH ──">
+                    @for (d of urbanDistricts(); track d.id) {
+                      <option [value]="d.name">Quận {{ d.name }}</option>
+                    }
+                  </optgroup>
+                }
+                @if (suburbanDistricts().length > 0) {
+                  <optgroup label="── HUYỆN & THỊ XÃ NGOẠI THÀNH ──">
+                    @for (d of suburbanDistricts(); track d.id) {
+                      <option [value]="d.name">{{ d.type }} {{ d.name }}</option>
+                    }
+                  </optgroup>
                 }
               </select>
             </div>
@@ -63,9 +74,9 @@ import { environment } from '../../../environments/environment';
             
             <div class="pill-group select-group">
               <select [(ngModel)]="selectedWard" (change)="onFilterChange()" [disabled]="!selectedDistrict">
-                <option value="">{{ selectedDistrict ? 'Tất cả Phường/Xã' : 'Chọn Quận/Huyện trước' }}</option>
+                <option value="">{{ selectedDistrict ? (getSelectedDistrictType(selectedDistrict) === 'Quận' ? 'Tất cả Phường' : 'Tất cả Xã / Thị trấn') : 'Chọn Quận/Huyện trước' }}</option>
                 @for (w of wards(); track w.id) {
-                  <option [value]="w.name">{{ w.name }}</option>
+                  <option [value]="w.name">{{ w.type ? (w.type + ' ' + w.name) : w.name }}</option>
                 }
               </select>
             </div>
@@ -1419,6 +1430,14 @@ export class LandingComponent implements OnInit {
   isLoading = signal(true);
   districts = signal<any[]>([]);
   wards = signal<any[]>([]);
+
+  urbanDistricts = computed(() => this.districts().filter(d => d.type === 'Quận'));
+  suburbanDistricts = computed(() => this.districts().filter(d => d.type !== 'Quận'));
+
+  getSelectedDistrictType(districtName: string): string {
+    const d = this.districts().find(x => x.name === districtName);
+    return d ? (d.type || 'Quận') : 'Quận';
+  }
   
   groupedProperties = signal<any[]>([]);
   hotProperties = signal<any[]>([]);

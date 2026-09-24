@@ -1,5 +1,7 @@
 using System.Text;
+using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -94,7 +96,7 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ==========================================
-// 5. CẤU HÌNH JWT AUTHENTICATION
+// 5. CẤU HÌNH JWT AUTHENTICATION & RATE LIMITING
 // ==========================================
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "ZHome_SuperSecretKeyThatIsAtLeast32BytesLongForSecurity_2026";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ZHome.API";
@@ -117,6 +119,54 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// ==========================================
+// 5.1 CẤU HÌNH RATE LIMITING (CHỐNG SPAM & BRUTE FORCE)
+// ==========================================
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        context.HttpContext.Response.ContentType = "application/json";
+        await context.HttpContext.Response.WriteAsJsonAsync(new
+        {
+            error = "Quá nhiều yêu cầu",
+            message = "Hệ thống phát hiện tần suất gửi yêu cầu quá nhanh từ thiết bị của bạn. Vui lòng thử lại sau 1 phút."
+        }, cancellationToken: token);
+    };
+
+    // Chặn spam đăng ký tài khoản (Tối đa 3 request / 1 phút / IP)
+    options.AddPolicy("RegisterRateLimit", httpContext =>
+    {
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ipAddress,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 3,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+    });
+
+    // Chặn dò mật khẩu Brute-force Login (Tối đa 5 lần thử / 1 phút / IP)
+    options.AddPolicy("LoginRateLimit", httpContext =>
+    {
+        var ipAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown_ip";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: ipAddress,
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            });
+    });
+});
 
 // ==========================================
 // 6. BUILD APP
@@ -169,6 +219,9 @@ using (var scope = app.Services.CreateScope())
 
         // Tự động seed bổ sung đầy đủ danh sách Xã/Thị trấn/Phường cho tất cả 30 quận huyện Hà Nội
         await LocationSeeder.SeedMissingLocationsAsync(dbContext);
+
+        // Tự động seed/cập nhật tài khoản Quản trị viên (Admin)
+        await AdminSeeder.SeedAdminUserAsync(dbContext);
     }
     catch (Exception ex)
     {
@@ -211,6 +264,9 @@ app.UseRouting();
 
 // CORS bắt buộc đặt giữa UseRouting và UseAuthentication
 app.UseCors("AllowFrontend");
+
+// Kích hoạt Rate Limiter chống spam request và DDoS/Brute-force
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
+using ZHome.API.Models.DTOs;
 using ZHome.API.Models.Entities;
 
 namespace ZHome.API.Controllers
@@ -22,6 +23,72 @@ namespace ZHome.API.Controllers
         {
             _context = context;
             _notificationService = notificationService;
+        }
+
+        // Tạo tài khoản Quản trị viên mới (CHỈ ADMIN ĐANG ĐĂNG NHẬP MỚI CÓ QUYỀN GỌI)
+        [HttpPost("create-admin")]
+        public async Task<IActionResult> CreateAdminAccount([FromBody] CreateAdminRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ. Phải gồm 10 chữ số, bắt đầu bằng 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
+            }
+
+            if (await _context.Users.AnyAsync(u => u.Phone == request.Phone))
+            {
+                return BadRequest("Số điện thoại này đã tồn tại trên hệ thống.");
+            }
+
+            if (!string.IsNullOrEmpty(request.Email) && await _context.Users.AnyAsync(u => u.Email == request.Email))
+            {
+                return BadRequest("Email này đã được sử dụng.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 8)
+            {
+                return BadRequest("Mật khẩu cho Quản trị viên phải từ 8 ký tự trở lên để đảm bảo an toàn.");
+            }
+
+            // Tìm Role Administrator
+            var adminRole = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == "Administrator");
+            if (adminRole == null)
+            {
+                adminRole = new Role
+                {
+                    RoleName = "Administrator"
+                };
+                _context.Roles.Add(adminRole);
+                await _context.SaveChangesAsync();
+            }
+
+            var newAdmin = new User
+            {
+                Phone = request.Phone,
+                Email = request.Email,
+                FullName = request.FullName,
+                RoleId = adminRole.Id,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                VerificationStatus = "Approved",
+                SubscriptionId = 3, // Premium package
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(newAdmin);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Tạo tài khoản Quản trị viên thành công!",
+                admin = new
+                {
+                    UserId = newAdmin.Id,
+                    FullName = newAdmin.FullName,
+                    Phone = newAdmin.Phone,
+                    Email = newAdmin.Email,
+                    Role = "Administrator"
+                }
+            });
         }
 
         // Get all landlord verification requests

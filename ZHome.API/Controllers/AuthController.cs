@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
 using ZHome.API.Models.DTOs;
@@ -34,12 +35,25 @@ namespace ZHome.API.Controllers
         }
 
         [HttpPost("register")]
+        [EnableRateLimiting("RegisterRateLimit")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             {
                 return BadRequest("Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
             }
+
+            // BẢO MẬT: Tuyệt đối cấm người dùng tự cấp quyền Administrator qua cổng đăng ký công khai!
+            var requestedRole = request.RoleName?.Trim() ?? "Tenant";
+            if (requestedRole.Equals("Administrator", StringComparison.OrdinalIgnoreCase) || 
+                requestedRole.Equals("Admin", StringComparison.OrdinalIgnoreCase) ||
+                requestedRole.Equals("SuperAdmin", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest("Không được phép đăng ký vai trò Quản trị viên qua cổng đăng ký công khai.");
+            }
+
+            // Chỉ cho phép đăng ký 2 vai trò: Landlord (Chủ trọ) hoặc Tenant (Người thuê)
+            string targetRoleName = requestedRole.Equals("Landlord", StringComparison.OrdinalIgnoreCase) ? "Landlord" : "Tenant";
 
             if (await _context.Users.AnyAsync(u => u.Phone == request.Phone))
             {
@@ -52,13 +66,13 @@ namespace ZHome.API.Controllers
             }
 
             // Find matching role in db
-            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == request.RoleName.ToLower());
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == targetRoleName.ToLower());
             if (role == null)
             {
-                return BadRequest($"Vai trò '{request.RoleName}' không hợp lệ.");
+                return BadRequest($"Vai trò '{targetRoleName}' không hợp lệ trên hệ thống.");
             }
 
-            bool isLandlord = request.RoleName.Equals("Landlord", StringComparison.OrdinalIgnoreCase);
+            bool isLandlord = targetRoleName.Equals("Landlord", StringComparison.OrdinalIgnoreCase);
 
             if (isLandlord)
             {
@@ -73,6 +87,12 @@ namespace ZHome.API.Controllers
                 if (string.IsNullOrWhiteSpace(request.CccdBackBase64))
                 {
                     return BadRequest("Ảnh mặt sau CCCD bắt buộc phải tải lên.");
+                }
+
+                // Chống DoS: Giới hạn dung lượng ảnh Base64 (tối đa ~5MB mỗi ảnh, ~7 triệu ký tự)
+                if (request.CccdFrontBase64.Length > 7_000_000 || request.CccdBackBase64.Length > 7_000_000)
+                {
+                    return BadRequest("Dung lượng ảnh CCCD vượt quá giới hạn cho phép (tối đa 5MB mỗi ảnh).");
                 }
             }
 
@@ -164,6 +184,7 @@ namespace ZHome.API.Controllers
         }
 
         [HttpPost("login")]
+        [EnableRateLimiting("LoginRateLimit")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
@@ -189,20 +210,13 @@ namespace ZHome.API.Controllers
             }
 
             bool isPasswordCorrect = false;
-            if (user.PasswordHash == request.Password)
+            try
             {
-                isPasswordCorrect = true;
+                isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             }
-            else
+            catch (Exception)
             {
-                try
-                {
-                    isPasswordCorrect = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
-                }
-                catch (BCrypt.Net.SaltParseException)
-                {
-                    isPasswordCorrect = false;
-                }
+                isPasswordCorrect = false;
             }
 
             if (!isPasswordCorrect)
