@@ -36,6 +36,13 @@ namespace ZHome.API.Models.DTOs
         public string? Note { get; set; }
         public string? ProofImageUrl { get; set; }
 
+        public string? LandlordName { get; set; }
+        public string? LandlordPhone { get; set; }
+        public string? LandlordBankName { get; set; }
+        public string? LandlordAccountNumber { get; set; }
+        public string? LandlordAccountName { get; set; }
+        public string? LandlordBankQrUrl { get; set; }
+
         public List<BillTransactionDto> Transactions { get; set; } = new();
     }
 

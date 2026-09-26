@@ -65,6 +65,10 @@ namespace ZHome.API.Models.DTOs
         public int? SubscriptionId { get; set; }
         public string? SubscriptionName { get; set; }
         public System.DateTime? SubscriptionEndDate { get; set; }
+        public string? BankName { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankAccountName { get; set; }
+        public string? BankQrUrl { get; set; }
     }
 
     public class UpdateProfileRequest
@@ -79,6 +83,10 @@ namespace ZHome.API.Models.DTOs
 
         public string? CccdNumber { get; set; }
         public string? AvatarBase64 { get; set; }
+        public string? BankName { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankAccountName { get; set; }
+        public string? BankQrBase64 { get; set; }
     }
 
     public class ChangePasswordRequest

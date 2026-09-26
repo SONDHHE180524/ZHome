@@ -54,6 +54,22 @@ namespace ZHome.API.Models.Entities
         [Column("verification_status")]
         public string? VerificationStatus { get; set; }
 
+        [MaxLength(100)]
+        [Column("bank_name")]
+        public string? BankName { get; set; }
+
+        [MaxLength(50)]
+        [Column("bank_account_number")]
+        public string? BankAccountNumber { get; set; }
+
+        [MaxLength(100)]
+        [Column("bank_account_name")]
+        public string? BankAccountName { get; set; }
+
+        [MaxLength(500)]
+        [Column("bank_qr_url")]
+        public string? BankQrUrl { get; set; }
+
         [Column("created_at")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

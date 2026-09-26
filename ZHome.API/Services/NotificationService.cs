@@ -68,6 +68,7 @@ namespace ZHome.API.Services
         public async Task<List<Notification>> GetUserNotificationsAsync(long userId, int limit = 50)
         {
             return await _context.Notifications
+                .AsNoTracking()
                 .Where(n => n.UserId == userId)
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(limit)

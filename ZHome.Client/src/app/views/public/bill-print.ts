@@ -2,6 +2,7 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { BillService } from '../../services/bill.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-bill-print',
@@ -182,7 +183,7 @@ import { BillService } from '../../services/bill.service';
             <div class="qr-print-box my-2">
               <img [src]="getVietQrUrl(item)" alt="Mã VietQR Thanh Toán Hóa Đơn" class="printed-qr-img">
               <div class="qr-bank-details mt-1">
-                <span class="text-xs text-muted">VietinBank • STK: <strong>888819661666</strong> • NGUYEN THANH TUNG</span><br>
+                <span class="text-xs text-muted">{{ item.landlordBankName || 'VietinBank' }} • STK: <strong>{{ item.landlordAccountNumber || '888819661666' }}</strong> • {{ item.landlordAccountName || item.landlordName || 'Chủ trọ' }}</span><br>
                 <span class="text-xs text-muted">Nội dung CK: <strong class="text-primary font-bold">HD{{ item.id }}</strong></span>
               </div>
             </div>
@@ -692,6 +693,17 @@ export class BillPrintComponent implements OnInit {
     if (!item) return '';
     const amount = Math.max(0, (item.totalAmount || 0) - (item.paidAmount || 0));
     const content = `HD${item.id}`;
-    return `https://img.vietqr.io/image/VietinBank-888819661666-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${encodeURIComponent('NGUYEN THANH TUNG')}`;
+
+    if (item.landlordBankQrUrl) {
+      return item.landlordBankQrUrl.startsWith('/')
+        ? `${environment.baseUrl}${item.landlordBankQrUrl}`
+        : item.landlordBankQrUrl;
+    }
+
+    const bank = encodeURIComponent(item.landlordBankName || 'VietinBank');
+    const accountNo = encodeURIComponent(item.landlordAccountNumber || '888819661666');
+    const accountName = encodeURIComponent(item.landlordAccountName || item.landlordName || 'CHU TRO');
+
+    return `https://img.vietqr.io/image/${bank}-${accountNo}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(content)}&accountName=${accountName}`;
   }
 }

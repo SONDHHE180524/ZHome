@@ -177,6 +177,102 @@ import { environment } from '../../../environments/environment';
                     </div>
                   </div>
 
+                  <!-- Landlord Banking & QR Code Settings -->
+                  @if (profileData()?.roleName === 'Landlord' || profileData()?.roleName === 'Administrator') {
+                    <div class="bank-section-wrapper mt-4">
+                      <div class="bank-section-header">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="bank-icon-badge">🏦</span>
+                          <div>
+                            <h4 class="m-0 font-bold text-dark">Tài Khoản Ngân Hàng & Mã QR Nhận Tiền Trọ</h4>
+                            <p class="text-muted text-xs m-0">Người thuê phòng sẽ quét mã QR này để thanh toán tiền trọ và tiền điện nước hàng tháng</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="bank-config-grid mt-3">
+                        <div class="bank-inputs-col">
+                          <div class="form-group mb-3">
+                            <label for="bankName">Ngân hàng thụ hưởng <span class="required">*</span></label>
+                            <select 
+                              id="bankName" 
+                              name="bankName" 
+                              [(ngModel)]="editModel.bankName" 
+                              class="form-control-light">
+                              <option value="">-- Chọn ngân hàng --</option>
+                              @for (b of popularBanks; track b.code) {
+                                <option [value]="b.code">{{ b.name }} ({{ b.code }})</option>
+                              }
+                            </select>
+                          </div>
+
+                          <div class="form-group mb-3">
+                            <label for="bankAccountNumber">Số tài khoản ngân hàng (STK) <span class="required">*</span></label>
+                            <input 
+                              type="text" 
+                              id="bankAccountNumber" 
+                              name="bankAccountNumber" 
+                              [(ngModel)]="editModel.bankAccountNumber" 
+                              class="form-control-light" 
+                              placeholder="Ví dụ: 888819661666" />
+                          </div>
+
+                          <div class="form-group mb-3">
+                            <label for="bankAccountName">Tên chủ tài khoản (In hoa không dấu)</label>
+                            <input 
+                              type="text" 
+                              id="bankAccountName" 
+                              name="bankAccountName" 
+                              [(ngModel)]="editModel.bankAccountName" 
+                              class="form-control-light text-uppercase" 
+                              placeholder="Ví dụ: NGUYEN VAN A" />
+                          </div>
+
+                          <div class="form-group mb-2">
+                            <label>Tải lên ảnh Mã QR riêng (Tùy chọn)</label>
+                            <div class="custom-qr-upload-box">
+                              <input 
+                                type="file" 
+                                id="qrFileInput" 
+                                (change)="onQrFileSelected($event)" 
+                                accept="image/*" 
+                                style="display: none;" />
+                              <label for="qrFileInput" class="btn-upload-qr">
+                                📤 Chọn ảnh mã QR từ máy
+                              </label>
+                              @if (editModel.bankQrPreview || selectedBankQrBase64) {
+                                <button type="button" class="btn-clear-qr" (click)="clearCustomQr()">
+                                  🗑️ Gỡ mã QR riêng
+                                </button>
+                              }
+                            </div>
+                            <span class="text-xs text-muted d-block mt-1">Nếu không tải ảnh lên, hệ thống sẽ tự tạo mã VietQR động theo STK và Ngân hàng của bạn.</span>
+                          </div>
+                        </div>
+
+                        <!-- Live QR Code Preview -->
+                        <div class="bank-preview-col text-center">
+                          <div class="qr-preview-card">
+                            <span class="preview-badge">Xem trước mã QR của khách thuê</span>
+                            <div class="qr-image-wrapper my-2">
+                              @if (getPreviewQrUrl()) {
+                                <img [src]="getPreviewQrUrl()" alt="Mã QR thanh toán" class="live-qr-img" (error)="handleImageError($event)" />
+                              } @else {
+                                <div class="qr-placeholder">
+                                  <span>Vui lòng chọn Ngân hàng & nhập STK để tạo mã VietQR</span>
+                                </div>
+                              }
+                            </div>
+                            <div class="qr-account-info">
+                              <strong class="d-block text-dark font-mono text-sm">{{ editModel.bankAccountNumber || 'Chưa nhập STK' }}</strong>
+                              <span class="text-xs text-muted">{{ editModel.bankName || 'Chưa chọn ngân hàng' }} • {{ editModel.bankAccountName || profileData()?.fullName || 'CHỦ NHÀ' }}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  }
+
                   <div class="form-actions-row mt-4">
                     <button 
                       type="button" 
@@ -189,7 +285,7 @@ import { environment } from '../../../environments/environment';
                       type="submit" 
                       class="btn btn-primary-light" 
                       [disabled]="isSaving() || profileForm.invalid">
-                      {{ isSaving() ? '⏳ Đang lưu...' : ' Lưu Thay Đổi' }}
+                      {{ isSaving() ? '⏳ Đang lưu...' : '💾 Lưu Thay Đổi' }}
                     </button>
                   </div>
                 </form>
@@ -647,6 +743,92 @@ import { environment } from '../../../environments/environment';
       color: #475569;
       line-height: 1.5;
     }
+    /* Bank & QR Configuration Styles */
+    .bank-section-wrapper {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 20px;
+    }
+    .bank-icon-badge {
+      font-size: 1.8rem;
+    }
+    .bank-config-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 20px;
+    }
+    @media (max-width: 768px) {
+      .bank-config-grid { grid-template-columns: 1fr; }
+    }
+    .custom-qr-upload-box {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .btn-upload-qr {
+      background: #f1f5f9;
+      color: #3b82f6;
+      border: 1.5px dashed #93c5fd;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-upload-qr:hover {
+      background: #eff6ff;
+      border-color: #3b82f6;
+    }
+    .btn-clear-qr {
+      background: #fee2e2;
+      color: #ef4444;
+      border: 1px solid #fca5a5;
+      padding: 8px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+    .qr-preview-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+    .preview-badge {
+      font-size: 0.75rem;
+      color: #059669;
+      background: #d1fae5;
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-weight: 700;
+      display: inline-block;
+    }
+    .qr-image-wrapper {
+      min-height: 160px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .live-qr-img {
+      max-width: 170px;
+      max-height: 170px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+    }
+    .qr-placeholder {
+      padding: 20px;
+      color: #94a3b8;
+      font-size: 0.82rem;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+      border-radius: 8px;
+    }
 
     .spinner {
       width: 40px;
@@ -678,10 +860,39 @@ export class ProfileComponent implements OnInit {
   avatarPreview = signal<string>('');
   selectedAvatarBase64 = '';
 
+  selectedBankQrBase64 = '';
+
+  popularBanks = [
+    { code: 'VietinBank', name: 'VietinBank (Ngân hàng TMCP Công Thương)' },
+    { code: 'Vietcombank', name: 'Vietcombank (Ngân hàng Ngoại Thương)' },
+    { code: 'MBBank', name: 'MBBank (Ngân hàng Quân Đội)' },
+    { code: 'Techcombank', name: 'Techcombank (Kỹ Thương Việt Nam)' },
+    { code: 'BIDV', name: 'BIDV (Đầu Tư và Phát Triển)' },
+    { code: 'Agribank', name: 'Agribank (Nông Nghiệp và PTNT)' },
+    { code: 'VPBank', name: 'VPBank (Việt Nam Thịnh Vượng)' },
+    { code: 'ACB', name: 'ACB (Á Châu)' },
+    { code: 'TPBank', name: 'TPBank (Tiên Phong)' },
+    { code: 'Sacombank', name: 'Sacombank (Sài Gòn Thương Tín)' },
+    { code: 'HDBank', name: 'HDBank (Phát Triển TP.HCM)' },
+    { code: 'VIB', name: 'VIB (Quốc Tế)' },
+    { code: 'MSB', name: 'MSB (Hàng Hải)' },
+    { code: 'SHB', name: 'SHB (Sài Gòn - Hà Nội)' },
+    { code: 'OCB', name: 'OCB (Phương Đông)' },
+    { code: 'LPBank', name: 'LPBank (Lộc Phát)' },
+    { code: 'SeABank', name: 'SeABank (Đông Nam Á)' },
+    { code: 'NamABank', name: 'Nam A Bank' },
+    { code: 'PVcomBank', name: 'PVcomBank' },
+    { code: 'BACABANK', name: 'Bac A Bank' }
+  ];
+
   editModel = {
     fullName: '',
     email: '',
-    cccdNumber: ''
+    cccdNumber: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
+    bankQrPreview: ''
   };
 
   passwordModel = {
@@ -702,7 +913,11 @@ export class ProfileComponent implements OnInit {
         this.editModel = {
           fullName: data.fullName || '',
           email: data.email || '',
-          cccdNumber: data.cccdNumber || ''
+          cccdNumber: data.cccdNumber || '',
+          bankName: data.bankName || '',
+          bankAccountNumber: data.bankAccountNumber || '',
+          bankAccountName: data.bankAccountName || '',
+          bankQrPreview: data.bankQrUrl || ''
         };
         this.authService.updateSessionProfile(data.fullName, data.email, data.avatarUrl);
         this.isLoading.set(false);
@@ -728,6 +943,22 @@ export class ProfileComponent implements OnInit {
     return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
   }
 
+  getPreviewQrUrl(): string {
+    if (this.selectedBankQrBase64) {
+      return this.selectedBankQrBase64;
+    }
+    if (this.editModel.bankQrPreview) {
+      return this.getImageUrl(this.editModel.bankQrPreview);
+    }
+    if (this.editModel.bankName && this.editModel.bankAccountNumber) {
+      const bank = encodeURIComponent(this.editModel.bankName);
+      const acc = encodeURIComponent(this.editModel.bankAccountNumber);
+      const name = encodeURIComponent(this.editModel.bankAccountName || this.profileData()?.fullName || 'CHU TRO');
+      return `https://img.vietqr.io/image/${bank}-${acc}-compact2.png?accountName=${name}`;
+    }
+    return '';
+  }
+
   onFileSelected(event: any): void {
     const file = event.target.files?.[0];
     if (file) {
@@ -746,6 +977,28 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  onQrFileSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        this.toastService.show('Ảnh mã QR không được vượt quá 5MB.', 'info');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        this.selectedBankQrBase64 = base64;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  clearCustomQr(): void {
+    this.selectedBankQrBase64 = '';
+    this.editModel.bankQrPreview = '';
+  }
+
   handleImageError(event: any): void {
     if (!event.target.dataset.errorHandled) {
       event.target.dataset.errorHandled = 'true';
@@ -761,12 +1014,22 @@ export class ProfileComponent implements OnInit {
 
     this.isSaving.set(true);
 
-    const payload = {
+    const payload: any = {
       fullName: this.editModel.fullName,
       email: this.editModel.email || null,
       cccdNumber: this.editModel.cccdNumber || null,
-      avatarBase64: this.selectedAvatarBase64 || null
+      avatarBase64: this.selectedAvatarBase64 || null,
+      bankName: this.editModel.bankName || null,
+      bankAccountNumber: this.editModel.bankAccountNumber || null,
+      bankAccountName: this.editModel.bankAccountName || null
     };
+
+    if (this.selectedBankQrBase64) {
+      payload.bankQrBase64 = this.selectedBankQrBase64;
+    } else if (this.editModel.bankQrPreview === '' && this.profileData()?.bankQrUrl) {
+      // Cleared custom QR
+      payload.bankQrBase64 = 'REMOVE';
+    }
 
     this.authService.updateProfile(payload).subscribe({
       next: (res) => {
@@ -774,9 +1037,11 @@ export class ProfileComponent implements OnInit {
         this.profileData.set(res);
         this.avatarPreview.set('');
         this.selectedAvatarBase64 = '';
+        this.selectedBankQrBase64 = '';
+        this.editModel.bankQrPreview = res.bankQrUrl || '';
         
         this.authService.updateSessionProfile(res.fullName, res.email, res.avatarUrl);
-        this.toastService.show('Cập nhật hồ sơ cá nhân thành công!', 'success');
+        this.toastService.show('Cập nhật hồ sơ & thông tin tài khoản thành công!', 'success');
       },
       error: (err) => {
         this.isSaving.set(false);
@@ -820,10 +1085,15 @@ export class ProfileComponent implements OnInit {
       this.editModel = {
         fullName: data.fullName || '',
         email: data.email || '',
-        cccdNumber: data.cccdNumber || ''
+        cccdNumber: data.cccdNumber || '',
+        bankName: data.bankName || '',
+        bankAccountNumber: data.bankAccountNumber || '',
+        bankAccountName: data.bankAccountName || '',
+        bankQrPreview: data.bankQrUrl || ''
       };
       this.avatarPreview.set('');
       this.selectedAvatarBase64 = '';
+      this.selectedBankQrBase64 = '';
     }
   }
 }

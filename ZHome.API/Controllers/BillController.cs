@@ -53,6 +53,7 @@ namespace ZHome.API.Controllers
             var bills = await _context.MonthlyBills
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Contracts)
                         .ThenInclude(c => c.Tenant)
@@ -83,6 +84,7 @@ namespace ZHome.API.Controllers
             var bills = await _context.MonthlyBills
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
                 .Include(b => b.Transactions)
                     .ThenInclude(t => t.Tenant)
                 .Where(b => _context.Contracts.Any(c => c.TenantId == tenantId && c.RoomId == b.RoomId))
@@ -909,6 +911,7 @@ namespace ZHome.API.Controllers
             var bill = await _context.MonthlyBills
                 .Include(b => b.Room)
                     .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
                 .Include(b => b.Transactions)
                     .ThenInclude(t => t.Tenant)
                 .FirstOrDefaultAsync(b => b.Id == id);
@@ -926,6 +929,7 @@ namespace ZHome.API.Controllers
             var activeContract = b.Room?.Contracts?.FirstOrDefault(c => c.Status == "Active");
             var tenantName = activeContract?.Tenant?.FullName ?? (b.Transactions?.FirstOrDefault()?.Tenant?.FullName ?? ("Phòng " + (b.Room?.RoomNumber ?? string.Empty)));
             var tenantPhone = activeContract?.Tenant?.Phone ?? string.Empty;
+            var landlord = b.Room?.Property?.Landlord;
             
             return new BillResponseDto
             {
@@ -954,6 +958,12 @@ namespace ZHome.API.Controllers
                 PaidAt = b.PaidAt,
                 Note = b.Note,
                 ProofImageUrl = b.ProofImageUrl,
+                LandlordName = landlord?.FullName,
+                LandlordPhone = landlord?.Phone,
+                LandlordBankName = landlord?.BankName,
+                LandlordAccountNumber = landlord?.BankAccountNumber,
+                LandlordAccountName = landlord?.BankAccountName,
+                LandlordBankQrUrl = landlord?.BankQrUrl,
                 Transactions = b.Transactions?.Select(t => new BillTransactionDto
                 {
                     Id = t.Id,
@@ -978,6 +988,8 @@ namespace ZHome.API.Controllers
 
             var bill = await _context.MonthlyBills
                 .Include(b => b.Room)
+                    .ThenInclude(r => r!.Property)
+                        .ThenInclude(p => p!.Landlord)
                 .FirstOrDefaultAsync(b => b.Id == request.BillId);
 
             if (bill == null)
@@ -1000,13 +1012,33 @@ namespace ZHome.API.Controllers
             long orderCode = long.Parse(DateTime.UtcNow.ToString("yyMMddHHmmss") + Random.Shared.Next(10, 99));
             string description = $"HD{bill.Id}";
 
-            var paymentResult = _sePayService.CreateBillPaymentInfo(
-                orderCode,
-                amountToPay,
-                bill.Id,
-                description,
-                userEmail
-            );
+            var landlord = bill.Room?.Property?.Landlord;
+            string bankName = !string.IsNullOrEmpty(landlord?.BankName) ? landlord.BankName : "VietinBank";
+            string accountNo = !string.IsNullOrEmpty(landlord?.BankAccountNumber) ? landlord.BankAccountNumber : "888819661666";
+            string accountName = !string.IsNullOrEmpty(landlord?.BankAccountName) ? landlord.BankAccountName : (landlord?.FullName ?? "CHỦ TRỌ");
+            string? customQr = landlord?.BankQrUrl;
+
+            string qrUrl = !string.IsNullOrEmpty(customQr)
+                ? customQr
+                : $"https://img.vietqr.io/image/{Uri.EscapeDataString(bankName)}-{Uri.EscapeDataString(accountNo)}-compact2.png?amount={amountToPay}&addInfo={Uri.EscapeDataString(description)}&accountName={Uri.EscapeDataString(accountName)}";
+
+            var paymentResult = new
+            {
+                bin = bankName,
+                accountNumber = accountNo,
+                accountName = accountName,
+                amount = amountToPay,
+                description = description,
+                orderCode = orderCode,
+                currency = "VND",
+                paymentLinkId = orderCode.ToString(),
+                status = "PENDING",
+                qrCode = qrUrl,
+                qrCodeUrl = qrUrl,
+                bankName = bankName,
+                accountNo = accountNo,
+                checkoutUrl = qrUrl
+            };
 
             _orderStore.AddOrder(new PendingPaymentOrder
             {
