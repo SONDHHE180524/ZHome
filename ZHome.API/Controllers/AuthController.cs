@@ -280,7 +280,11 @@ namespace ZHome.API.Controllers
                 CreatedAt = user.CreatedAt,
                 SubscriptionId = user.SubscriptionId,
                 SubscriptionName = user.SubscriptionPackage?.Name ?? (user.SubscriptionId == 2 ? "Gói Cơ Bản" : (user.SubscriptionId == 3 ? "Gói Nâng Cao" : "Gói Miễn Phí")),
-                SubscriptionEndDate = user.SubscriptionEndDate
+                SubscriptionEndDate = user.SubscriptionEndDate,
+                BankName = user.BankName,
+                BankAccountNumber = user.BankAccountNumber,
+                BankAccountName = user.BankAccountName,
+                BankQrUrl = user.BankQrUrl
             });
         }
 
@@ -317,9 +321,34 @@ namespace ZHome.API.Controllers
             {
                 user.CccdNumber = request.CccdNumber;
             }
+
+            user.BankName = request.BankName;
+            user.BankAccountNumber = request.BankAccountNumber;
+            user.BankAccountName = request.BankAccountName;
+
+            if (!string.IsNullOrEmpty(request.BankQrBase64))
+            {
+                if (request.BankQrBase64.StartsWith("data:image"))
+                {
+                    try
+                    {
+                        var qrUrl = SaveBase64Image(request.BankQrBase64, "bank_qr", user.Phone);
+                        user.BankQrUrl = qrUrl;
+                    }
+                    catch (Exception ex)
+                    {
+                        return BadRequest("Không thể lưu ảnh mã QR ngân hàng: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    user.BankQrUrl = request.BankQrBase64;
+                }
+            }
+
             user.UpdatedAt = DateTime.UtcNow;
 
-            if (!string.IsNullOrEmpty(request.AvatarBase64))
+            if (!string.IsNullOrEmpty(request.AvatarBase64) && request.AvatarBase64.StartsWith("data:image"))
             {
                 try
                 {
@@ -347,7 +376,11 @@ namespace ZHome.API.Controllers
                 CreatedAt = user.CreatedAt,
                 SubscriptionId = user.SubscriptionId,
                 SubscriptionName = user.SubscriptionPackage?.Name ?? (user.SubscriptionId == 2 ? "Gói Cơ Bản" : (user.SubscriptionId == 3 ? "Gói Nâng Cao" : "Gói Miễn Phí")),
-                SubscriptionEndDate = user.SubscriptionEndDate
+                SubscriptionEndDate = user.SubscriptionEndDate,
+                BankName = user.BankName,
+                BankAccountNumber = user.BankAccountNumber,
+                BankAccountName = user.BankAccountName,
+                BankQrUrl = user.BankQrUrl
             });
         }
 

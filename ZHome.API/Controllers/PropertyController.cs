@@ -207,6 +207,52 @@ namespace ZHome.API.Controllers
             return CreatedAtAction(nameof(GetProperty), new { id = property.Id }, MapPropertyToDto(property));
         }
 
+        // Update property details
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateProperty(long id, [FromBody] PropertyCreateDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var property = await _context.Properties
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Amenities)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
+                .FirstOrDefaultAsync(p => p.Id == id && (p.LandlordId == landlordId || User.IsInRole("Administrator")));
+
+            if (property == null)
+            {
+                return NotFound("Không tìm thấy khu trọ hoặc bạn không có quyền chỉnh sửa.");
+            }
+
+            property.Title = request.Title;
+            property.Description = request.Description;
+            property.Address = request.Address;
+            if (request.Latitude.HasValue) property.Latitude = request.Latitude;
+            if (request.Longitude.HasValue) property.Longitude = request.Longitude;
+
+            if (!string.IsNullOrEmpty(request.ImageBase64) && request.ImageBase64.StartsWith("data:image"))
+            {
+                try
+                {
+                    var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == property.LandlordId);
+                    property.ImageUrl = SaveBase64Image(request.ImageBase64, "property", landlord?.Phone ?? property.LandlordId.ToString());
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Không thể lưu ảnh nhà trọ: " + ex.Message);
+                }
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(MapPropertyToDto(property));
+        }
+
         // Update property image
         [Authorize(Roles = "Landlord")]
         [HttpPut("{id}/image")]
@@ -584,10 +630,10 @@ namespace ZHome.API.Controllers
             }
 
             var query = _context.Rooms
+                .AsNoTracking()
+                .AsSplitQuery()
                 .Include(r => r.Property)
                     .ThenInclude(p => p!.Landlord)
-                .Include(r => r.Property)
-                    .ThenInclude(p => p!.Rooms)
                 .Include(r => r.Amenities)
                 .Include(r => r.Images)
                 .AsQueryable();
@@ -653,10 +699,21 @@ namespace ZHome.API.Controllers
             var rooms = await query.ToListAsync();
 
             var propertyIds = rooms.Select(r => r.PropertyId).Distinct().ToList();
+
+            var propertyRoomStats = await _context.Rooms
+                .AsNoTracking()
+                .Where(rm => propertyIds.Contains(rm.PropertyId))
+                .GroupBy(rm => rm.PropertyId)
+                .Select(g => new
+                {
+                    PropertyId = g.Key,
+                    TotalRooms = g.Count(),
+                    VacantRooms = g.Count(rm => rm.Status == "Available")
+                })
+                .ToDictionaryAsync(x => x.PropertyId);
             
             var propertyRatings = await _context.Reports
-                .Include(r => r.Contract)
-                .ThenInclude(c => c!.Room)
+                .AsNoTracking()
                 .Where(r => r.Rating.HasValue && r.Contract != null && r.Contract.Room != null && propertyIds.Contains(r.Contract.Room.PropertyId))
                 .GroupBy(r => r.Contract!.Room!.PropertyId)
                 .Select(g => new
@@ -676,8 +733,8 @@ namespace ZHome.API.Controllers
                 LandlordId = r.Property?.LandlordId ?? 0,
                 LandlordName = r.Property?.Landlord?.FullName ?? "Chủ nhà ẩn danh",
                 LandlordPhone = r.Property?.Landlord?.Phone ?? string.Empty,
-                TotalRooms = r.Property?.Rooms?.Count ?? 0,
-                VacantRoomsCount = r.Property?.Rooms?.Count(rm => rm.Status == "Available") ?? 0,
+                TotalRooms = propertyRoomStats.ContainsKey(r.PropertyId) ? propertyRoomStats[r.PropertyId].TotalRooms : 1,
+                VacantRoomsCount = propertyRoomStats.ContainsKey(r.PropertyId) ? propertyRoomStats[r.PropertyId].VacantRooms : (r.Status == "Available" ? 1 : 0),
                 RoomId = r.Id,
                 RoomNumber = r.RoomNumber,
                 Price = r.Price,

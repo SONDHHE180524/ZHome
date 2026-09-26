@@ -286,8 +286,8 @@ import { ReportService } from '../../services/report.service';
                   <!-- Actions -->
                   <div class="bill-action-btn mt-4">
                     @if (bill.status !== 'Paid') {
-                      <button (click)="payCurrentBill(bill.id, bill.remainingAmount)" class="btn btn-primary btn-block btn-lg">
-                         Thanh toán trực tuyến ngay
+                      <button (click)="payCurrentBill(bill.id)" class="btn btn-primary btn-block btn-lg font-bold">
+                        📱 Quét Mã QR & Thanh Toán Tiền Trọ
                       </button>
                     } @else {
                       <div class="payment-success-box">
@@ -1024,30 +1024,8 @@ export class MyRentalComponent implements OnInit {
     });
   }
 
-  payCurrentBill(billId: number, maxAmount: number): void {
-    const input = window.prompt(`Nhập số tiền muốn thanh toán (Tối đa: ${maxAmount}):`, maxAmount.toString());
-    if (!input) return;
-
-    const amount = parseFloat(input);
-    if (isNaN(amount) || amount <= 0 || amount > maxAmount) {
-      this.toastService.show('Số tiền không hợp lệ. Phải lớn hơn 0 và không vượt quá số còn lại.', 'error');
-      return;
-    }
-
-    if (!confirm(`Bạn có đồng ý thanh toán ${amount}đ cho hóa đơn tháng này không?`)) return;
-    
-    this.billService.payBill(billId, amount).subscribe({
-      next: () => {
-        this.toastService.show('Thanh toán hóa đơn thành công!', 'success');
-        const id = this.selectedContractId();
-        if (id) {
-          this.fetchMyRentalDetails(id); // reload data for this specific contract
-        }
-      },
-      error: () => {
-        this.toastService.show('Có lỗi xảy ra khi thực hiện thanh toán.', 'error');
-      }
-    });
+  payCurrentBill(billId: number): void {
+    this.router.navigate(['/tenant/bills'], { queryParams: { billId: billId } });
   }
 
   canReport(startDate: string): boolean {

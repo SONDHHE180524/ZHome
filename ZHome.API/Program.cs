@@ -22,7 +22,29 @@ builder.Services.AddDbContext<ZHomeDbContext>(options =>
 {
     if (!string.IsNullOrEmpty(connectionString))
     {
-        options.UseNpgsql(connectionString);
+        if (connectionString.Contains("Server=", StringComparison.OrdinalIgnoreCase) || 
+            connectionString.Contains("Data Source=", StringComparison.OrdinalIgnoreCase))
+        {
+            options.UseSqlServer(connectionString, sqlOptions =>
+            {
+                sqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                sqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorNumbersToAdd: null);
+            });
+        }
+        else
+        {
+            options.UseNpgsql(connectionString, npgsqlOptions =>
+            {
+                npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
+                npgsqlOptions.EnableRetryOnFailure(
+                    maxRetryCount: 3,
+                    maxRetryDelay: TimeSpan.FromSeconds(5),
+                    errorCodesToAdd: null);
+            });
+        }
     }
 });
 
@@ -212,6 +234,13 @@ using (var scope = app.Services.CreateScope())
 
                     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'monthly_bills') THEN
                         ALTER TABLE public.monthly_bills ADD COLUMN IF NOT EXISTS proof_image_url VARCHAR(500);
+                    END IF;
+
+                    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'users') THEN
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_name VARCHAR(100);
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(50);
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(100);
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_qr_url VARCHAR(500);
                     END IF;
                 END $$;
             ");

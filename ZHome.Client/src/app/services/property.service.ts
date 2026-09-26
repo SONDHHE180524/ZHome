@@ -19,6 +19,14 @@ export class PropertyService {
     return this.http.get<any>(`${this.apiUrl}/public/${id}`);
   }
 
+  getLandlordProperty(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/${id}`);
+  }
+
+  updateProperty(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/${id}`, data);
+  }
+
   updatePropertyImage(id: number, imageBase64: string): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${id}/image`, { imageBase64 });
   }

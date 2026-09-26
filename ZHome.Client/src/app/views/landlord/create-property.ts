@@ -1,10 +1,11 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-create-property',
@@ -18,7 +19,9 @@ import { AuthService } from '../../services/auth.service';
         <div class="stepper-content">
           <div class="step-item active">
             <span class="step-badge">1</span>
-            <span class="step-title">Tạo nhà trọ, phòng trọ & Đăng quảng cáo</span>
+            <span class="step-title">
+              @if (isEditMode()) { Chỉnh sửa thông tin nhà trọ & phòng trọ } @else { Tạo nhà trọ, phòng trọ & Đăng quảng cáo }
+            </span>
           </div>
           <div class="step-connector"></div>
           <div class="step-item inactive">
@@ -33,11 +36,13 @@ import { AuthService } from '../../services/auth.service';
         
         <!-- SECTION 1: THÔNG TIN NHÀ TRỌ, PHÒNG TRỌ (Image 1 Layout) -->
         <div class="form-card mb-4">
-          <h2 class="card-title mb-4">Thông tin nhà trọ, phòng trọ</h2>
+          <h2 class="card-title mb-4">
+            @if (isEditMode()) { Chỉnh sửa thông tin nhà trọ, phòng trọ } @else { Thông tin nhà trọ, phòng trọ }
+          </h2>
           
           <!-- Row 1: Tên trọ -->
           <div class="form-group mb-3">
-            <label class="form-label">Tên nhà trọ, phòng trọ</label>
+            <label class="form-label">Tên nhà trọ, phòng trọ <span class="text-danger">*</span></label>
             <input 
               type="text" 
               name="title" 
@@ -59,7 +64,7 @@ import { AuthService } from '../../services/auth.service';
                 placeholder="Số lượng phòng" />
             </div>
             <div class="form-group">
-              <label class="form-label">Diện tích</label>
+              <label class="form-label">Diện tích (m²)</label>
               <input 
                 type="number" 
                 name="area" 
@@ -81,7 +86,7 @@ import { AuthService } from '../../services/auth.service';
               </select>
             </div>
             <div class="form-group">
-              <label class="form-label">Quận/Huyện</label>
+              <label class="form-label">Quận/Huyện <span class="text-danger">*</span></label>
               <select name="district" [(ngModel)]="addressModel.district" (change)="onDistrictChange()" required class="form-select">
                 <option value="">Chọn quận/huyện</option>
                 @for (d of districts(); track d.id) {
@@ -151,102 +156,126 @@ import { AuthService } from '../../services/auth.service';
                 Xác minh vị trí
               </button>
             </div>
-
-            @if (isMapVerified()) {
-              <div class="alert alert-success py-2 px-3 mt-2 text-xs d-flex align-items-center gap-2 m-0">
-                <i class="fas fa-check-circle"></i>
-                <span>Đã ghim vị trí Google Maps thành công trên hệ thống ZHome!</span>
-              </div>
-            }
           </div>
         </div>
 
-        <!-- SECTION 2: TIỆN NGHI & MÔI TRƯỜNG XUNG QUANH -->
+        <!-- SECTION 2: TIỆN NGHI & MÔI TRƯỜNG XUNG QUANH (Image 2 Layout) -->
         <div class="form-card mb-4">
-          <!-- TIỆN NGHI -->
-          <div class="amenities-wrapper mb-4">
-            <div class="category-header mb-3">
-              <h2 class="category-title">Tiện nghi</h2>
-              <label class="select-all-chip cursor-pointer" [class.active]="isAllAmenitiesSelected()">
-                <input type="checkbox" [checked]="isAllAmenitiesSelected()" (change)="toggleAllAmenities($event)" class="checkbox-input" />
+          <h2 class="card-title mb-4">Tiện nghi & Tiện ích khu trọ</h2>
+
+          <!-- Tiện nghi khu trọ -->
+          <div class="mb-4">
+            <div class="category-header">
+              <h3 class="category-title">Tiện nghi khu trọ</h3>
+              <label class="select-all-chip" [class.active]="isAllAmenitiesSelected()">
+                <input 
+                  type="checkbox" 
+                  [checked]="isAllAmenitiesSelected()" 
+                  (change)="toggleAllAmenities($event)" 
+                  class="checkbox-input" />
                 <span class="select-all-label">Tất cả</span>
               </label>
             </div>
 
-            <!-- EXACT 4 COLUMNS GRID -->
-            <div class="grid-4-col gap-3">
-              <div *ngFor="let item of amenityList">
-                <label class="checkbox-card cursor-pointer" [class.active]="amenityState[item.key]">
-                  <input type="checkbox" [(ngModel)]="amenityState[item.key]" [name]="'am_' + item.key" class="checkbox-input" />
+            <div class="grid-4-col">
+              @for (item of amenityList; track item.key) {
+                <label class="checkbox-card" [class.active]="amenityState[item.key]">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="amenityState[item.key]" 
+                    [name]="'amenity_' + item.key" 
+                    class="checkbox-input" />
                   <span class="checkbox-label">{{ item.label }}</span>
                 </label>
-              </div>
+              }
             </div>
           </div>
 
-          <hr class="card-divider my-4" />
-
-          <!-- MÔI TRƯỜNG XUNG QUANH -->
-          <div class="surroundings-wrapper">
-            <div class="category-header mb-3">
-              <h2 class="category-title">Môi trường xung quanh</h2>
-              <label class="select-all-chip cursor-pointer" [class.active]="isAllSurroundingsSelected()">
-                <input type="checkbox" [checked]="isAllSurroundingsSelected()" (change)="toggleAllSurroundings($event)" class="checkbox-input" />
+          <!-- Môi trường xung quanh -->
+          <div>
+            <div class="category-header">
+              <h3 class="category-title">Môi trường xung quanh</h3>
+              <label class="select-all-chip" [class.active]="isAllSurroundingsSelected()">
+                <input 
+                  type="checkbox" 
+                  [checked]="isAllSurroundingsSelected()" 
+                  (change)="toggleAllSurroundings($event)" 
+                  class="checkbox-input" />
                 <span class="select-all-label">Tất cả</span>
               </label>
             </div>
 
-            <!-- EXACT 4 COLUMNS GRID -->
-            <div class="grid-4-col gap-3">
-              <div *ngFor="let item of surroundingList">
-                <label class="checkbox-card cursor-pointer" [class.active]="surroundingState[item.key]">
-                  <input type="checkbox" [(ngModel)]="surroundingState[item.key]" [name]="'env_' + item.key" class="checkbox-input" />
+            <div class="grid-4-col">
+              @for (item of surroundingList; track item.key) {
+                <label class="checkbox-card" [class.active]="surroundingState[item.key]">
+                  <input 
+                    type="checkbox" 
+                    [(ngModel)]="surroundingState[item.key]" 
+                    [name]="'surrounding_' + item.key" 
+                    class="checkbox-input" />
                   <span class="checkbox-label">{{ item.label }}</span>
                 </label>
-              </div>
+              }
             </div>
           </div>
         </div>
 
-        <!-- SECTION 3: MÔ TẢ (Giới hạn 200 ký tự) -->
+        <!-- SECTION 3: MÔ TẢ CHI TIẾT & VIDEO (Image 3 Layout) -->
         <div class="form-card mb-4">
-          <h2 class="card-title mb-3">Mô tả</h2>
+          <h2 class="card-title mb-4">Mô tả chi tiết & Video</h2>
 
-          <!-- Rich Text Editor Toolbar & Box -->
-          <div class="rich-editor-box">
-            <div class="editor-toolbar">
-              <button type="button" class="tb-icon" (click)="applyFormat('undo')" title="Undo">↩</button>
-              <button type="button" class="tb-icon" (click)="applyFormat('redo')" title="Redo">↪</button>
-              <span class="tb-divider"></span>
-              <button type="button" class="tb-icon font-bold" (click)="applyFormat('bold')" title="Bold">B</button>
-              <button type="button" class="tb-icon fst-italic" (click)="applyFormat('italic')" title="Italic">I</button>
-              <span class="tb-divider"></span>
-              <button type="button" class="tb-icon" (click)="applyFormat('unorderedList')" title="Bullet List">•=</button>
-              <button type="button" class="tb-icon" (click)="applyFormat('orderedList')" title="Numbered List">1=</button>
-              <span class="tb-divider"></span>
-              <button type="button" class="tb-icon" (click)="applyFormat('link')" title="Link">🔗</button>
-              <button type="button" class="tb-icon" (click)="applyFormat('symbol')" title="Symbol">Ω</button>
-              <button type="button" class="tb-icon" (click)="applyFormat('emoji')" title="Emoji">😊</button>
-              <button type="button" class="tb-icon" (click)="applyFormat('code')" title="Code">&lt;&gt;</button>
+          <!-- Video Review Link -->
+          <div class="form-group mb-4">
+            <label class="form-label">Link video review (Tiktok, Youtube, v.v...)</label>
+            <input 
+              type="text" 
+              name="tiktokVideoUrl" 
+              [(ngModel)]="tiktokVideoUrl" 
+              class="form-control" 
+              placeholder="Ví dụ: https://www.tiktok.com/@zhome/video/123456789" />
+          </div>
+
+          <!-- Custom Rich Text Box & AI Generation -->
+          <div class="form-group">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <label class="form-label m-0">Nội dung mô tả (Tối đa 200 từ)</label>
+              <button type="button" class="btn-ai-generate" (click)="generateAIDescription()">
+                <span class="sparkle-icon">✨</span> Tự động tạo mô tả AI
+              </button>
             </div>
 
-            <textarea 
-              name="userDescription" 
-              [(ngModel)]="userDescription" 
-              (input)="onDescriptionInput()"
-              maxlength="200"
-              rows="5" 
-              class="form-control editor-area" 
-              placeholder="Viết mô tả về nhà trọ, phòng trọ (tối đa 200 ký tự)..."></textarea>
+            <div class="rich-editor-wrapper">
+              <!-- Toolbar -->
+              <div class="editor-toolbar">
+                <button type="button" class="tool-btn" (click)="applyFormat('bold')" title="In đậm"><strong>B</strong></button>
+                <button type="button" class="tool-btn" (click)="applyFormat('italic')" title="In nghiêng"><em>I</em></button>
+                <span class="tool-separator"></span>
+                <button type="button" class="tool-btn" (click)="applyFormat('unorderedList')" title="Danh sách">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                </button>
+                <button type="button" class="tool-btn" (click)="applyFormat('orderedList')" title="Danh sách số">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="10" y1="6" x2="21" y2="6"/><line x1="10" y1="12" x2="21" y2="12"/><line x1="10" y1="18" x2="21" y2="18"/><path d="M4 6h1v4"/><path d="M4 10h2"/><path d="M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"/></svg>
+                </button>
+                <span class="tool-separator"></span>
+                <button type="button" class="tool-btn" (click)="applyFormat('emoji')" title="Thêm Icon">😊</button>
+                <button type="button" class="tool-btn" (click)="applyFormat('link')" title="Chèn liên kết">🔗</button>
+              </div>
 
-            <div class="editor-status-bar d-flex justify-content-between align-items-center">
-              <span class="text-xs text-muted d-flex align-items-center gap-1">
-                <i class="fas fa-info-circle text-primary"></i> Giới hạn tối đa 200 ký tự
-              </span>
-              <div class="text-xs font-semibold">
+              <!-- Text Area -->
+              <textarea 
+                rows="6" 
+                name="userDescription" 
+                [(ngModel)]="userDescription" 
+                (input)="onDescriptionInput()" 
+                class="editor-textarea" 
+                placeholder="Nhập thông tin mô tả chi tiết về khu trọ, giờ giấc, nội quy, chi phí phụ trợ..."></textarea>
+              
+              <!-- Footer word counter -->
+              <div class="editor-footer d-flex justify-content-between text-xs">
+                <span class="text-muted">{{ getWordCount() }} từ</span>
                 @if (getRemainingChars() === 0) {
-                  <span class="text-danger font-bold d-flex align-items-center gap-1">
-                    <i class="fas fa-exclamation-triangle"></i> 0/200 - Đã hết số ký tự cho phép!
+                  <span class="text-danger font-bold">
+                    Đã đạt giới hạn tối đa 200 ký tự
                   </span>
                 } @else {
                   <span [class.text-warning]="getRemainingChars() <= 20" class="text-secondary">
@@ -260,7 +289,7 @@ import { AuthService } from '../../services/auth.service';
 
         <!-- SECTION 4: HÌNH ÁNH TỔNG QUAN (Image 4 Layout) -->
         <div class="form-card mb-4">
-          <h2 class="card-title mb-3">Hình ảnh tổng quan (Ít nhất 3 ảnh)</h2>
+          <h2 class="card-title mb-3">Hình ảnh tổng quan</h2>
 
           <!-- Upload Dropzone -->
           <div class="dropzone-area text-center p-4 mb-3 cursor-pointer" (click)="triggerFileInput('galleryPhotoInput')">
@@ -286,9 +315,9 @@ import { AuthService } from '../../services/auth.service';
               <div>
                 <strong class="d-block text-sm text-primary font-bold mb-1">Quy định đăng ảnh</strong>
                 <ul class="regulation-bullets text-xs text-secondary m-0 p-0">
-                  <li>Đăng tối thiểu <strong>3 ảnh</strong> và tối đa <strong>15 ảnh</strong>.</li>
-                  <li>Hãy dùng ảnh thật, không chèn SĐT, không chèn logo.</li>
-                  <li>Mỗi ảnh kích thước tối thiểu <strong>400x300 px</strong></li>
+                  <li>Đăng tải ảnh thật của khu trọ và phòng trọ.</li>
+                  <li>Không chèn số điện thoại lạ hoặc logo che khuất hình ảnh.</li>
+                  <li>Mỗi ảnh kích thước tối thiểu <strong>400x300 px</strong>.</li>
                 </ul>
               </div>
             </div>
@@ -299,7 +328,7 @@ import { AuthService } from '../../services/auth.service';
             <div class="gallery-preview-grid">
               @for (img of galleryPreviews(); track $index) {
                 <div class="thumb-wrapper">
-                  <img [src]="img" alt="Ảnh trọ" />
+                  <img [src]="getImageUrl(img)" alt="Ảnh trọ" (error)="$any($event.target).style.display='none'" />
                   <button type="button" class="btn-remove" (click)="removeGalleryPhoto($index)">&times;</button>
                 </div>
               }
@@ -307,8 +336,7 @@ import { AuthService } from '../../services/auth.service';
           }
         </div>
 
-
-        <!-- SECTION 6: THÔNG TIN LIÊN HỆ (Image 4 Layout - 3 Cols) -->
+        <!-- SECTION 5: THÔNG TIN LIÊN HỆ (Image 4 Layout - 3 Cols) -->
         <div class="form-card mb-4">
           <h2 class="card-title mb-3">Thông tin liên hệ</h2>
           
@@ -350,6 +378,8 @@ import { AuthService } from '../../services/auth.service';
           <button type="submit" [disabled]="isLoading()" class="btn btn-submit">
             @if (isLoading()) {
               ⏳ Đang lưu...
+            } @else if (isEditMode()) {
+              Lưu thay đổi & Cập nhật
             } @else {
               Tạo khu trọ & Hoàn tất
             }
@@ -503,7 +533,7 @@ import { AuthService } from '../../services/auth.service';
       box-shadow: 0 2px 6px rgba(37, 99, 235, 0.15);
     }
 
-    /* CATEGORY HEADER & SELECT ALL CHIP (TẠO RỘNG RÃI CÁCH BIỆT THOẢI MÁI) */
+    /* CATEGORY HEADER & SELECT ALL CHIP */
     .category-header {
       display: flex !important;
       flex-direction: row !important;
@@ -554,7 +584,7 @@ import { AuthService } from '../../services/auth.service';
       color: #1d4ed8;
     }
 
-    /* MODERN CHECKBOX CARD STYLING (THOẢI MÁI DỄ NHÌN) */
+    /* MODERN CHECKBOX CARD STYLING */
     .checkbox-card {
       display: flex;
       align-items: center;
@@ -599,104 +629,112 @@ import { AuthService } from '../../services/auth.service';
       color: #1d4ed8;
       font-weight: 600;
     }
-    .card-divider {
-      border: none;
-      border-top: 1px solid #e2e8f0;
-      margin: 2rem 0 !important;
-    }
 
-    /* AI BUTTON & RICH EDITOR (IMAGE 3 MATCH) */
-    .btn-ai-blue {
-      background: #2563eb;
-      color: #ffffff;
-      border: none;
-      padding: 8px 18px;
-      border-radius: 8px;
-      font-size: 0.88rem;
+    /* AI GENERATE BUTTON */
+    .btn-ai-generate {
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border: 1px solid #93c5fd;
+      color: #1d4ed8;
+      font-size: 0.85rem;
       font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn-ai-blue:hover {
-      background: #1d4ed8;
-    }
-    .rich-editor-box {
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      overflow: hidden;
-    }
-    .editor-toolbar {
-      background: #f8fafc;
-      border-bottom: 1px solid #e2e8f0;
-      padding: 8px 12px;
-      display: flex;
+      padding: 6px 14px;
+      border-radius: 20px;
+      display: inline-flex;
       align-items: center;
       gap: 6px;
-    }
-    .tb-icon {
-      background: none;
-      border: none;
-      padding: 4px 8px;
-      border-radius: 4px;
-      color: #475569;
-      font-size: 0.9rem;
       cursor: pointer;
+      transition: all 0.2s ease;
     }
-    .tb-icon:hover {
+    .btn-ai-generate:hover {
+      background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+    }
+
+    /* RICH TEXT WRAPPER */
+    .rich-editor-wrapper {
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #ffffff;
+    }
+    .editor-toolbar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 8px 12px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .tool-btn {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 6px;
+      padding: 5px 8px;
+      font-size: 0.85rem;
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tool-btn:hover {
       background: #e2e8f0;
       color: #0f172a;
     }
-    .tb-divider {
+    .tool-separator {
       width: 1px;
-      height: 16px;
+      height: 18px;
       background: #cbd5e1;
       margin: 0 4px;
     }
-    .editor-area {
-      border: none !important;
-      border-radius: 0 !important;
+    .editor-textarea {
+      width: 100%;
+      border: none;
       padding: 14px;
+      font-size: 0.9rem;
+      color: #334155;
       resize: vertical;
+      outline: none;
     }
-    .editor-status-bar {
-      background: #f8fafc;
-      border-top: 1px solid #e2e8f0;
+    .editor-footer {
       padding: 6px 14px;
+      background: #f8fafc;
+      border-top: 1px solid #f1f5f9;
     }
 
-    /* DROPZONE & REGULATIONS (IMAGE 4 MATCH) */
+    /* DROPZONE AREA */
     .dropzone-area {
       border: 2px dashed #93c5fd;
-      background: #f0f9ff;
+      background: #eff6ff;
       border-radius: 12px;
       transition: all 0.2s ease;
     }
     .dropzone-area:hover {
-      background: #e0f2fe;
-      border-color: #2563eb;
+      background: #dbeafe;
+      border-color: #3b82f6;
     }
     .cloud-icon-circle {
-      font-size: 2.2rem;
-      width: 54px;
-      height: 54px;
-      background: #ffffff;
+      width: 48px;
+      height: 48px;
       border-radius: 50%;
+      background: #ffffff;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+      font-size: 1.4rem;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.1);
     }
     .uppercase-text {
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.04em;
     }
+
+    /* REGULATION BOX */
     .regulation-box {
       background: #f0fdf4;
       border: 1px solid #bbf7d0;
     }
     .info-blue-icon {
-      color: #2563eb;
-      font-weight: bold;
+      color: #16a34a;
       font-size: 1.1rem;
     }
     .regulation-bullets {
@@ -736,18 +774,6 @@ import { AuthService } from '../../services/auth.service';
       cursor: pointer;
     }
 
-    /* RADIO BUTTONS */
-    .radio-container {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .radio-container input {
-      width: 16px;
-      height: 16px;
-      accent-color: #2563eb;
-    }
-
     /* SUBMIT BAR */
     .btn-cancel {
       background: #ffffff;
@@ -781,6 +807,10 @@ export class CreatePropertyComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
+
+  isEditMode = signal(false);
+  editPropertyId = signal<number | null>(null);
 
   title = '';
   roomCount: number | null = null;
@@ -809,7 +839,6 @@ export class CreatePropertyComponent implements OnInit {
     zalo: ''
   };
 
-  // AMENITY LIST ORDERED EXACTLY AS IMAGE 2 (FILLS ROW BY ROW ACROSS 4 COLUMNS)
   amenityList = [
     { key: 'gacLung', label: 'Gác lửng' },
     { key: 'wifi', label: 'Wifi' },
@@ -856,7 +885,6 @@ export class CreatePropertyComponent implements OnInit {
     sanVuon: false
   };
 
-  // SURROUNDING ENVIRONMENT ORDERED EXACTLY AS IMAGE 2
   surroundingList = [
     { key: 'cho', label: 'Chợ' },
     { key: 'sieuThi', label: 'Siêu thị' },
@@ -886,6 +914,165 @@ export class CreatePropertyComponent implements OnInit {
   ngOnInit(): void {
     this.loadDistricts();
     this.loadDefaultContactInfo();
+
+    this.route.queryParams.subscribe(params => {
+      const id = params['id'];
+      if (id) {
+        this.isEditMode.set(true);
+        this.editPropertyId.set(+id);
+        this.loadExistingProperty(+id);
+      }
+    });
+  }
+
+  loadExistingProperty(id: number): void {
+    this.isLoading.set(true);
+    this.propertyService.getLandlordProperty(id).subscribe({
+      next: (prop) => {
+        this.isLoading.set(false);
+        if (!prop) return;
+
+        this.title = prop.title || prop.propertyTitle || '';
+        this.roomCount = prop.totalRooms || prop.rooms?.length || null;
+        if (prop.rooms && prop.rooms.length > 0) {
+          this.area = prop.rooms[0].area || null;
+        }
+
+        if (prop.imageUrl || prop.propertyImageUrl) {
+          const img = prop.imageUrl || prop.propertyImageUrl;
+          this.coverPhotoBase64.set(img);
+          if (!this.galleryPreviews().includes(img)) {
+            this.galleryPreviews.update(prev => [...prev, img]);
+          }
+        }
+
+        if (prop.rooms && prop.rooms.length > 0) {
+          prop.rooms.forEach((r: any) => {
+            if (r.imageUrls && r.imageUrls.length > 0) {
+              r.imageUrls.forEach((img: string) => {
+                if (!this.galleryPreviews().includes(img)) {
+                  this.galleryPreviews.update(prev => [...prev, img]);
+                }
+              });
+            }
+          });
+        }
+
+        // Parse address: e.g. "123, xã Thạch Hòa, Thạch Thất, Thành phố Hà Nội"
+        if (prop.address) {
+          const parts = prop.address.split(',').map((p: string) => p.trim());
+          if (parts.length >= 4) {
+            this.addressModel.houseNumber = parts[0];
+            this.addressModel.ward = parts[1];
+            this.addressModel.district = parts[2];
+            this.selectedProvince = parts[3] || 'Thành phố Hà Nội';
+          } else if (parts.length === 3) {
+            this.addressModel.ward = parts[0];
+            this.addressModel.district = parts[1];
+            this.selectedProvince = parts[2] || 'Thành phố Hà Nội';
+          } else if (parts.length === 2) {
+            this.addressModel.district = parts[0];
+            this.selectedProvince = parts[1] || 'Thành phố Hà Nội';
+          } else {
+            this.addressModel.houseNumber = prop.address;
+          }
+        }
+
+        // Parse description
+        if (prop.description) {
+          const desc = prop.description;
+          const mapMatch = desc.match(/Vị trí Google Maps:\s*(https?:\/\/[^\s\n]+|[\d\.,\s]+)/i);
+          if (mapMatch) {
+            this.googleMapUrl = mapMatch[1].trim();
+            this.isMapVerified.set(true);
+          }
+
+          const tiktokMatch = desc.match(/Video Review \(Tiktok\):\s*(https?:\/\/[^\s\n]+)/i);
+          if (tiktokMatch) {
+            this.tiktokVideoUrl = tiktokMatch[1].trim();
+          }
+
+          const contactMatch = desc.match(/Liên hệ:\s*([^-]+)-\s*([^\(]+)(?:\(Zalo:\s*([^\)]+)\))?/i);
+          if (contactMatch) {
+            this.contactInfo.fullName = contactMatch[1]?.trim() || this.contactInfo.fullName;
+            this.contactInfo.phone = contactMatch[2]?.trim() || this.contactInfo.phone;
+            this.contactInfo.zalo = contactMatch[3]?.trim() || this.contactInfo.phone;
+          }
+
+          this.amenityList.forEach(item => {
+            if (desc.includes(item.label)) {
+              this.amenityState[item.key] = true;
+            }
+          });
+
+          this.surroundingList.forEach(item => {
+            if (desc.includes(item.label)) {
+              this.surroundingState[item.key] = true;
+            }
+          });
+
+          const userDescParts = desc.split(/Ghi chú & Mô tả:\s*/i);
+          if (userDescParts.length > 1) {
+            this.userDescription = userDescParts[1].trim();
+          }
+        }
+      },
+      error: () => {
+        // Fallback to public property detail
+        this.propertyService.getProperty(id).subscribe({
+          next: (publicProp) => {
+            this.isLoading.set(false);
+            if (!publicProp) return;
+            this.title = publicProp.propertyTitle || '';
+            this.roomCount = publicProp.totalRooms || null;
+            if (publicProp.rooms && publicProp.rooms.length > 0) {
+              this.area = publicProp.rooms[0].area || null;
+            }
+            if (publicProp.propertyImageUrl) {
+              this.coverPhotoBase64.set(publicProp.propertyImageUrl);
+              if (!this.galleryPreviews().includes(publicProp.propertyImageUrl)) {
+                this.galleryPreviews.update(prev => [...prev, publicProp.propertyImageUrl]);
+              }
+            }
+            if (publicProp.imageUrls && publicProp.imageUrls.length > 0) {
+              publicProp.imageUrls.forEach((img: string) => {
+                if (!this.galleryPreviews().includes(img)) {
+                  this.galleryPreviews.update(prev => [...prev, img]);
+                }
+              });
+            }
+            if (publicProp.address) {
+              const parts = publicProp.address.split(',').map((p: string) => p.trim());
+              if (parts.length >= 4) {
+                this.addressModel.houseNumber = parts[0];
+                this.addressModel.ward = parts[1];
+                this.addressModel.district = parts[2];
+                this.selectedProvince = parts[3] || 'Thành phố Hà Nội';
+              } else if (parts.length === 3) {
+                this.addressModel.ward = parts[0];
+                this.addressModel.district = parts[1];
+              } else if (parts.length === 2) {
+                this.addressModel.district = parts[0];
+              } else {
+                this.addressModel.houseNumber = publicProp.address;
+              }
+            }
+          },
+          error: () => {
+            this.isLoading.set(false);
+            this.toastService.show('Không thể tải thông tin khu trọ để chỉnh sửa.', 'error');
+          }
+        });
+      }
+    });
+  }
+
+  getImageUrl(url: string): string {
+    if (!url) return '';
+    if (url.startsWith('data:') || url.startsWith('http://') || url.startsWith('https://')) {
+      return url;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   loadDefaultContactInfo() {
@@ -893,12 +1080,6 @@ export class CreatePropertyComponent implements OnInit {
     this.contactInfo.fullName = session?.fullName || 'Vu Tung';
     this.contactInfo.phone = session?.phone || '0375457065';
     this.contactInfo.zalo = session?.phone || '0375457065';
-  }
-
-  onContactTypeChange() {
-    if (this.contactType === 'default') {
-      this.loadDefaultContactInfo();
-    }
   }
 
   loadDistricts(): void {
@@ -1067,7 +1248,7 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
         const base64 = e.target.result;
         this.galleryPreviews.update(prev => [...prev, base64]);
         this.galleryBase64s.update(prev => [...prev, base64]);
-        if (!this.coverPhotoBase64()) {
+        if (!this.coverPhotoBase64() || !this.coverPhotoBase64().startsWith('data:image')) {
           this.coverPhotoBase64.set(base64);
         }
       };
@@ -1135,6 +1316,22 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
       description: compiledDesc.trim(),
       imageBase64: this.coverPhotoBase64() || null
     };
+
+    if (this.isEditMode() && this.editPropertyId()) {
+      this.propertyService.updateProperty(this.editPropertyId()!, payload).subscribe({
+        next: (updatedProp) => {
+          this.isLoading.set(false);
+          this.toastService.show(`Đã cập nhật thành công khu trọ "${this.title}"!`, 'success');
+          this.router.navigate(['/landlord/properties']);
+        },
+        error: (err) => {
+          this.isLoading.set(false);
+          const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Lỗi cập nhật khu trọ.');
+          this.toastService.show(msg, 'error');
+        }
+      });
+      return;
+    }
 
     this.propertyService.createProperty(payload).subscribe({
       next: (createdProp) => {

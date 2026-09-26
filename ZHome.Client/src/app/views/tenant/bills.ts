@@ -1,6 +1,7 @@
 import { Component, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { BillService } from '../../services/bill.service';
 import { ReportService } from '../../services/report.service';
 import { ToastService } from '../../services/toast.service';
@@ -635,6 +636,7 @@ export class TenantBillsComponent implements OnInit, OnDestroy {
   private readonly billService = inject(BillService);
   private readonly reportService = inject(ReportService);
   private readonly toastService = inject(ToastService);
+  private readonly route = inject(ActivatedRoute);
 
   activeTab = signal<'bills' | 'reports'>('bills');
 
@@ -755,6 +757,15 @@ export class TenantBillsComponent implements OnInit, OnDestroy {
 
         this.bills.set(processed);
         this.isLoading.set(false);
+
+        // Check if queryParam billId is passed, then auto-open modal for that bill
+        const targetBillId = Number(this.route.snapshot.queryParamMap.get('billId'));
+        if (targetBillId) {
+          const target = processed.find(b => b.id === targetBillId);
+          if (target && target.status !== 'Paid') {
+            this.openPayOSModal(target);
+          }
+        }
       },
       error: () => {
         this.isLoading.set(false);
