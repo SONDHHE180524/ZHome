@@ -251,6 +251,9 @@ using (var scope = app.Services.CreateScope())
 
         // Tự động seed/cập nhật tài khoản Quản trị viên (Admin)
         await AdminSeeder.SeedAdminUserAsync(dbContext);
+
+        // Tự động cập nhật gói cước (99k, 199k) và seed dữ liệu mẫu nhà trọ & sàn ghép trọ
+        await SampleDataSeeder.SeedAsync(dbContext);
     }
     catch (Exception ex)
     {
