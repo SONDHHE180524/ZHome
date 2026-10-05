@@ -10,236 +10,323 @@ import { AuthService } from '../../services/auth.service';
   standalone: true,
   imports: [CommonModule, FormsModule],
   template: `
-    <div class="packages-container animate-fade-in">
-      <div class="header-row text-center mb-4">
-        <div class="badge-payos mb-2">
-          <i class="fas fa-qrcode"></i> Thanh toán an toàn & tự động qua SePay VietQR
+    <div class="pricing-wrapper animate-fade-in">
+      
+      <!-- Page Header -->
+      <div class="pricing-header text-center">
+        <div class="header-badge">
+          <i class="fas fa-bolt"></i> Dịch vụ Chủ trọ ZHome
         </div>
-        <h1 class="main-title">GÓI COMBO - NÂNG CẤP DỊCH VỤ</h1>
-        <p class="subtitle text-muted">Giải pháp xác thực uy tín và quảng bá hiệu quả dành cho chủ trọ</p>
+        <h1 class="header-title">Bảng giá gói dịch vụ</h1>
+        <p class="header-subtitle">
+          Tối ưu chi phí quản lý nhà trọ và gia tăng khả năng tiếp cận hàng nghìn khách thuê uy tín.
+        </p>
       </div>
 
+      <!-- Pricing Cards Grid -->
       @if (isLoading()) {
-        <div class="text-center mt-5">
-          <div class="spinner"></div>
-          <p>Đang tải danh sách gói cước...</p>
+        <div class="loading-box text-center">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="mt-3 text-muted">Đang tải thông tin gói cước...</p>
         </div>
       } @else {
-        <div class="pricing-cards">
+        <div class="pricing-grid">
           @for (pkg of packages(); track pkg.id; let i = $index) {
-            <div [class]="'pricing-card card-theme-' + ((i % 3) + 1)">
+            <div class="pricing-card" [class.popular]="pkg.id === 2" [class.premium]="pkg.id === 3">
               
-              <!-- Card Top Header Row -->
-              <div class="card-top-bar">
-                <div class="pkg-brand">
-                  <span class="theme-icon">
-                    @if (i === 0 || pkg.id === 1) { }
-                    @else if (i === 1 || pkg.id === 2) { }
-                    @else { }
-                  </span>
-                  <h2 class="pkg-title">{{ pkg.name }}</h2>
-                </div>
-                <div class="blue-check-badge" title="Dịch vụ xác thực ZHome">
-                  <i class="fas fa-check"></i>
-                </div>
+              @if (pkg.id === 2) {
+                <div class="card-badge">Phổ biến nhất</div>
+              } @else if (pkg.id === 3) {
+                <div class="card-badge badge-pro">Chuyên nghiệp</div>
+              }
+
+              <!-- Card Header -->
+              <div class="card-head">
+                <h3 class="card-name">{{ pkg.name }}</h3>
+                <p class="card-desc">{{ pkg.description || 'Dành cho chủ trọ tối ưu vận hành' }}</p>
               </div>
 
               <!-- Price Box -->
-              <div class="pkg-price-box">
-                <div class="amount-wrap">
-                  <span class="amount">{{ pkg.price | number:'1.0-0' }}</span>
-                  <span class="currency">đ</span>
+              <div class="card-price-wrap">
+                <div class="price-display">
+                  <span class="price-number">{{ pkg.price | number:'1.0-0' }}</span>
+                  <span class="price-currency">đ</span>
                 </div>
-                <div class="period">/tháng</div>
+                <span class="price-period">/ tháng</span>
               </div>
 
-              <!-- Description -->
-              <p class="pkg-desc">{{ pkg.description }}</p>
+              <!-- Features Checklist -->
+              <div class="card-features-box">
+                <div class="features-label">Quyền lợi gói:</div>
+                <ul class="features-list">
+                  <li>
+                    <i class="fas fa-check check-icon"></i>
+                    <span>Quản lý tối đa <strong>{{ pkg.maxRooms >= 9999 ? 'Không giới hạn' : pkg.maxRooms }}</strong> phòng</span>
+                  </li>
+                  <li>
+                    <i class="fas fa-check check-icon"></i>
+                    <span>Đăng tin trên sàn: 
+                      <strong>
+                        @if (pkg.id === 1) { 7 ngày }
+                        @else if (pkg.id === 2) { 15 ngày }
+                        @else { 1 tháng }
+                      </strong>
+                    </span>
+                  </li>
+                  <li>
+                    <i class="fas fa-check check-icon"></i>
+                    <span>Quản lý danh sách khách thuê</span>
+                  </li>
+                  <li>
+                    <i class="fas fa-check check-icon"></i>
+                    <span>Hợp đồng thuê & Trả phòng</span>
+                  </li>
+                  
+                  @if (pkg.id >= 2) {
+                    <li>
+                      <i class="fas fa-check check-icon"></i>
+                      <span>Chốt điện nước & Lập hóa đơn</span>
+                    </li>
+                  } @else {
+                    <li class="feature-disabled">
+                      <i class="fas fa-times cross-icon"></i>
+                      <span>Chốt điện nước & Lập hóa đơn</span>
+                    </li>
+                  }
 
-              <!-- Features List -->
-              <ul class="pkg-features">
-                <li><i class="fas fa-check"></i> Quản lý tối đa <strong>{{ pkg.maxRooms >= 9999 ? 'Không giới hạn' : pkg.maxRooms }}</strong> phòng</li>
-                <li><i class="fas fa-check"></i> Đăng tin trên sàn:
-                  <strong>
-                    @if (pkg.id === 1) { 7 ngày }
-                    @else if (pkg.id === 2) { 15 ngày }
-                    @else { 1 tháng }
-                  </strong>
-                </li>
-                <li><i class="fas fa-check"></i> Thêm/xem khách thuê phòng</li>
-                <li><i class="fas fa-check"></i> Chấm dứt hợp đồng/Trả phòng</li>
-                
-                @if (pkg.id >= 2) {
-                  <li><i class="fas fa-check"></i> Chốt số điện nước & lập hóa đơn</li>
-                } @else {
-                  <li class="disabled"><i class="fas fa-times"></i> Chốt điện nước & Lập hóa đơn</li>
-                }
+                  @if (pkg.id >= 3) {
+                    <li>
+                      <i class="fas fa-check check-icon"></i>
+                      <span>Nhắc nợ qua Email tự động</span>
+                    </li>
+                    <li>
+                      <i class="fas fa-check check-icon"></i>
+                      <span>Báo cáo doanh thu & Ước tính thuế</span>
+                    </li>
+                  } @else {
+                    <li class="feature-disabled">
+                      <i class="fas fa-times cross-icon"></i>
+                      <span>Nhắc nợ qua Email tự động</span>
+                    </li>
+                    <li class="feature-disabled">
+                      <i class="fas fa-times cross-icon"></i>
+                      <span>Báo cáo doanh thu & Ước tính thuế</span>
+                    </li>
+                  }
+                </ul>
+              </div>
 
-                @if (pkg.id >= 3) {
-                  <li><i class="fas fa-check"></i> Gửi nhắc nợ qua Email tự động</li>
-                  <li><i class="fas fa-check"></i> Tham khảo tiền thuế cần phải nộp</li>
-                } @else {
-                  <li class="disabled"><i class="fas fa-times"></i> Gửi nhắc nợ qua Email tự động</li>
-                  <li class="disabled"><i class="fas fa-times"></i> Tham khảo tiền thuế cần phải nộp</li>
-                }
-              </ul>
-              
               <!-- Action Button -->
-              <button class="btn btn-action w-100" 
-                      [disabled]="currentSubscriptionId() >= pkg.id"
-                      (click)="openPurchaseModal(pkg)">
-                {{ currentSubscriptionId() === pkg.id ? 'Đang sử dụng' : (currentSubscriptionId() > pkg.id ? 'Đã bao gồm' : (pkg.id === 1 ? 'Mặc định' : 'Nâng cấp ngay')) }}
-              </button>
+              <div class="card-action">
+                <button class="btn-select" 
+                        [class.btn-current]="currentSubscriptionId() === pkg.id"
+                        [class.btn-primary-action]="pkg.id > currentSubscriptionId()"
+                        [disabled]="currentSubscriptionId() >= pkg.id"
+                        (click)="openPurchaseModal(pkg)">
+                  @if (currentSubscriptionId() === pkg.id) {
+                    <i class="fas fa-check-circle"></i> Đang sử dụng
+                  } @else if (currentSubscriptionId() > pkg.id) {
+                    Đã bao gồm
+                  } @else if (pkg.id === 1) {
+                    Mặc định
+                  } @else {
+                    Nâng cấp gói này
+                  }
+                </button>
+              </div>
+
             </div>
           }
         </div>
       }
 
-      <!-- Purchase / PayOS Modal -->
+      <!-- Simple & Clean Payment Modal -->
       @if (selectedPackage()) {
-        <div class="modal-backdrop" (click)="closePurchaseModal()">
-          <div class="glass-panel modal-card max-w-550" (click)="$event.stopPropagation()">
+        <div class="modal-overlay" (click)="closePurchaseModal()">
+          <div class="modal-card" (click)="$event.stopPropagation()">
             
+            <!-- Close icon -->
+            <button class="modal-close" (click)="closePurchaseModal()" aria-label="Đóng">
+              <i class="fas fa-times"></i>
+            </button>
+
             @if (!payOSData()) {
-              <!-- Step 1: Confirmation & Options -->
-              <h2 class="mb-3 text-center">Xác nhận thanh toán</h2>
-              <div class="purchase-details mb-4">
-                <div class="package-summary-box mb-3">
-                  <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                      <h3 class="m-0">{{ selectedPackage().name }}</h3>
-                      <span class="text-muted text-sm">Gói dịch vụ dành cho chủ trọ</span>
-                    </div>
-                    <div class="price-tag">
-                      <strong>{{ calculateTotal() | number:'1.0-0' }}đ</strong>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="form-group mb-3">
-                  <label class="form-label">Thời hạn đăng ký:</label>
-                  <select class="form-select" [ngModel]="selectedMonths()" (ngModelChange)="onMonthsChange($event)">
-                    <option [value]="1">1 tháng ({{ selectedPackage().price | number:'1.0-0' }}đ)</option>
-                    <option [value]="3">3 tháng ({{ selectedPackage().price * 3 | number:'1.0-0' }}đ)</option>
-                    <option [value]="6">6 tháng ({{ selectedPackage().price * 6 | number:'1.0-0' }}đ)</option>
-                    <option [value]="12">12 tháng ({{ selectedPackage().price * 12 | number:'1.0-0' }}đ)</option>
-                  </select>
-                </div>
-
-                <div class="payment-method-selector mb-3">
-                  <label class="form-label">Phương thức thanh toán:</label>
-                  <div class="method-card active">
-                    <div class="method-icon">
-                      <i class="fas fa-qrcode text-success"></i>
-                    </div>
-                    <div class="method-info">
-                      <strong>Thanh toán QR qua SePay / VietQR</strong>
-                      <p class="text-xs text-muted mb-0">Quét mã bằng app Ngân hàng (MB, VCB, Techcombank,...)</p>
-                    </div>
-                    <span class="badge-recommended">Khuyên dùng</span>
-                  </div>
-                </div>
-
-                <p class="text-xs text-muted text-center">
-                  <i class="fas fa-shield-alt text-primary"></i> Giao dịch bảo mật qua SePay. Kích hoạt tự động ngay sau khi chuyển khoản thành công.
-                </p>
+              <!-- STEP 1: CONFIGURE & CONFIRM -->
+              <div class="modal-header">
+                <h3 class="modal-title">Nâng cấp gói dịch vụ</h3>
+                <p class="modal-subtitle">Xác nhận thông tin gói cước và thời hạn sử dụng</p>
               </div>
 
-              <div class="modal-actions justify-content-center gap-2">
-                <button class="btn btn-secondary" (click)="closePurchaseModal()" [disabled]="isPurchasing()">Hủy</button>
-                <button class="btn btn-primary btn-payos" (click)="initiatePayOSPayment()" [disabled]="isPurchasing()">
+              <!-- Package Summary -->
+              <div class="package-summary">
+                <div class="summary-info">
+                  <div class="summary-badge">{{ selectedPackage().name }}</div>
+                  <div class="summary-sub">Quản lý tối đa {{ selectedPackage().maxRooms }} phòng</div>
+                </div>
+                <div class="summary-price">
+                  <div class="price-val">{{ calculateTotal() | number:'1.0-0' }} <span class="currency">đ</span></div>
+                  <div class="price-rate">{{ selectedPackage().price | number:'1.0-0' }} đ / tháng</div>
+                </div>
+              </div>
+
+              <!-- Duration Selector -->
+              <div class="form-group">
+                <label class="form-label">Chọn thời hạn</label>
+                <div class="period-tabs">
+                  <button type="button" 
+                          class="tab-btn" 
+                          [class.active]="selectedMonths() === 1"
+                          (click)="onMonthsChange(1)">
+                    1 tháng
+                  </button>
+                  <button type="button" 
+                          class="tab-btn" 
+                          [class.active]="selectedMonths() === 3"
+                          (click)="onMonthsChange(3)">
+                    3 tháng
+                  </button>
+                  <button type="button" 
+                          class="tab-btn" 
+                          [class.active]="selectedMonths() === 6"
+                          (click)="onMonthsChange(6)">
+                    6 tháng
+                  </button>
+                  <button type="button" 
+                          class="tab-btn" 
+                          [class.active]="selectedMonths() === 12"
+                          (click)="onMonthsChange(12)">
+                    12 tháng
+                  </button>
+                </div>
+              </div>
+
+              <!-- Payment Method Info -->
+              <div class="payment-method-box">
+                <div class="method-icon">
+                  <i class="fas fa-qrcode"></i>
+                </div>
+                <div class="method-details">
+                  <div class="method-title">
+                    Chuyển khoản VietQR 24/7
+                    <span class="badge-auto">Tự động duyệt</span>
+                  </div>
+                  <div class="method-desc">Quét mã bằng app ngân hàng bất kỳ (MB, Vietcombank, Techcombank, VPBank...)</div>
+                </div>
+              </div>
+
+              <!-- Total Row -->
+              <div class="total-row">
+                <span class="total-text">Tổng thanh toán:</span>
+                <span class="total-amount">{{ calculateTotal() | number:'1.0-0' }} đ</span>
+              </div>
+
+              <!-- Actions -->
+              <div class="modal-buttons">
+                <button type="button" class="btn-cancel" (click)="closePurchaseModal()" [disabled]="isPurchasing()">
+                  Hủy
+                </button>
+                <button type="button" class="btn-submit" (click)="initiatePayOSPayment()" [disabled]="isPurchasing()">
                   @if (isPurchasing()) {
                     <i class="fas fa-spinner fa-spin"></i> Đang tạo mã QR...
                   } @else {
-                    <i class="fas fa-qrcode"></i> Tạo mã QR SePay Thanh toán
+                    <i class="fas fa-arrow-right"></i> Tiếp tục thanh toán
                   }
                 </button>
               </div>
+
             } @else {
-              <!-- Step 2: SePay QR Display View -->
+              <!-- STEP 2: VIETQR PAYMENT VIEW -->
               @if (paymentSuccessState(); as success) {
-                <!-- SUCCESS TRANSFORMATION VIEW -->
-                <div class="payment-success-card text-center p-4">
-                  <div class="success-icon-badge mb-3" style="font-size: 3.5rem;">🎉</div>
-                  <h3 style="color: #15803d !important; font-weight: 800; margin-bottom: 6px;">THANH TOÁN THÀNH CÔNG!</h3>
-                  <p style="color: #475569 !important; font-size: 0.9rem;">Gói dịch vụ của bạn đã được nâng cấp thành công trên hệ thống ZHome.</p>
+                <div class="success-screen text-center">
+                  <div class="success-icon-wrap">
+                    <i class="fas fa-check"></i>
+                  </div>
+                  <h3 class="success-title">Thanh toán thành công!</h3>
+                  <p class="success-desc">Tài khoản của bạn đã được nâng cấp lên <strong>{{ success.packageName }}</strong>.</p>
                   
-                  <div class="success-details-box my-3 p-3 text-start" style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px;">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <span style="color: #166534; font-size: 0.85rem; font-weight: 600;">Mã đơn giao dịch:</span>
-                      <strong style="color: #15803d; font-family: monospace;">#{{ success.orderCode }}</strong>
+                  <div class="success-info-card">
+                    <div class="info-line">
+                      <span>Mã giao dịch:</span>
+                      <strong class="font-mono">#{{ success.orderCode }}</strong>
                     </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                      <span style="color: #166534; font-size: 0.85rem; font-weight: 600;">Số tiền thanh toán:</span>
-                      <strong style="color: #15803d; font-size: 1.1rem;">{{ success.amount | number:'1.0-0' }}đ</strong>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center">
-                      <span style="color: #166534; font-size: 0.85rem; font-weight: 600;">Trạng thái Gói:</span>
-                      <span style="background: #dcfce7; color: #15803d; border: 1px solid #86efac; font-size: 0.78rem; font-weight: 800; padding: 4px 10px; border-radius: 20px;">NÂNG CẤP THÀNH CÔNG</span>
+                    <div class="info-line">
+                      <span>Số tiền:</span>
+                      <strong class="text-success">{{ success.amount | number:'1.0-0' }} đ</strong>
                     </div>
                   </div>
 
-                  <button class="btn btn-success btn-lg w-100 font-bold cursor-pointer mt-3" style="background: #16a34a !important; color: #ffffff !important; border: none; border-radius: 10px; padding: 12px;" (click)="closePurchaseModal()">Hoàn tất & Đóng</button>
+                  <button class="btn-submit w-100" (click)="closePurchaseModal()">
+                    Hoàn tất & Đóng
+                  </button>
                 </div>
               } @else {
-                <div class="payos-qr-container text-center">
-                  <div class="payos-header mb-3">
-                    <span class="payos-badge"><i class="fas fa-bolt"></i> Cổng thanh toán SePay VietQR</span>
-                    <h3 class="mt-2 mb-1 text-dark">Quét mã QR để thanh toán</h3>
-                    <p class="text-muted text-sm mb-0">Sử dụng Ứng dụng Ngân hàng hoặc Ví điện tử bất kỳ</p>
-                  </div>
+                <div class="qr-screen text-center">
+                  <h3 class="modal-title">Quét mã VietQR để thanh toán</h3>
+                  <p class="modal-subtitle">Mở ứng dụng ngân hàng và quét mã QR bên dưới</p>
 
-                  <div class="qr-display-box my-3">
-                    <div class="qr-frame">
-                      <img [src]="payOSData()?.qrCodeUrl" alt="SePay VietQR Code" class="qr-code-img">
-                    </div>
-                    <div class="polling-status mt-2">
-                      <span class="spinner-pulse"></span>
-                      <span class="text-sm font-medium">Đang chờ bạn quét mã & chuyển khoản...</span>
+                  <!-- QR Image -->
+                  <div class="qr-container">
+                    <img [src]="payOSData()?.qrCodeUrl" alt="VietQR Code" class="qr-image" />
+                    <div class="qr-status">
+                      <span class="pulse-dot"></span>
+                      <span>Đang chờ chuyển khoản...</span>
                     </div>
                   </div>
 
-                  <div class="transfer-details-box text-start mb-3">
-                    <div class="detail-row d-flex justify-content-between align-items-center mb-2">
-                      <span class="text-muted text-sm">Ngân hàng thụ hưởng:</span>
-                      <strong class="text-sm text-dark">{{ payOSData()?.bankName }}</strong>
+                  <!-- Details Table -->
+                  <div class="transfer-details">
+                    <div class="detail-item">
+                      <span class="lbl">Ngân hàng</span>
+                      <strong class="val">{{ payOSData()?.bankName }}</strong>
                     </div>
-                    <div class="detail-row d-flex justify-content-between align-items-center mb-2">
-                      <span class="text-muted text-sm">Số tài khoản:</span>
-                      <div class="copy-group">
-                        <strong class="text-primary text-sm me-2">{{ payOSData()?.accountNo }}</strong>
+                    <div class="detail-item">
+                      <span class="lbl">Số tài khoản</span>
+                      <div class="val-copy">
+                        <strong class="font-mono text-primary">{{ payOSData()?.accountNo }}</strong>
                         <button class="btn-copy" (click)="copyToClipboard(payOSData()?.accountNo, 'Số tài khoản')">
-                          <i class="fas fa-copy"></i>
+                          <i class="far fa-copy"></i>
                         </button>
                       </div>
                     </div>
-                    <div class="detail-row d-flex justify-content-between align-items-center mb-2">
-                      <span class="text-muted text-sm">Tên chủ tài khoản:</span>
-                      <strong class="text-sm text-uppercase text-dark">{{ payOSData()?.accountName }}</strong>
+                    <div class="detail-item">
+                      <span class="lbl">Chủ tài khoản</span>
+                      <strong class="val text-uppercase">{{ payOSData()?.accountName }}</strong>
                     </div>
-                    <div class="detail-row d-flex justify-content-between align-items-center mb-2">
-                      <span class="text-muted text-sm">Số tiền:</span>
-                      <div class="copy-group">
-                        <strong class="text-danger font-bold text-base me-2">{{ payOSData()?.amount | number:'1.0-0' }}đ</strong>
+                    <div class="detail-item">
+                      <span class="lbl">Số tiền</span>
+                      <div class="val-copy">
+                        <strong class="text-danger">{{ payOSData()?.amount | number:'1.0-0' }} đ</strong>
                         <button class="btn-copy" (click)="copyToClipboard(payOSData()?.amount?.toString(), 'Số tiền')">
-                          <i class="fas fa-copy"></i>
+                          <i class="far fa-copy"></i>
                         </button>
                       </div>
                     </div>
-                    <div class="detail-row d-flex justify-content-between align-items-center highlight-content">
-                      <span class="text-muted text-sm">Nội dung chuyển khoản:</span>
-                      <div class="copy-group">
-                        <strong class="text-warning-dark text-sm me-2 font-mono">{{ payOSData()?.description }}</strong>
-                        <button class="btn-copy" (click)="copyToClipboard(payOSData()?.description, 'Nội dung chuyển khoản')">
-                          <i class="fas fa-copy"></i>
+                    <div class="detail-item highlight-item">
+                      <span class="lbl">Nội dung CK</span>
+                      <div class="val-copy">
+                        <strong class="font-mono text-warning-dark">{{ payOSData()?.description }}</strong>
+                        <button class="btn-copy btn-copy-highlight" (click)="copyToClipboard(payOSData()?.description, 'Nội dung CK')">
+                          <i class="far fa-copy"></i>
                         </button>
                       </div>
                     </div>
                   </div>
 
-                  <div class="modal-actions d-flex gap-2 justify-content-center mt-3">
-                    <button class="btn btn-outline" (click)="resetPayOSView()">Quay lại</button>
-                    <button class="btn btn-secondary px-4" (click)="closePurchaseModal()">Đóng cửa sổ</button>
+                  <!-- Simulation Button for quick testing -->
+                  <div class="test-mode-wrap">
+                    <button class="btn-simulate" (click)="simulatePaymentSuccess()" [disabled]="isSimulating()">
+                      <i class="fas fa-magic"></i> {{ isSimulating() ? 'Đang xử lý...' : 'Mô phỏng thanh toán thành công (Thử nghiệm)' }}
+                    </button>
+                  </div>
+
+                  <!-- Buttons -->
+                  <div class="modal-buttons">
+                    <button class="btn-cancel" (click)="resetPayOSView()">
+                      <i class="fas fa-chevron-left"></i> Quay lại
+                    </button>
+                    <button class="btn-cancel" (click)="closePurchaseModal()">
+                      Đóng
+                    </button>
                   </div>
                 </div>
               }
@@ -248,427 +335,682 @@ import { AuthService } from '../../services/auth.service';
           </div>
         </div>
       }
+
     </div>
   `,
   styles: [`
-    .packages-container {
-      padding: 1.5rem 1rem;
-      max-width: 1240px;
+    .pricing-wrapper {
+      padding: 2rem 1rem 3.5rem 1rem;
+      max-width: 1140px;
       margin: 0 auto;
     }
-    .badge-payos {
+
+    /* Header */
+    .pricing-header {
+      margin-bottom: 2.8rem;
+    }
+    .header-badge {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      background: rgba(16, 185, 129, 0.1);
-      color: #059669;
-      border: 1px solid rgba(16, 185, 129, 0.3);
-      padding: 4px 14px;
-      border-radius: 20px;
+      padding: 5px 14px;
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #dbeafe;
+      border-radius: 9999px;
       font-size: 0.85rem;
       font-weight: 600;
+      margin-bottom: 0.75rem;
     }
-    .main-title {
-      font-size: 1.8rem;
+    .header-title {
+      font-size: 2.1rem;
       font-weight: 800;
-      color: #1e293b;
-      margin-top: 8px;
-      margin-bottom: 6px;
+      color: #0f172a;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.5rem;
     }
-    .subtitle {
-      font-size: 0.95rem;
+    .header-subtitle {
+      font-size: 1rem;
+      color: #64748b;
+      max-width: 580px;
+      margin: 0 auto;
+      line-height: 1.5;
     }
-    
-    /* PRICING CARDS ROW - 3 CARDS SIDE BY SIDE */
-    .pricing-cards {
-      display: flex;
-      flex-direction: row;
+
+    /* Loading */
+    .loading-box {
+      padding: 3rem 0;
+    }
+
+    /* Grid */
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
       gap: 1.5rem;
-      justify-content: center;
       align-items: stretch;
-      margin-top: 2rem;
-      width: 100%;
     }
     @media (max-width: 900px) {
-      .pricing-cards {
-        flex-direction: column;
+      .pricing-grid {
+        grid-template-columns: 1fr;
+        max-width: 440px;
+        margin: 0 auto;
       }
     }
+
+    /* Pricing Card */
     .pricing-card {
-      flex: 1 1 0;
-      min-width: 0;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
       border-radius: 20px;
-      padding: 2.2rem 1.6rem;
-      position: relative;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      padding: 2rem 1.6rem;
       display: flex;
       flex-direction: column;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.03);
+      position: relative;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
     }
     .pricing-card:hover {
-      transform: translateY(-6px);
-      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 32px rgba(15, 23, 42, 0.07);
+      border-color: #cbd5e1;
     }
 
-    /* CARD THEME 1: LIGHT MINT GREEN */
-    .pricing-card.card-theme-1 {
-      background: linear-gradient(180deg, #dcfce7 0%, #edfbf2 100%);
-      border: 1.5px solid #86efac;
+    /* Highlighted card */
+    .pricing-card.popular {
+      border: 2px solid #2563eb;
+      box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
     }
-    .pricing-card.card-theme-1 .pkg-title { color: #14532d; }
-    .pricing-card.card-theme-1 .btn-action {
-      background: #16a34a;
-      color: #ffffff;
-      border: none;
-    }
-    .pricing-card.card-theme-1 .btn-action:hover:not(:disabled) {
-      background: #15803d;
-      box-shadow: 0 6px 16px rgba(22, 163, 74, 0.3);
+    .pricing-card.popular:hover {
+      box-shadow: 0 20px 40px rgba(37, 99, 235, 0.18);
     }
 
-    /* CARD THEME 2: LIGHT SOFT BLUE */
-    .pricing-card.card-theme-2 {
-      background: linear-gradient(180deg, #e0f2fe 0%, #f0f7ff 100%);
-      border: 1.5px solid #7dd3fc;
-    }
-    .pricing-card.card-theme-2 .pkg-title { color: #0c4a6e; }
-    .pricing-card.card-theme-2 .btn-action {
-      background: #0284c7;
-      color: #ffffff;
-      border: none;
-    }
-    .pricing-card.card-theme-2 .btn-action:hover:not(:disabled) {
-      background: #0369a1;
-      box-shadow: 0 6px 16px rgba(2, 132, 199, 0.3);
-    }
-
-    /* CARD THEME 3: LIGHT PEACH / ORANGE */
-    .pricing-card.card-theme-3 {
-      background: linear-gradient(180deg, #ffedd5 0%, #fff7ed 100%);
-      border: 1.5px solid #fdba74;
-    }
-    .pricing-card.card-theme-3 .pkg-title { color: #7c2d12; }
-    .pricing-card.card-theme-3 .btn-action {
-      background: #ea580c;
-      color: #ffffff;
-      border: none;
-    }
-    .pricing-card.card-theme-3 .btn-action:hover:not(:disabled) {
-      background: #c2410c;
-      box-shadow: 0 6px 16px rgba(234, 88, 12, 0.3);
-    }
-
-    /* CARD TOP BAR */
-    .card-top-bar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 1.2rem;
-    }
-    .pkg-brand {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    .theme-icon {
-      font-size: 1.25rem;
-    }
-    .pkg-title {
-      font-size: 1.05rem;
-      font-weight: 800;
-      margin: 0;
-      letter-spacing: 0.02em;
-      text-transform: uppercase;
-    }
-    .blue-check-badge {
-      width: 24px;
-      height: 24px;
+    .card-badge {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
       background: #2563eb;
       color: #ffffff;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 0.75rem;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+      font-weight: 700;
+      padding: 3px 12px;
+      border-radius: 9999px;
+      letter-spacing: 0.02em;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    .card-badge.badge-pro {
+      background: #7c3aed;
+      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.3);
     }
 
-    /* PRICE BOX */
-    .pkg-price-box {
-      margin-bottom: 1rem;
+    /* Card Head */
+    .card-head {
+      margin-bottom: 1.2rem;
     }
-    .amount-wrap {
+    .card-name {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 4px 0;
+      letter-spacing: -0.01em;
+    }
+    .card-desc {
+      font-size: 0.86rem;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.4;
+      min-height: 38px;
+    }
+
+    /* Card Price */
+    .card-price-wrap {
+      display: flex;
+      align-items: baseline;
+      gap: 4px;
+      padding-bottom: 1.4rem;
+      margin-bottom: 1.4rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .price-display {
       display: flex;
       align-items: baseline;
       gap: 2px;
     }
-    .pkg-price-box .amount {
-      font-size: 2.6rem;
+    .price-number {
+      font-size: 2.2rem;
       font-weight: 900;
-      color: #f97316;
+      color: #0f172a;
+      letter-spacing: -0.03em;
       line-height: 1;
-      letter-spacing: -0.02em;
     }
-    .pkg-price-box .currency {
-      font-size: 1.3rem;
-      font-weight: 800;
-      color: #f97316;
-    }
-    .pkg-price-box .period {
-      color: #ea580c;
-      font-size: 0.88rem;
+    .price-currency {
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-top: 4px;
+      color: #64748b;
     }
-
-    .pkg-desc {
-      color: #475569;
+    .price-period {
       font-size: 0.88rem;
-      line-height: 1.45;
-      margin-bottom: 1.5rem;
-      min-height: 44px;
+      font-weight: 600;
+      color: #64748b;
     }
 
-    .pkg-features {
+    /* Features List */
+    .card-features-box {
+      flex-grow: 1;
+      margin-bottom: 1.8rem;
+    }
+    .features-label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #94a3b8;
+      margin-bottom: 0.9rem;
+    }
+    .features-list {
       list-style: none;
       padding: 0;
-      margin: 0 0 1.8rem 0;
-      flex-grow: 1;
+      margin: 0;
     }
-    .pkg-features li {
-      margin-bottom: 0.95rem;
-      font-size: 0.92rem;
-      color: #334155;
+    .features-list li {
       display: flex;
       align-items: flex-start;
       gap: 10px;
+      font-size: 0.88rem;
+      color: #334155;
+      margin-bottom: 0.8rem;
+      line-height: 1.4;
     }
-    .pkg-features li i.fa-check {
+    .check-icon {
       color: #10b981;
-      background: rgba(16, 185, 129, 0.15);
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      margin-top: 2px;
+      font-size: 0.85rem;
+      margin-top: 3px;
       flex-shrink: 0;
     }
-    .pkg-features li i.fa-times {
-      color: #94a3b8;
-      background: rgba(148, 163, 184, 0.15);
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      margin-top: 2px;
+    .cross-icon {
+      color: #cbd5e1;
+      font-size: 0.85rem;
+      margin-top: 3px;
       flex-shrink: 0;
     }
-    .pkg-features li.disabled {
+    .feature-disabled {
       color: #94a3b8;
       text-decoration: line-through;
     }
 
-    .btn-action {
-      padding: 12px 20px;
+    /* Action Buttons */
+    .card-action {
+      margin-top: auto;
+    }
+    .btn-select {
+      width: 100%;
+      padding: 11px 16px;
       border-radius: 12px;
+      font-size: 0.92rem;
       font-weight: 700;
-      font-size: 0.95rem;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #334155;
       cursor: pointer;
       transition: all 0.2s ease;
-    }
-    .btn-action:disabled {
-      opacity: 0.65;
-      cursor: not-allowed;
-      background: #94a3b8 !important;
-      color: #ffffff !important;
-      box-shadow: none !important;
-    }
-
-    .btn-outline {
-      background: transparent;
-      border: 1px solid var(--border-color);
-      color: var(--text-color);
-    }
-    .btn-outline:hover {
-      background: var(--bg-hover);
-    }
-    .btn-payos {
-      background: linear-gradient(135deg, #059669 0%, #10b981 100%);
-      border: none;
-      color: white;
-      font-weight: 600;
-    }
-    .btn-payos:hover {
-      background: linear-gradient(135deg, #047857 0%, #059669 100%);
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-    }
-    .max-w-550 {
-      max-width: 550px;
-      width: 100%;
-    }
-    .package-summary-box {
-      background: rgba(243, 244, 246, 0.5);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 1rem 1.2rem;
-    }
-    .price-tag strong {
-      font-size: 1.4rem;
-      color: var(--primary);
-    }
-    .payment-method-selector .method-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      border: 2px solid #10b981;
-      background: rgba(16, 185, 129, 0.05);
-      border-radius: 10px;
-      position: relative;
-    }
-    .badge-recommended {
-      position: absolute;
-      top: -8px;
-      right: 12px;
-      background: #10b981;
-      color: white;
-      font-size: 0.7rem;
-      font-weight: 600;
-      padding: 2px 8px;
-      border-radius: 10px;
-    }
-    .payos-badge {
-      display: inline-block;
-      background: #ecfdf5;
-      color: #047857;
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 3px 12px;
-      border-radius: 12px;
-    }
-    .qr-frame {
-      display: inline-block;
-      padding: 12px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-      border: 2px solid #10b981;
-    }
-    .qr-code-img {
-      width: 210px;
-      height: 210px;
-      object-fit: contain;
-    }
-    .polling-status {
-      display: flex;
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
-      color: #059669;
+      gap: 6px;
     }
-    .spinner-pulse {
-      width: 10px;
-      height: 10px;
-      background-color: #10b981;
-      border-radius: 50%;
-      animation: pulse 1.5s infinite ease-in-out;
+    .btn-select:hover:not(:disabled) {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+      color: #0f172a;
     }
-    @keyframes pulse {
-      0% { transform: scale(0.8); opacity: 0.5; }
-      50% { transform: scale(1.3); opacity: 1; }
-      100% { transform: scale(0.8); opacity: 0.5; }
+    .btn-select.btn-primary-action {
+      background: #2563eb;
+      border-color: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
     }
-    .transfer-details-box {
-      background: var(--bg-card, #ffffff);
-      border: 1px solid var(--border-color, #e5e7eb);
-      border-radius: 10px;
-      padding: 1rem 1.2rem;
+    .btn-select.btn-primary-action:hover:not(:disabled) {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
     }
-    .highlight-content {
-      background: #fffbebf5;
-      padding: 8px 10px;
-      border-radius: 6px;
-      margin-top: 4px;
-      border: 1px dashed #f59e0b;
+    .btn-select.btn-current {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #16a34a;
+      cursor: default;
     }
-    .text-warning-dark {
-      color: #d97706;
+    .btn-select:disabled {
+      cursor: not-allowed;
+      opacity: 0.7;
     }
-    .font-mono {
-      font-family: monospace;
-      letter-spacing: 0.5px;
-    }
-    .copy-group {
-      display: flex;
-      align-items: center;
-    }
-    .btn-copy {
-      background: none;
-      border: none;
-      color: var(--text-muted);
-      cursor: pointer;
-      padding: 2px 6px;
-      font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-    .btn-copy:hover {
-      color: var(--primary);
-    }
-    .test-simulation-banner {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      color: #1e40af;
-      padding: 8px 12px;
-      border-radius: 8px;
-      font-size: 0.82rem;
-    }
-    .modal-backdrop {
+
+    /* ==========================================================================
+       MODAL STYLES (CLEAN & MINIMALIST)
+       ========================================================================== */
+    .modal-overlay {
       position: fixed;
       top: 0;
       left: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(15, 23, 42, 0.65);
+      background: rgba(15, 23, 42, 0.5);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       z-index: 99999;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
+      padding: 16px;
     }
+
     .modal-card {
       background: #ffffff;
-      border: 1px solid rgba(226, 232, 240, 0.8);
+      border: 1px solid #e2e8f0;
       border-radius: 20px;
-      padding: 2.2rem;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-      max-height: 90vh;
-      overflow-y: auto;
+      padding: 1.8rem 2rem;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+      max-width: 460px;
+      width: 100%;
       position: relative;
-      animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      animation: modalScale 0.2s ease-out;
+      color: #0f172a;
     }
-    @keyframes modalSlideUp {
-      from { transform: translateY(20px) scale(0.98); opacity: 0; }
-      to { transform: translateY(0) scale(1); opacity: 1; }
+
+    @keyframes modalScale {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to { opacity: 1; transform: scale(1) translateY(0); }
     }
-    .w-100 { width: 100%; }
-    .mb-5 { margin-bottom: 3rem; }
-    .mb-4 { margin-bottom: 1.5rem; }
-    .mb-3 { margin-bottom: 1rem; }
-    .mb-2 { margin-bottom: 0.5rem; }
-    .mt-5 { margin-top: 3rem; }
-    .my-3 { margin: 1rem 0; }
-    .text-center { text-align: center; }
-    .justify-content-center { justify-content: center; }
-    .text-sm { font-size: 0.9rem; }
-    .text-xs { font-size: 0.8rem; }
+
+    .modal-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: none;
+      background: #f1f5f9;
+      color: #64748b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.2s;
+    }
+    .modal-close:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+
+    .modal-header {
+      margin-bottom: 1.2rem;
+      padding-right: 28px;
+    }
+    .modal-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0 0 3px 0;
+      letter-spacing: -0.02em;
+    }
+    .modal-subtitle {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+    }
+
+    /* Summary Card */
+    .package-summary {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 16px;
+      margin-bottom: 1.2rem;
+    }
+    .summary-badge {
+      font-size: 1rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 2px;
+    }
+    .summary-sub {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+    .summary-price {
+      text-align: right;
+    }
+    .summary-price .price-val {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #2563eb;
+      letter-spacing: -0.02em;
+    }
+    .summary-price .currency {
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+    .summary-price .price-rate {
+      font-size: 0.75rem;
+      color: #64748b;
+    }
+
+    /* Period Tabs */
+    .form-group {
+      margin-bottom: 1.1rem;
+    }
+    .form-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #475569;
+      display: block;
+      margin-bottom: 6px;
+    }
+    .period-tabs {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+    }
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 8px 4px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .tab-btn:hover:not(.active) {
+      color: #0f172a;
+    }
+    .tab-btn.active {
+      background: #ffffff;
+      color: #2563eb;
+      font-weight: 800;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Payment Method Box */
+    .payment-method-box {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      margin-bottom: 1.2rem;
+    }
+    .method-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: #eff6ff;
+      color: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .method-title {
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #0f172a;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .badge-auto {
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 0.65rem;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 6px;
+    }
+    .method-desc {
+      font-size: 0.74rem;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    /* Total Row */
+    .total-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 0 14px 0;
+      border-top: 1px solid #f1f5f9;
+    }
+    .total-text {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #475569;
+    }
+    .total-amount {
+      font-size: 1.35rem;
+      font-weight: 900;
+      color: #2563eb;
+      letter-spacing: -0.02em;
+    }
+
+    /* Action Buttons */
+    .modal-buttons {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-cancel {
+      flex: 1;
+      padding: 10px 14px;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      color: #475569;
+      font-weight: 700;
+      font-size: 0.88rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-cancel:hover {
+      background: #e2e8f0;
+      color: #0f172a;
+    }
+    .btn-submit {
+      flex: 2;
+      padding: 10px 16px;
+      background: #2563eb;
+      border: none;
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    .btn-submit:hover:not(:disabled) {
+      background: #1d4ed8;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+    }
+    .btn-submit:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+    }
+
+    /* QR Screen */
+    .qr-container {
+      display: inline-block;
+      padding: 10px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      margin-bottom: 1rem;
+    }
+    .qr-image {
+      width: 190px;
+      height: 190px;
+      object-fit: contain;
+      display: block;
+      border-radius: 6px;
+    }
+    .qr-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.76rem;
+      color: #059669;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      background: #10b981;
+      border-radius: 50%;
+      animation: pulseMini 1.5s infinite;
+    }
+    @keyframes pulseMini {
+      0% { transform: scale(0.8); opacity: 0.6; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.8); opacity: 0.6; }
+    }
+
+    /* Transfer Details */
+    .transfer-details {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 6px 12px;
+      text-align: left;
+      margin-bottom: 0.9rem;
+    }
+    .detail-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 5px 0;
+      font-size: 0.82rem;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .detail-item:last-child {
+      border-bottom: none;
+    }
+    .detail-item .lbl {
+      color: #64748b;
+    }
+    .detail-item .val {
+      color: #0f172a;
+    }
+    .val-copy {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-copy {
+      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      color: #2563eb;
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 0.7rem;
+      transition: all 0.2s;
+    }
+    .btn-copy:hover {
+      background: #eff6ff;
+      border-color: #93c5fd;
+    }
+    .highlight-item {
+      background: #fffbeb;
+      border-radius: 6px;
+      padding: 4px 8px;
+      margin-top: 3px;
+    }
+    .text-warning-dark {
+      color: #b45309;
+    }
+    .btn-copy-highlight {
+      color: #b45309;
+      border-color: #fde68a;
+    }
+
+    .test-mode-wrap {
+      margin-bottom: 0.9rem;
+    }
+    .btn-simulate {
+      background: transparent;
+      border: none;
+      color: #6366f1;
+      font-size: 0.76rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .btn-simulate:hover {
+      color: #4338ca;
+    }
+
+    /* Success Screen */
+    .success-icon-wrap {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #dcfce7;
+      color: #059669;
+      font-size: 1.4rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 0.8rem;
+    }
+    .success-title {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: #059669;
+      margin: 0 0 4px 0;
+    }
+    .success-desc {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin-bottom: 1.2rem;
+    }
+    .success-info-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 10px 14px;
+      margin-bottom: 1.2rem;
+      text-align: left;
+    }
+    .info-line {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.82rem;
+      margin-bottom: 4px;
+    }
+    .info-line:last-child {
+      margin-bottom: 0;
+    }
   `]
 })
 export class LandlordPackagesComponent implements OnInit, OnDestroy {
@@ -773,12 +1115,12 @@ export class LandlordPackagesComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.isPurchasing.set(false);
         this.payOSData.set(res);
-        this.toastService.show('Tạo mã QR thanh toán PayOS thành công!', 'success');
+        this.toastService.show('Tạo mã QR thanh toán thành công!', 'success');
         this.startPolling(res.orderCode);
       },
       error: (err) => {
         this.isPurchasing.set(false);
-        this.toastService.show(err.error?.message || 'Không thể khởi tạo thanh toán PayOS', 'error');
+        this.toastService.show(err.error?.message || 'Không thể khởi tạo thanh toán', 'error');
       }
     });
   }
