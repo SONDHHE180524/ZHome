@@ -75,7 +75,11 @@ export class AuthService {
           );
         }
       },
-      error: () => {}
+      error: (err) => {
+        if (err?.status === 401) {
+          this.logout();
+        }
+      }
     });
   }
 

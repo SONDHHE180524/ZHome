@@ -142,6 +142,11 @@ namespace ZHome.API.Data
 
                 if (newLocations.Any())
                 {
+                    int maxId = (await context.Locations.MaxAsync(l => (int?)l.Id)) ?? 0;
+                    foreach (var loc in newLocations)
+                    {
+                        loc.Id = ++maxId;
+                    }
                     await context.Locations.AddRangeAsync(newLocations);
                     await context.SaveChangesAsync();
                 }
