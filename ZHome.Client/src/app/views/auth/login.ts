@@ -136,7 +136,9 @@ export class LoginComponent {
         this.toastService.show(`Chào mừng quay lại, ${user.fullName}!`, 'success');
         
         // Redirect based on role
-        if (user.role === 'Landlord' || user.role === 'Administrator') {
+        if (user.role === 'Administrator') {
+          this.router.navigate(['/admin/dashboard']);
+        } else if (user.role === 'Landlord') {
           this.router.navigate(['/landlord/overview']);
         } else {
           this.router.navigate(['/']);

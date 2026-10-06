@@ -97,18 +97,19 @@ namespace ZHome.API.Controllers
         {
             var verifications = await _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role != null && u.Role.RoleName == "Landlord" && !string.IsNullOrEmpty(u.CccdNumber))
-                .OrderByDescending(u => u.Id)
+                .Where(u => u.Role != null && u.Role.RoleName == "Landlord")
+                .OrderByDescending(u => u.VerificationStatus == "Pending" ? 1 : 0)
+                .ThenByDescending(u => u.Id)
                 .Select(u => new
                 {
                     UserId = u.Id,
                     FullName = u.FullName,
                     Phone = u.Phone,
                     Email = u.Email,
-                    CccdNumber = u.CccdNumber,
+                    CccdNumber = u.CccdNumber ?? "Chưa cập nhật",
                     CccdFrontUrl = u.CccdFrontUrl,
                     CccdBackUrl = u.CccdBackUrl,
-                    Status = u.VerificationStatus ?? "None",
+                    Status = u.VerificationStatus ?? "Pending",
                     CreatedAt = u.CreatedAt
                 })
                 .ToListAsync();
@@ -144,14 +145,14 @@ namespace ZHome.API.Controllers
             // Send notification to landlord
             await _notificationService.CreateNotificationAsync(
                 userId: userId,
-                title: "Hồ sơ xác minh đã được phê duyệt",
-                message: "Chúc mừng! Hồ sơ xác thực CCCD và tích xanh chính chủ của bạn đã được Quản trị viên ZHome phê duyệt thành công.",
+                title: "Tài khoản Chủ trọ đã được phê duyệt",
+                message: "Chúc mừng! Tài khoản Chủ trọ và hồ sơ xác thực của bạn đã được Quản trị viên ZHome phê duyệt thành công. Bạn đã có thể đăng nhập và quản lý nhà trọ!",
                 type: "LandlordVerification",
-                targetUrl: "/profile",
+                targetUrl: "/landlord/overview",
                 referenceId: userId
             );
 
-            return Ok(new { message = "Đã duyệt xác thực chủ trọ thành công!" });
+            return Ok(new { message = "Đã phê duyệt tài khoản chủ trọ thành công!" });
         }
 
         // Reject landlord verification
@@ -180,17 +181,17 @@ namespace ZHome.API.Controllers
             await _context.SaveChangesAsync();
 
             // Send notification to landlord
-            string reason = !string.IsNullOrWhiteSpace(request?.Reason) ? request.Reason : "Ảnh hoặc thông tin CCCD chưa hợp lệ.";
+            string reason = !string.IsNullOrWhiteSpace(request?.Reason) ? request.Reason : "Ảnh hoặc thông tin đăng ký chưa hợp lệ.";
             await _notificationService.CreateNotificationAsync(
                 userId: userId,
-                title: "Yêu cầu xác minh bị từ chối",
-                message: $"Hồ sơ xác thực CCCD của bạn đã bị từ chối. Lý do: {reason}. Vui lòng cập nhật lại hồ sơ.",
+                title: "Yêu cầu xét duyệt chủ trọ bị từ chối",
+                message: $"Hồ sơ đăng ký chủ trọ của bạn đã bị từ chối. Lý do: {reason}. Vui lòng liên hệ Quản trị viên ZHome để được hỗ trợ.",
                 type: "LandlordVerification",
-                targetUrl: "/profile",
+                targetUrl: "/login",
                 referenceId: userId
             );
 
-            return Ok(new { message = "Đã từ chối xác thực chủ trọ." });
+            return Ok(new { message = "Đã từ chối xét duyệt chủ trọ." });
         }
 
         // Get admin dashboard stats
@@ -203,7 +204,7 @@ namespace ZHome.API.Controllers
             var totalRooms = await _context.Rooms.CountAsync();
             var vacantRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
             var occupiedRooms = await _context.Rooms.CountAsync(r => r.Status == "Occupied");
-            var pendingVerifications = await _context.Users.CountAsync(u => u.Role != null && u.Role.RoleName == "Landlord" && (u.VerificationStatus == "Pending" || (u.VerificationStatus != "Approved" && !string.IsNullOrEmpty(u.CccdNumber))));
+            var pendingVerifications = await _context.Users.CountAsync(u => u.Role != null && u.Role.RoleName == "Landlord" && (u.VerificationStatus == "Pending" || string.IsNullOrEmpty(u.VerificationStatus) || u.VerificationStatus == "None"));
             var totalTransactionsRevenue = await _context.BillTransactions.SumAsync(t => (decimal?)t.Amount) ?? 0m;
 
             return Ok(new
@@ -312,6 +313,307 @@ namespace ZHome.API.Controllers
 
             return Ok(transactions);
         }
+
+        // ==========================================
+        // USER MANAGEMENT (CRUD & PHÂN QUYỀN TÀI KHOẢN)
+        // ==========================================
+
+        // Lấy danh sách tất cả các Role trong hệ thống
+        [HttpGet("roles")]
+        public async Task<IActionResult> GetRoles()
+        {
+            var roles = await _context.Roles.OrderBy(r => r.Id).ToListAsync();
+            return Ok(roles);
+        }
+
+        // Lấy danh sách tài khoản (hỗ trợ tìm kiếm, lọc theo vai trò và trạng thái)
+        [HttpGet("users")]
+        public async Task<IActionResult> GetUsers([FromQuery] string? keyword, [FromQuery] int? roleId, [FromQuery] string? verificationStatus)
+        {
+            var query = _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.SubscriptionPackage)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim().ToLower();
+                query = query.Where(u => u.FullName.ToLower().Contains(kw) || 
+                                         u.Phone.Contains(kw) || 
+                                         (u.Email != null && u.Email.ToLower().Contains(kw)) ||
+                                         (u.CccdNumber != null && u.CccdNumber.Contains(kw)));
+            }
+
+            if (roleId.HasValue && roleId.Value > 0)
+            {
+                query = query.Where(u => u.RoleId == roleId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(verificationStatus))
+            {
+                query = query.Where(u => u.VerificationStatus == verificationStatus);
+            }
+
+            var users = await query
+                .OrderByDescending(u => u.Id)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Phone,
+                    u.Email,
+                    u.FullName,
+                    u.RoleId,
+                    RoleName = u.Role != null ? u.Role.RoleName : "N/A",
+                    u.AvatarUrl,
+                    u.CccdNumber,
+                    u.VerificationStatus,
+                    u.SubscriptionId,
+                    SubscriptionName = u.SubscriptionPackage != null ? u.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
+                    u.SubscriptionEndDate,
+                    u.CreatedAt,
+                    u.UpdatedAt
+                })
+                .ToListAsync();
+
+            return Ok(users);
+        }
+
+        // Lấy chi tiết một tài khoản
+        [HttpGet("users/{id}")]
+        public async Task<IActionResult> GetUserById(long id)
+        {
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .Include(u => u.SubscriptionPackage)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy tài khoản người dùng.");
+            }
+
+            return Ok(new
+            {
+                user.Id,
+                user.Phone,
+                user.Email,
+                user.FullName,
+                user.RoleId,
+                RoleName = user.Role != null ? user.Role.RoleName : "N/A",
+                user.AvatarUrl,
+                user.CccdNumber,
+                user.CccdFrontUrl,
+                user.CccdBackUrl,
+                user.VerificationStatus,
+                user.SubscriptionId,
+                SubscriptionName = user.SubscriptionPackage != null ? user.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
+                user.SubscriptionEndDate,
+                user.CreatedAt,
+                user.UpdatedAt
+            });
+        }
+
+        // Tạo tài khoản mới bởi Quản trị viên
+        [HttpPost("users")]
+        public async Task<IActionResult> CreateUser([FromBody] AdminCreateUserRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+            {
+                return BadRequest("Số điện thoại không hợp lệ. Phải gồm 10 chữ số, bắt đầu bằng 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
+            }
+
+            if (await _context.Users.AnyAsync(u => u.Phone == request.Phone))
+            {
+                return BadRequest("Số điện thoại này đã tồn tại trên hệ thống.");
+            }
+
+            if (!string.IsNullOrEmpty(request.Email) && await _context.Users.AnyAsync(u => u.Email == request.Email))
+            {
+                return BadRequest("Email này đã được sử dụng bởi tài khoản khác.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.Password) || request.Password.Length < 6)
+            {
+                return BadRequest("Mật khẩu phải từ 6 ký tự trở lên.");
+            }
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
+            if (role == null)
+            {
+                return BadRequest("Vai trò (Role) không hợp lệ.");
+            }
+
+            var newUser = new User
+            {
+                Phone = request.Phone,
+                Email = request.Email,
+                FullName = request.FullName,
+                RoleId = request.RoleId,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+                VerificationStatus = string.IsNullOrWhiteSpace(request.VerificationStatus) ? "None" : request.VerificationStatus,
+                SubscriptionId = request.SubscriptionId ?? 1,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(newUser);
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Tạo tài khoản thành công!",
+                userId = newUser.Id
+            });
+        }
+
+        // Cập nhật thông tin & phân quyền tài khoản
+        [HttpPut("users/{id}")]
+        public async Task<IActionResult> UpdateUser(long id, [FromBody] AdminUpdateUserRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            // Kiểm tra trùng SĐT nếu thay đổi
+            if (!string.IsNullOrWhiteSpace(request.Phone) && request.Phone != user.Phone)
+            {
+                if (!System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
+                {
+                    return BadRequest("Số điện thoại không hợp lệ.");
+                }
+                if (await _context.Users.AnyAsync(u => u.Phone == request.Phone && u.Id != id))
+                {
+                    return BadRequest("Số điện thoại này đã được tài khoản khác sử dụng.");
+                }
+                user.Phone = request.Phone;
+            }
+
+            // Kiểm tra trùng Email nếu thay đổi
+            if (!string.IsNullOrEmpty(request.Email) && request.Email != user.Email)
+            {
+                if (await _context.Users.AnyAsync(u => u.Email == request.Email && u.Id != id))
+                {
+                    return BadRequest("Email này đã được tài khoản khác sử dụng.");
+                }
+                user.Email = request.Email;
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.FullName))
+            {
+                user.FullName = request.FullName;
+            }
+
+            // Cập nhật vai trò / phân quyền
+            if (request.RoleId > 0 && request.RoleId != user.RoleId)
+            {
+                var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
+                if (role != null)
+                {
+                    user.RoleId = request.RoleId;
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.VerificationStatus))
+            {
+                user.VerificationStatus = request.VerificationStatus;
+            }
+
+            if (request.SubscriptionId.HasValue && request.SubscriptionId.Value > 0)
+            {
+                user.SubscriptionId = request.SubscriptionId.Value;
+            }
+
+            // Nếu Admin đổi mật khẩu mới cho user
+            if (!string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                if (request.NewPassword.Length < 6)
+                {
+                    return BadRequest("Mật khẩu mới phải từ 6 ký tự trở lên.");
+                }
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Cập nhật tài khoản thành công!" });
+        }
+
+        // Phân quyền nhanh cho tài khoản (Chỉ đổi Role)
+        [HttpPut("users/{id}/role")]
+        public async Task<IActionResult> AssignRole(long id, [FromBody] AssignRoleRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            var role = await _context.Roles.FirstOrDefaultAsync(r => r.Id == request.RoleId);
+            if (role == null)
+            {
+                return BadRequest("Vai trò không hợp lệ.");
+            }
+
+            user.RoleId = request.RoleId;
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = $"Đã cập nhật vai trò tài khoản thành '{role.RoleName}' thành công!" });
+        }
+
+        // Xóa tài khoản người dùng
+        [HttpDelete("users/{id}")]
+        public async Task<IActionResult> DeleteUser(long id)
+        {
+            // Lấy ID admin đang đăng nhập từ claim để chống tự xóa chính mình
+            var currentUserIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(currentUserIdStr, out var currentUserId) && currentUserId == id)
+            {
+                return BadRequest("Bạn không thể tự xóa tài khoản của chính mình khi đang đăng nhập.");
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id);
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy người dùng.");
+            }
+
+            // Xóa người dùng
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã xóa tài khoản người dùng thành công!" });
+        }
+    }
+
+    public class AdminCreateUserRequest
+    {
+        public string Phone { get; set; } = string.Empty;
+        public string? Email { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public int RoleId { get; set; }
+        public string? VerificationStatus { get; set; }
+        public int? SubscriptionId { get; set; }
+    }
+
+    public class AdminUpdateUserRequest
+    {
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? FullName { get; set; }
+        public string? NewPassword { get; set; }
+        public int RoleId { get; set; }
+        public string? VerificationStatus { get; set; }
+        public int? SubscriptionId { get; set; }
+    }
+
+    public class AssignRoleRequest
+    {
+        public int RoleId { get; set; }
     }
 
     public class RejectRequest

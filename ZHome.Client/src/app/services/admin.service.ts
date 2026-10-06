@@ -45,4 +45,41 @@ export class AdminService {
     }
     return this.http.get<any[]>(url);
   }
+
+  // Roles & User Management
+  getRoles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/roles`);
+  }
+
+  getUsers(keyword?: string, roleId?: number, verificationStatus?: string): Observable<any[]> {
+    let url = `${this.apiUrl}/users`;
+    const params: string[] = [];
+    if (keyword && keyword.trim()) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    if (roleId && roleId > 0) params.push(`roleId=${roleId}`);
+    if (verificationStatus && verificationStatus !== 'All') params.push(`verificationStatus=${encodeURIComponent(verificationStatus)}`);
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getUserById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/users/${id}`);
+  }
+
+  createUser(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/users`, data);
+  }
+
+  updateUser(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/users/${id}`, data);
+  }
+
+  assignRole(id: number, roleId: number): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/users/${id}/role`, { roleId });
+  }
+
+  deleteUser(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/users/${id}`);
+  }
 }
