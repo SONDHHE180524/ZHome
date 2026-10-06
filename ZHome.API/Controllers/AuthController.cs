@@ -122,7 +122,7 @@ namespace ZHome.API.Controllers
                 CccdNumber = isLandlord ? request.CccdNumber : null,
                 CccdFrontUrl = frontUrl,
                 CccdBackUrl = backUrl,
-                VerificationStatus = isLandlord && request.SendVerificationRequest ? "Pending" : null,
+                VerificationStatus = isLandlord ? "Pending" : "Approved",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -130,19 +130,24 @@ namespace ZHome.API.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Notify Admin if Landlord requested verification
-            if (user.VerificationStatus == "Pending")
+            // Gửi thông báo ngay cho Admin khi có Chủ trọ mới đăng ký chờ duyệt
+            if (isLandlord)
             {
                 await _notificationService.NotifyAdminsAsync(
-                    title: "Yêu cầu xác minh chủ trọ mới",
-                    message: $"Chủ trọ {user.FullName} ({user.Phone}) vừa gửi hồ sơ xác minh CCCD/chính chủ. Vui lòng kiểm tra và duyệt!",
+                    title: "Yêu cầu xét duyệt chủ trọ mới",
+                    message: $"Chủ trọ {user.FullName} ({user.Phone}) vừa đăng ký tài khoản. Vui lòng kiểm tra và phê duyệt hồ sơ!",
                     type: "LandlordVerification",
                     targetUrl: "/admin/verifications",
                     referenceId: user.Id
                 );
             }
 
-            return Ok(new { message = "Đăng ký tài khoản thành công!" });
+            return Ok(new 
+            { 
+                message = isLandlord 
+                    ? "Đăng ký tài khoản Chủ trọ thành công! Tài khoản của bạn đang chờ Quản trị viên xét duyệt trước khi có thể đăng nhập." 
+                    : "Đăng ký tài khoản người thuê thành công!" 
+            });
         }
 
         private string SaveBase64Image(string base64String, string prefix, string phone)
@@ -201,14 +206,7 @@ namespace ZHome.API.Controllers
                 return Unauthorized("Số điện thoại hoặc mật khẩu không chính xác.");
             }
 
-            // Check if subscription has expired and reset to Free plan
-            if (user.SubscriptionEndDate.HasValue && user.SubscriptionEndDate.Value < DateTime.UtcNow)
-            {
-                user.SubscriptionId = 1; // Free package ID
-                user.SubscriptionEndDate = null;
-                await _context.SaveChangesAsync();
-            }
-
+            // Kiểm tra mật khẩu
             bool isPasswordCorrect = false;
             try
             {
@@ -222,6 +220,28 @@ namespace ZHome.API.Controllers
             if (!isPasswordCorrect)
             {
                 return Unauthorized("Số điện thoại hoặc mật khẩu không chính xác.");
+            }
+
+            // KIỂM TRA DUYỆT CHỦ TRỌ: Chủ trọ bắt buộc phải được Admin duyệt mới được vào hệ thống
+            if (user.Role != null && user.Role.RoleName.Equals("Landlord", StringComparison.OrdinalIgnoreCase))
+            {
+                if (user.VerificationStatus == "Pending" || string.IsNullOrEmpty(user.VerificationStatus) || user.VerificationStatus == "None")
+                {
+                    return BadRequest("Tài khoản của bạn đang chờ xét duyệt. Quản trị viên ZHome đang kiểm tra hồ sơ của bạn, vui lòng quay lại sau!");
+                }
+
+                if (user.VerificationStatus == "Rejected")
+                {
+                    return BadRequest("Tài khoản Chủ trọ của bạn đã bị từ chối xét duyệt. Vui lòng liên hệ Quản trị viên ZHome để được hỗ trợ.");
+                }
+            }
+
+            // Check if subscription has expired and reset to Free plan
+            if (user.SubscriptionEndDate.HasValue && user.SubscriptionEndDate.Value < DateTime.UtcNow)
+            {
+                user.SubscriptionId = 1; // Free package ID
+                user.SubscriptionEndDate = null;
+                await _context.SaveChangesAsync();
             }
 
             var token = _tokenService.CreateToken(user);

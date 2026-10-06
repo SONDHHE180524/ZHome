@@ -14,9 +14,11 @@ import { TenantBillsComponent } from './views/tenant/bills';
 import { TenantMatchComponent } from './views/tenant/match';
 import { MyRentalComponent } from './views/tenant/my-rental';
 import { BillPrintComponent } from './views/public/bill-print';
-import { AdminVerificationsComponent } from './views/admin/verifications';
+import { AdminLayoutComponent } from './views/admin/layout';
 import { AdminDashboardComponent } from './views/admin/dashboard';
+import { AdminUsersComponent } from './views/admin/users';
 import { AdminPropertiesComponent } from './views/admin/properties';
+import { AdminVerificationsComponent } from './views/admin/verifications';
 import { AdminTransactionsComponent } from './views/admin/transactions';
 import { ProfileComponent } from './views/auth/profile';
 import { LandlordReportsComponent } from './views/landlord/reports';
@@ -37,30 +39,20 @@ export const routes: Routes = [
   { path: 'bill-print/:id', component: BillPrintComponent },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   
-  // Admin protected routes
+  // Admin protected routes with persistent Dashboard sidebar layout
   {
-    path: 'admin/dashboard',
-    component: AdminDashboardComponent,
+    path: 'admin',
+    component: AdminLayoutComponent,
     canActivate: [authGuard],
-    data: { roles: ['Administrator'] }
-  },
-  {
-    path: 'admin/properties',
-    component: AdminPropertiesComponent,
-    canActivate: [authGuard],
-    data: { roles: ['Administrator'] }
-  },
-  {
-    path: 'admin/verifications',
-    component: AdminVerificationsComponent,
-    canActivate: [authGuard],
-    data: { roles: ['Administrator'] }
-  },
-  {
-    path: 'admin/transactions',
-    component: AdminTransactionsComponent,
-    canActivate: [authGuard],
-    data: { roles: ['Administrator'] }
+    data: { roles: ['Administrator'] },
+    children: [
+      { path: 'dashboard', component: AdminDashboardComponent },
+      { path: 'users', component: AdminUsersComponent },
+      { path: 'properties', component: AdminPropertiesComponent },
+      { path: 'verifications', component: AdminVerificationsComponent },
+      { path: 'transactions', component: AdminTransactionsComponent },
+      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+    ]
   },
   
   // Landlord protected routes with persistent Dashboard layout
