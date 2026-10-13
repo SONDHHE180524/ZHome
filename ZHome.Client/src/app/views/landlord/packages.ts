@@ -32,10 +32,20 @@ import { AuthService } from '../../services/auth.service';
       } @else {
         <div class="pricing-grid">
           @for (pkg of packages(); track pkg.id; let i = $index) {
-            <div class="pricing-card" [class.popular]="pkg.id === 2" [class.premium]="pkg.id === 3">
+            <div class="pricing-card" [class.popular]="pkg.id === 2" [class.premium]="pkg.id === 3" [class.promo-card]="isPromoPackage(pkg)">
               
-              @if (pkg.id === 2) {
+              <!-- Biểu tượng HOT với Animation bên góc trái -->
+              @if (isPromoPackage(pkg)) {
+                <div class="card-badge-hot">
+                  <span class="hot-fire">🔥</span>
+                  <span class="hot-label">HOT</span>
+                </div>
+              }
+
+              @if (pkg.id === 2 && !isPromoPackage(pkg)) {
                 <div class="card-badge">Phổ biến nhất</div>
+              } @else if (pkg.id === 2 && isPromoPackage(pkg)) {
+                <div class="card-badge badge-promo-sub">Ưu đãi tháng 10</div>
               } @else if (pkg.id === 3) {
                 <div class="card-badge badge-pro">Chuyên nghiệp</div>
               }
@@ -47,12 +57,26 @@ import { AuthService } from '../../services/auth.service';
               </div>
 
               <!-- Price Box -->
-              <div class="card-price-wrap">
-                <div class="price-display">
-                  <span class="price-number">{{ pkg.price | number:'1.0-0' }}</span>
-                  <span class="price-currency">đ</span>
-                </div>
-                <span class="price-period">/ tháng</span>
+              <div class="card-price-wrap" [class.has-promo]="isPromoPackage(pkg)">
+                @if (isPromoPackage(pkg)) {
+                  <div class="price-display-promo">
+                    <div class="price-promo-main">
+                      <span class="price-number text-free">0</span>
+                      <span class="price-currency text-free">đ</span>
+                      <span class="price-strikethrough">99.000 đ</span>
+                    </div>
+                    <span class="price-period">/ tháng</span>
+                  </div>
+                  <div class="promo-date-badge">
+                    <i class="far fa-clock"></i> Ưu đãi từ 01/10 đến 31/10
+                  </div>
+                } @else {
+                  <div class="price-display">
+                    <span class="price-number">{{ pkg.price | number:'1.0-0' }}</span>
+                    <span class="price-currency">đ</span>
+                  </div>
+                  <span class="price-period">/ tháng</span>
+                }
               </div>
 
               <!-- Features Checklist -->
@@ -120,15 +144,18 @@ import { AuthService } from '../../services/auth.service';
               <div class="card-action">
                 <button class="btn-select" 
                         [class.btn-current]="currentSubscriptionId() === pkg.id"
-                        [class.btn-primary-action]="pkg.id > currentSubscriptionId()"
+                        [class.btn-primary-action]="pkg.id > currentSubscriptionId() && !isPromoPackage(pkg)"
+                        [class.btn-promo-action]="isPromoPackage(pkg) && currentSubscriptionId() < pkg.id"
                         [disabled]="currentSubscriptionId() >= pkg.id"
-                        (click)="openPurchaseModal(pkg)">
+                        (click)="onSelectPackage(pkg)">
                   @if (currentSubscriptionId() === pkg.id) {
                     <i class="fas fa-check-circle"></i> Đang sử dụng
                   } @else if (currentSubscriptionId() > pkg.id) {
                     Đã bao gồm
                   } @else if (pkg.id === 1) {
                     Mặc định
+                  } @else if (isPromoPackage(pkg)) {
+                    <i class="fas fa-gift"></i> Dùng thử ngay
                   } @else {
                     Nâng cấp gói này
                   }
@@ -137,6 +164,54 @@ import { AuthService } from '../../services/auth.service';
 
             </div>
           }
+        </div>
+      }
+
+      <!-- Free Trial Modal (Cho gói ưu đãi 0 đồng) -->
+      @if (showTrialModal()) {
+        <div class="modal-overlay" (click)="closeTrialModal()">
+          <div class="modal-card modal-trial-card" (click)="$event.stopPropagation()">
+            <button class="modal-close" (click)="closeTrialModal()" aria-label="Đóng">
+              <i class="fas fa-times"></i>
+            </button>
+
+            <div class="trial-modal-content text-center">
+              <div class="trial-gift-badge">
+                <span class="gift-icon">🎁</span>
+              </div>
+              
+              <h3 class="trial-title">Dùng Thử Miễn Phí 1 Tháng</h3>
+              <p class="trial-subtitle">Chương trình ưu đãi vàng dành cho Chủ trọ ZHome</p>
+
+              <div class="trial-detail-box">
+                <div class="trial-pkg-name">Gói Cơ Bản (Quản lý tới 50 phòng)</div>
+                <div class="trial-price-row">
+                  <span class="trial-old-price">99.000 đ</span>
+                  <span class="trial-new-price">0 đ</span>
+                  <span class="trial-period-tag">MIỄN PHÍ 1 THÁNG</span>
+                </div>
+                <div class="trial-promo-note">
+                  <i class="far fa-clock text-warning-dark"></i> Thời gian ưu đãi: <strong>Từ 01/10 đến 31/10</strong>
+                </div>
+                <div class="trial-validity">
+                  <i class="fas fa-check-circle text-success"></i> Thời hạn sử dụng: <strong>30 ngày (1 tháng)</strong> kể từ hôm nay
+                </div>
+              </div>
+
+              <div class="modal-buttons mt-4">
+                <button type="button" class="btn-cancel" (click)="closeTrialModal()" [disabled]="isActivatingTrial()">
+                  Để sau
+                </button>
+                <button type="button" class="btn-submit btn-trial-submit" (click)="confirmClaimTrial()" [disabled]="isActivatingTrial()">
+                  @if (isActivatingTrial()) {
+                    <i class="fas fa-spinner fa-spin"></i> Đang kích hoạt...
+                  } @else {
+                    <i class="fas fa-bolt"></i> Dùng thử ngay (0 đ)
+                  }
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       }
 
@@ -424,6 +499,70 @@ import { AuthService } from '../../services/auth.service';
       box-shadow: 0 20px 40px rgba(37, 99, 235, 0.18);
     }
 
+    .pricing-card.promo-card {
+      border: 2.5px solid #f97316 !important;
+      box-shadow: 0 14px 35px rgba(249, 115, 22, 0.16) !important;
+      background: linear-gradient(180deg, #fffaf5 0%, #ffffff 140px);
+    }
+    .pricing-card.promo-card:hover {
+      box-shadow: 0 22px 48px rgba(249, 115, 22, 0.24) !important;
+      border-color: #ea580c !important;
+    }
+
+    /* HOT Badge with Animation on Top-Left Corner */
+    .card-badge-hot {
+      position: absolute;
+      top: -14px;
+      left: 18px;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: linear-gradient(135deg, #ef4444 0%, #f97316 60%, #f59e0b 100%);
+      color: #ffffff;
+      font-size: 0.78rem;
+      font-weight: 850;
+      padding: 4px 12px 4px 9px;
+      border-radius: 9999px;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+      z-index: 10;
+      animation: hotPulseAnim 1.6s infinite ease-in-out;
+      border: 2px solid #ffffff;
+    }
+
+    .hot-fire {
+      font-size: 1rem;
+      display: inline-block;
+      animation: flameWiggleAnim 0.8s infinite alternate ease-in-out;
+      filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.8));
+    }
+
+    .hot-label {
+      text-transform: uppercase;
+      font-family: inherit;
+      line-height: 1;
+    }
+
+    @keyframes hotPulseAnim {
+      0%, 100% {
+        transform: scale(1);
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.45);
+      }
+      50% {
+        transform: scale(1.08);
+        box-shadow: 0 6px 22px rgba(239, 68, 68, 0.75);
+      }
+    }
+
+    @keyframes flameWiggleAnim {
+      0% {
+        transform: rotate(-8deg) scale(0.95);
+      }
+      100% {
+        transform: rotate(10deg) scale(1.18);
+      }
+    }
+
     .card-badge {
       position: absolute;
       top: -12px;
@@ -437,6 +576,10 @@ import { AuthService } from '../../services/auth.service';
       border-radius: 9999px;
       letter-spacing: 0.02em;
       box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+    .card-badge.badge-promo-sub {
+      background: linear-gradient(135deg, #ea580c, #f97316);
+      box-shadow: 0 2px 8px rgba(234, 88, 12, 0.35);
     }
     .card-badge.badge-pro {
       background: #7c3aed;
@@ -492,6 +635,49 @@ import { AuthService } from '../../services/auth.service';
       font-size: 0.88rem;
       font-weight: 600;
       color: #64748b;
+    }
+
+    /* Promo Price Display */
+    .card-price-wrap.has-promo {
+      border-bottom-color: #ffedd5;
+    }
+    .price-display-promo {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      width: 100%;
+    }
+    .price-promo-main {
+      display: flex;
+      align-items: baseline;
+      gap: 3px;
+      flex-wrap: wrap;
+    }
+    .text-free {
+      color: #16a34a !important;
+      font-weight: 900 !important;
+    }
+    .price-strikethrough {
+      font-size: 1.18rem;
+      font-weight: 600;
+      color: #94a3b8;
+      text-decoration: line-through;
+      margin-left: 10px;
+      letter-spacing: -0.01em;
+    }
+    .promo-date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #fff7ed;
+      color: #c2410c;
+      border: 1px solid #fed7aa;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      width: fit-content;
+      margin-top: 6px;
     }
 
     /* Features List */
@@ -585,6 +771,118 @@ import { AuthService } from '../../services/auth.service';
       opacity: 0.7;
     }
 
+    .btn-select.btn-promo-action {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+      border-color: #ea580c !important;
+      color: #ffffff !important;
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.35) !important;
+      font-weight: 800 !important;
+      position: relative;
+      overflow: hidden;
+      animation: btnPulseGlow 2.5s infinite;
+    }
+    .btn-select.btn-promo-action:hover:not(:disabled) {
+      background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%) !important;
+      box-shadow: 0 6px 22px rgba(234, 88, 12, 0.5) !important;
+      transform: translateY(-2px);
+    }
+    @keyframes btnPulseGlow {
+      0%, 100% { box-shadow: 0 4px 16px rgba(234, 88, 12, 0.35); }
+      50% { box-shadow: 0 6px 22px rgba(234, 88, 12, 0.6); }
+    }
+
+    /* Trial Modal Styles */
+    .modal-trial-card {
+      max-width: 480px !important;
+      padding: 32px 28px !important;
+      border-radius: 22px !important;
+    }
+    .trial-gift-badge {
+      width: 70px;
+      height: 70px;
+      background: linear-gradient(135deg, #ffedd5 0%, #fed7aa 100%);
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.3rem;
+      margin-bottom: 14px;
+      box-shadow: 0 8px 20px rgba(249, 115, 22, 0.22);
+      animation: giftBounce 2s infinite ease-in-out;
+    }
+    @keyframes giftBounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-6px); }
+    }
+    .trial-title {
+      font-size: 1.45rem;
+      font-weight: 850;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .trial-subtitle {
+      font-size: 0.88rem;
+      color: #64748b;
+      margin-bottom: 20px;
+    }
+    .trial-detail-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 18px;
+      text-align: left;
+    }
+    .trial-pkg-name {
+      font-size: 1.1rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 8px;
+    }
+    .trial-price-row {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .trial-old-price {
+      font-size: 1.1rem;
+      color: #94a3b8;
+      text-decoration: line-through;
+      font-weight: 600;
+    }
+    .trial-new-price {
+      font-size: 1.85rem;
+      font-weight: 900;
+      color: #16a34a;
+    }
+    .trial-period-tag {
+      background: #dcfce7;
+      color: #15803d;
+      font-size: 0.75rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.03em;
+    }
+    .trial-promo-note, .trial-validity {
+      font-size: 0.85rem;
+      color: #475569;
+      margin-top: 6px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-trial-submit {
+      background: linear-gradient(135deg, #ea580c 0%, #f97316 100%) !important;
+      box-shadow: 0 4px 16px rgba(234, 88, 12, 0.4) !important;
+    }
+    .btn-trial-submit:hover:not(:disabled) {
+      background: linear-gradient(135deg, #c2410c 0%, #ea580c 100%) !important;
+      box-shadow: 0 6px 20px rgba(234, 88, 12, 0.55) !important;
+    }
+
     /* ==========================================================================
        MODAL STYLES (CLEAN & MINIMALIST)
        ========================================================================== */
@@ -597,7 +895,7 @@ import { AuthService } from '../../services/auth.service';
       background: rgba(15, 23, 42, 0.5);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
-      z-index: 99999;
+      z-index: 1000000 !important;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1026,10 +1324,70 @@ export class LandlordPackagesComponent implements OnInit, OnDestroy {
   selectedMonths = signal<number>(1);
   payOSData = signal<PayOSPaymentResponse | null>(null);
   paymentSuccessState = signal<any | null>(null);
+  showTrialModal = signal(false);
+  isActivatingTrial = signal(false);
 
   private pollingTimer: any = null;
 
   currentSubscriptionId = this.authService.subscriptionId;
+
+  isPromotionActive(): boolean {
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    // Khung thời gian ưu đãi từ 01/10 đến 31/10 của năm hiện tại
+    const promoStart = new Date(currentYear, 9, 1, 0, 0, 0, 0); // Tháng 10 (index 9)
+    const promoEnd = new Date(currentYear, 9, 31, 23, 59, 59, 999);
+    return now >= promoStart && now <= promoEnd;
+  }
+
+  isPromoPackage(pkg: any): boolean {
+    return pkg?.id === 2 && this.isPromotionActive();
+  }
+
+  onSelectPackage(pkg: any) {
+    if (this.isPromoPackage(pkg) && this.currentSubscriptionId() < pkg.id) {
+      this.showTrialModal.set(true);
+    } else {
+      this.openPurchaseModal(pkg);
+    }
+  }
+
+  closeTrialModal() {
+    this.showTrialModal.set(false);
+  }
+
+  confirmClaimTrial() {
+    this.isActivatingTrial.set(true);
+    this.subscriptionService.claimPromoTrial().subscribe({
+      next: (res) => {
+        this.isActivatingTrial.set(false);
+        this.closeTrialModal();
+        this.toastService.show('🎉 Chúc mừng! Bạn đã kích hoạt thành công 1 tháng Dùng thử miễn phí Gói Cơ Bản!', 'success');
+        this.handlePaymentSuccess({
+          subscriptionId: 2,
+          subscriptionEndDate: res.subscriptionEndDate
+        });
+      },
+      error: (err) => {
+        // Fallback to purchase endpoint if claim-promo-trial failed
+        this.subscriptionService.purchasePackage(2, 1).subscribe({
+          next: (res) => {
+            this.isActivatingTrial.set(false);
+            this.closeTrialModal();
+            this.toastService.show('🎉 Chúc mừng! Bạn đã kích hoạt thành công 1 tháng Dùng thử miễn phí Gói Cơ Bản!', 'success');
+            this.handlePaymentSuccess({
+              subscriptionId: 2,
+              subscriptionEndDate: res.subscriptionEndDate
+            });
+          },
+          error: (purchaseErr) => {
+            this.isActivatingTrial.set(false);
+            this.toastService.show(purchaseErr.error?.message || err.error?.message || 'Không thể kích hoạt dùng thử. Vui lòng thử lại sau!', 'error');
+          }
+        });
+      }
+    });
+  }
 
   ngOnInit() {
     this.authService.refreshUserProfile();

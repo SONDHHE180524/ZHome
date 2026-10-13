@@ -36,6 +36,7 @@ export const routes: Routes = [
   { path: 'phong-tro/:id', component: PropertyDetailComponent },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { path: 'packages', component: LandlordPackagesComponent },
   { path: 'bill-print/:id', component: BillPrintComponent },
   { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
   

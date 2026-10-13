@@ -59,6 +59,44 @@ namespace ZHome.API.Data
                     await dbContext.SaveChangesAsync();
                     Console.WriteLine($"[AdminSeeder] Đã cập nhật quyền Administrator cho tài khoản ({adminPhone})");
                 }
+
+                // 3. Đảm bảo tài khoản Chủ trọ mẫu (Landlord) được duyệt để test gói cước
+                var landlordRole = await dbContext.Roles.FirstOrDefaultAsync(r => r.RoleName == "Landlord");
+                if (landlordRole != null)
+                {
+                    const string landlordPhone = "0912345678";
+                    const string landlordPassword = "123456";
+                    var testLandlord = await dbContext.Users.FirstOrDefaultAsync(u => u.Phone == landlordPhone);
+                    if (testLandlord == null)
+                    {
+                        testLandlord = new User
+                        {
+                            Phone = landlordPhone,
+                            Email = "landlord.test@zhome.vn",
+                            FullName = "Chủ Trọ Nguyễn Văn Hùng",
+                            RoleId = landlordRole.Id,
+                            PasswordHash = BCrypt.Net.BCrypt.HashPassword(landlordPassword),
+                            VerificationStatus = "Approved",
+                            SubscriptionId = 1, // Gói Miễn Phí để có thể thử dùng thử gói 99k
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow
+                        };
+                        dbContext.Users.Add(testLandlord);
+                        await dbContext.SaveChangesAsync();
+                        Console.WriteLine($"[AdminSeeder] Đã tạo tài khoản Chủ trọ test ({landlordPhone})");
+                    }
+                    else
+                    {
+                        testLandlord.RoleId = landlordRole.Id;
+                        testLandlord.PasswordHash = BCrypt.Net.BCrypt.HashPassword(landlordPassword);
+                        testLandlord.VerificationStatus = "Approved";
+                        testLandlord.SubscriptionId = 1;
+                        testLandlord.SubscriptionEndDate = null;
+                        testLandlord.UpdatedAt = DateTime.UtcNow;
+                        await dbContext.SaveChangesAsync();
+                        Console.WriteLine($"[AdminSeeder] Đã cập nhật tài khoản Chủ trọ test ({landlordPhone})");
+                    }
+                }
             }
             catch (Exception ex)
             {
