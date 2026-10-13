@@ -87,7 +87,11 @@ builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddSingleton<PaymentOrderStore>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSignalR();
 

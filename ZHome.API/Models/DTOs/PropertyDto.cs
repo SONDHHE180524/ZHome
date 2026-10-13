@@ -18,6 +18,7 @@ namespace ZHome.API.Models.DTOs
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public string? ImageBase64 { get; set; }
+        public bool? IsVerifiedTick { get; set; }
     }
 
     public class UpdatePropertyImageDto

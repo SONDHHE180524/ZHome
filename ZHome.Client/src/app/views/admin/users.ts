@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-users',
@@ -338,71 +339,170 @@ import { AuthService } from '../../services/auth.service';
       <!-- MODAL: CHỈNH SỬA TÀI KHOẢN -->
       @if (showEditModal()) {
         <div class="modal-backdrop" (click)="closeModals()">
-          <div class="modal-card animate-pop" (click)="$event.stopPropagation()">
+          <div class="modal-card modal-lg animate-pop" (click)="$event.stopPropagation()">
             <div class="modal-header">
-              <h3>Chỉnh Sửa: {{ selectedUser()?.fullName }}</h3>
+              <div class="modal-header-title">
+                <h3>Chỉnh Sửa Thông Tin Tài Khoản</h3>
+                <span class="modal-subtitle">ID: #{{ selectedUser()?.id }} • {{ selectedUser()?.fullName }}</span>
+              </div>
               <button class="modal-close-btn" (click)="closeModals()">✕</button>
             </div>
             
-            <form (ngSubmit)="submitUpdateUser()" class="modal-body">
-              <div class="form-group">
-                <label>Họ và tên <span class="required">*</span></label>
-                <input type="text" [(ngModel)]="editForm.fullName" name="fullName" required class="form-input" />
-              </div>
+            <form (ngSubmit)="submitUpdateUser()" class="modal-body modal-scrollable">
+              <!-- PHẦN 1: THÔNG TIN CƠ BẢN & MẬT KHẨU -->
+              <div class="form-section">
+                <div class="form-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>1. Thông tin cơ bản & Mật khẩu</span>
+                </div>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Họ và tên <span class="required">*</span></label>
+                    <input type="text" [(ngModel)]="editForm.fullName" name="fullName" required class="form-input" placeholder="Nguyễn Văn A" />
+                  </div>
+                  <div class="form-group">
+                    <label>Số điện thoại <span class="required">*</span></label>
+                    <input type="tel" [(ngModel)]="editForm.phone" name="phone" required class="form-input" placeholder="0912345678" />
+                  </div>
+                </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Số điện thoại <span class="required">*</span></label>
-                  <input type="tel" [(ngModel)]="editForm.phone" name="phone" required class="form-input" />
-                </div>
-                <div class="form-group">
-                  <label>Email</label>
-                  <input type="email" [(ngModel)]="editForm.email" name="email" class="form-input" />
-                </div>
-              </div>
-
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Vai trò <span class="required">*</span></label>
-                  <select [(ngModel)]="editForm.roleId" name="roleId" class="form-select">
-                    @for (r of roles(); track r.id) {
-                      <option [value]="r.id">{{ getRoleDisplayName(r.roleName) }}</option>
-                    }
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>Trạng thái CCCD</label>
-                  <select [(ngModel)]="editForm.verificationStatus" name="verificationStatus" class="form-select">
-                    <option value="None">Chưa xác minh</option>
-                    <option value="Approved">Đã xác minh</option>
-                    <option value="Pending">Chờ duyệt</option>
-                    <option value="Rejected">Bị từ chối</option>
-                  </select>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Email liên hệ</label>
+                    <input type="email" [(ngModel)]="editForm.email" name="email" class="form-input" placeholder="user@example.com" />
+                  </div>
+                  <div class="form-group">
+                    <label>Mật khẩu mới <span class="hint-text">(Để trống nếu không đổi)</span></label>
+                    <input type="password" [(ngModel)]="editForm.newPassword" name="newPassword" placeholder="Nhập ít nhất 6 ký tự..." class="form-input" autocomplete="new-password" />
+                  </div>
                 </div>
               </div>
 
-              <div class="form-row">
-                <div class="form-group">
-                  <label>Gói cước</label>
-                  <select [(ngModel)]="editForm.subscriptionId" name="subscriptionId" class="form-select">
-                    <option [value]="1">Gói Tiêu Chuẩn</option>
-                    <option [value]="2">Gói Pro</option>
-                    <option [value]="3">Gói Premium</option>
-                  </select>
+              <!-- PHẦN 2: PHÂN QUYỀN & XÁC MINH DANH TÍNH (CCCD) -->
+              <div class="form-section">
+                <div class="form-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                    <line x1="7" y1="8" x2="17" y2="8"></line>
+                    <line x1="7" y1="12" x2="11" y2="12"></line>
+                  </svg>
+                  <span>2. Phân quyền & Định danh CCCD</span>
                 </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Vai trò tài khoản <span class="required">*</span></label>
+                    <select [(ngModel)]="editForm.roleId" name="roleId" class="form-select">
+                      @for (r of roles(); track r.id) {
+                        <option [value]="r.id">{{ getRoleDisplayName(r.roleName) }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Trạng thái duyệt CCCD</label>
+                    <select [(ngModel)]="editForm.verificationStatus" name="verificationStatus" class="form-select">
+                      <option value="None">Chưa gửi xác minh (None)</option>
+                      <option value="Pending">Chờ duyệt (Pending)</option>
+                      <option value="Approved">Đã xác minh (Approved - Tích xanh)</option>
+                      <option value="Rejected">Bị từ chối (Rejected)</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div class="form-group">
-                  <label>Mật khẩu mới (Nếu cần đổi)</label>
-                  <input type="password" [(ngModel)]="editForm.newPassword" name="newPassword" placeholder="Để trống nếu không đổi..." class="form-input" />
+                  <label>Số CCCD / Mã số định danh cá nhân</label>
+                  <input type="text" [(ngModel)]="editForm.cccdNumber" name="cccdNumber" placeholder="Nhập 12 chữ số căn cước công dân..." class="form-input" />
+                </div>
+
+                <!-- ẢNH CCCD NẾU CÓ TRONG HỒ SƠ -->
+                @if (selectedUser()?.cccdFrontUrl || selectedUser()?.cccdBackUrl) {
+                  <div class="cccd-attached-box">
+                    <label class="cccd-attached-title">Ảnh CCCD đính kèm trong hồ sơ (Bấm vào ảnh để phóng to):</label>
+                    <div class="cccd-attached-grid">
+                      @if (selectedUser()?.cccdFrontUrl) {
+                        <div class="cccd-img-item" (click)="zoomImage(selectedUser()?.cccdFrontUrl)" title="Bấm để xem ảnh phóng to">
+                          <span class="cccd-img-tag">Mặt trước</span>
+                          <img [src]="getImageUrl(selectedUser()?.cccdFrontUrl)" (error)="onImageError($event, selectedUser()?.cccdFrontUrl)" alt="CCCD Mặt trước" />
+                        </div>
+                      }
+                      @if (selectedUser()?.cccdBackUrl) {
+                        <div class="cccd-img-item" (click)="zoomImage(selectedUser()?.cccdBackUrl)" title="Bấm để xem ảnh phóng to">
+                          <span class="cccd-img-tag">Mặt sau</span>
+                          <img [src]="getImageUrl(selectedUser()?.cccdBackUrl)" (error)="onImageError($event, selectedUser()?.cccdBackUrl)" alt="CCCD Mặt sau" />
+                        </div>
+                      }
+                    </div>
+                  </div>
+                }
+              </div>
+
+              <!-- PHẦN 3: GÓI CƯỚC VIP & THÔNG TIN THANH TOÁN (CHỦ TRỌ) -->
+              <div class="form-section">
+                <div class="form-section-title">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                  </svg>
+                  <span>3. Gói cước VIP & Tài khoản ngân hàng (Chủ trọ)</span>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Gói cước tài khoản</label>
+                    <select [(ngModel)]="editForm.subscriptionId" name="subscriptionId" class="form-select">
+                      <option [value]="1">Gói Tiêu Chuẩn</option>
+                      <option [value]="2">Gói Pro (Nâng cao)</option>
+                      <option [value]="3">Gói Premium (Toàn năng VIP)</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Hạn dùng gói cước</label>
+                    <input type="date" [(ngModel)]="editForm.subscriptionEndDate" name="subscriptionEndDate" class="form-input" />
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label>Tên ngân hàng (Vietcombank, MB, Techcombank, BIDV...)</label>
+                  <input type="text" [(ngModel)]="editForm.bankName" name="bankName" placeholder="Ví dụ: MB Bank, Vietcombank, VPBank..." class="form-input" />
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Số tài khoản ngân hàng</label>
+                    <input type="text" [(ngModel)]="editForm.bankAccountNumber" name="bankAccountNumber" placeholder="Ví dụ: 0382910284" class="form-input" />
+                  </div>
+                  <div class="form-group">
+                    <label>Tên chủ tài khoản (Chữ hoa không dấu)</label>
+                    <input type="text" [(ngModel)]="editForm.bankAccountName" name="bankAccountName" placeholder="Ví dụ: NGUYEN VAN A" class="form-input uppercase" />
+                  </div>
                 </div>
               </div>
 
               <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" (click)="closeModals()">Hủy bỏ</button>
                 <button type="submit" class="btn btn-primary" [disabled]="isSubmitting()">
-                  {{ isSubmitting() ? 'Đang lưu...' : 'Lưu thay đổi' }}
+                  {{ isSubmitting() ? 'Đang lưu...' : 'Lưu tất cả thay đổi' }}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      }
+
+      <!-- MODAL: PHÓNG TO ẢNH CCCD -->
+      @if (zoomedImageUrl()) {
+        <div class="modal-backdrop zoom-backdrop" (click)="closeZoom()">
+          <div class="zoom-card animate-pop" (click)="$event.stopPropagation()">
+            <div class="zoom-header">
+              <span>Chi tiết ảnh CCCD</span>
+              <button class="modal-close-btn" (click)="closeZoom()">✕</button>
+            </div>
+            <div class="zoom-body">
+              <img [src]="zoomedImageUrl()" class="zoomed-img" alt="CCCD Phóng to" />
+            </div>
           </div>
         </div>
       }
@@ -1063,6 +1163,11 @@ import { AuthService } from '../../services/auth.service';
       max-width: 420px;
     }
 
+    .modal-card.modal-lg {
+      max-width: 680px;
+      width: 100%;
+    }
+
     .modal-header {
       padding: 16px 20px;
       background: #f8fafc;
@@ -1198,6 +1303,169 @@ import { AuthService } from '../../services/auth.service';
       font-weight: 600;
       margin-top: 10px;
     }
+
+    /* Modal Large & Section Layout */
+    .modal-header-title {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-subtitle {
+      font-size: 0.78rem;
+      color: #64748b;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .modal-scrollable {
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 20px 24px;
+    }
+
+    .form-section {
+      margin-bottom: 20px;
+      padding-bottom: 16px;
+      border-bottom: 1px dashed #e2e8f0;
+    }
+
+    .form-section:last-of-type {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .form-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #1e293b;
+      margin-bottom: 12px;
+    }
+
+    .form-section-title svg {
+      width: 16px;
+      height: 16px;
+      color: #2563eb;
+    }
+
+    .hint-text {
+      font-size: 0.75rem;
+      font-weight: 400;
+      color: #94a3b8;
+      margin-left: 4px;
+    }
+
+    .uppercase {
+      text-transform: uppercase;
+    }
+
+    /* CCCD Preview in Modal */
+    .cccd-attached-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+
+    .cccd-attached-title {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #475569;
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .cccd-attached-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .cccd-img-item {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 1px solid #cbd5e1;
+      height: 120px;
+      cursor: pointer;
+      background: #0f172a;
+      transition: transform 0.15s, box-shadow 0.15s;
+    }
+
+    .cccd-img-item:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    }
+
+    .cccd-img-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.95;
+      transition: opacity 0.15s;
+    }
+
+    .cccd-img-item:hover img {
+      opacity: 1;
+    }
+
+    .cccd-img-tag {
+      position: absolute;
+      top: 6px;
+      left: 6px;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(4px);
+      color: #ffffff;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 4px;
+      z-index: 2;
+    }
+
+    /* Zoom Lightbox Modal */
+    .zoom-backdrop {
+      z-index: 10000;
+      background: rgba(15, 23, 42, 0.85);
+    }
+
+    .zoom-card {
+      background: #ffffff;
+      border-radius: 12px;
+      max-width: 800px;
+      width: 90vw;
+      overflow: hidden;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    }
+
+    .zoom-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 18px;
+      border-bottom: 1px solid #e2e8f0;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .zoom-body {
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #0f172a;
+    }
+
+    .zoomed-img {
+      max-height: 75vh;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+    }
   `]
 })
 export class AdminUsersComponent implements OnInit {
@@ -1244,6 +1512,7 @@ export class AdminUsersComponent implements OnInit {
   showEditModal = signal<boolean>(false);
   showRoleModal = signal<boolean>(false);
   showDeleteModal = signal<boolean>(false);
+  zoomedImageUrl = signal<string | null>(null);
 
   selectedUser = signal<any>(null);
 
@@ -1264,7 +1533,12 @@ export class AdminUsersComponent implements OnInit {
     email: '',
     roleId: 2,
     verificationStatus: 'None',
+    cccdNumber: '',
     subscriptionId: 1,
+    subscriptionEndDate: '',
+    bankName: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
     newPassword: ''
   };
 
@@ -1414,13 +1688,29 @@ export class AdminUsersComponent implements OnInit {
 
   openEditModal(user: any): void {
     this.selectedUser.set(user);
+
+    let formattedEndDate = '';
+    if (user.subscriptionEndDate) {
+      try {
+        const d = new Date(user.subscriptionEndDate);
+        if (!isNaN(d.getTime())) {
+          formattedEndDate = d.toISOString().split('T')[0];
+        }
+      } catch {}
+    }
+
     this.editForm = {
-      fullName: user.fullName,
-      phone: user.phone,
+      fullName: user.fullName || '',
+      phone: user.phone || '',
       email: user.email || '',
-      roleId: user.roleId,
+      roleId: Number(user.roleId) || 2,
       verificationStatus: user.verificationStatus || 'None',
-      subscriptionId: user.subscriptionId || 1,
+      cccdNumber: user.cccdNumber || '',
+      subscriptionId: Number(user.subscriptionId) || 1,
+      subscriptionEndDate: formattedEndDate,
+      bankName: user.bankName || '',
+      bankAccountNumber: user.bankAccountNumber || '',
+      bankAccountName: user.bankAccountName || '',
       newPassword: ''
     };
     this.showEditModal.set(true);
@@ -1442,7 +1732,34 @@ export class AdminUsersComponent implements OnInit {
     this.showEditModal.set(false);
     this.showRoleModal.set(false);
     this.showDeleteModal.set(false);
+    this.zoomedImageUrl.set(null);
     this.selectedUser.set(null);
+  }
+
+  // Zoom & Image preview helpers
+  zoomImage(url?: string): void {
+    if (!url) return;
+    this.zoomedImageUrl.set(this.getImageUrl(url));
+  }
+
+  closeZoom(): void {
+    this.zoomedImageUrl.set(null);
+  }
+
+  getImageUrl(url?: string): string {
+    if (!url) return '';
+    return url.startsWith('http') ? url : environment.baseUrl + (url.startsWith('/') ? '' : '/') + url;
+  }
+
+  onImageError(event: Event, originalUrl?: string): void {
+    const img = event.target as HTMLImageElement;
+    if (!img) return;
+    if (img.src.includes('localhost:5000') && originalUrl) {
+      const cleanPath = originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl;
+      img.src = 'https://zhome-be.onrender.com' + cleanPath;
+      return;
+    }
+    img.style.display = 'none';
   }
 
   submitCreateUser(): void {
@@ -1470,22 +1787,48 @@ export class AdminUsersComponent implements OnInit {
     const user = this.selectedUser();
     if (!user) return;
 
-    if (!this.editForm.fullName.trim() || !this.editForm.phone.trim()) {
+    if (!this.editForm.fullName?.trim() || !this.editForm.phone?.trim()) {
       this.toastService.show('Họ tên và số điện thoại không được để trống.', 'info');
       return;
     }
 
+    const payload: any = {
+      fullName: this.editForm.fullName.trim(),
+      phone: this.editForm.phone.trim(),
+      email: this.editForm.email?.trim() || null,
+      roleId: Number(this.editForm.roleId),
+      verificationStatus: this.editForm.verificationStatus,
+      cccdNumber: this.editForm.cccdNumber?.trim() || null,
+      subscriptionId: Number(this.editForm.subscriptionId) || 1,
+      bankName: this.editForm.bankName?.trim() || null,
+      bankAccountNumber: this.editForm.bankAccountNumber?.trim() || null,
+      bankAccountName: this.editForm.bankAccountName?.trim() || null
+    };
+
+    if (this.editForm.subscriptionEndDate) {
+      payload.subscriptionEndDate = new Date(this.editForm.subscriptionEndDate).toISOString();
+    }
+
+    if (this.editForm.newPassword && this.editForm.newPassword.trim()) {
+      if (this.editForm.newPassword.trim().length < 6) {
+        this.toastService.show('Mật khẩu mới phải từ 6 ký tự trở lên.', 'error');
+        return;
+      }
+      payload.newPassword = this.editForm.newPassword.trim();
+    }
+
     this.isSubmitting.set(true);
-    this.adminService.updateUser(user.id, this.editForm).subscribe({
+    this.adminService.updateUser(user.id, payload).subscribe({
       next: () => {
-        this.toastService.show('Cập nhật tài khoản thành công!', 'success');
+        this.toastService.show('Cập nhật tài khoản người dùng thành công!', 'success');
         this.isSubmitting.set(false);
         this.closeModals();
         this.loadUsers();
       },
       error: (err) => {
         this.isSubmitting.set(false);
-        this.toastService.show(err.error || 'Lỗi khi cập nhật tài khoản.', 'error');
+        const errMsg = typeof err.error === 'string' ? err.error : (err.error?.message || 'Lỗi khi cập nhật tài khoản.');
+        this.toastService.show(errMsg, 'error');
       }
     });
   }

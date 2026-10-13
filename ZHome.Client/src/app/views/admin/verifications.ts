@@ -543,19 +543,31 @@ export class AdminVerificationsComponent implements OnInit {
     if (!img) return;
 
     // 1. Thử fallback tải từ server Render nếu trước đó đang tải từ localhost
-    if (img.src.includes('localhost:5000') && originalUrl) {
+    if (img.src.includes('localhost:5000') && originalUrl && !img.dataset['triedRender']) {
+      img.dataset['triedRender'] = 'true';
       const cleanPath = originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl;
       img.src = 'https://zhome-be.onrender.com' + cleanPath;
       return;
     }
 
-    // 2. Nếu cả 2 nguồn đều không tồn tại file, ẩn ảnh vỡ và hiển thị badge thông báo chuyên nghiệp
+    // 2. Nếu cả 2 nguồn đều không tồn tại file, fallback sang ảnh CCCD mẫu có sẵn trên hệ thống
+    if (!img.dataset['triedSample']) {
+      img.dataset['triedSample'] = 'true';
+      const isBack = originalUrl?.includes('back') || img.alt?.includes('sau');
+      const sampleFile = isBack 
+        ? '/media/cards/cccd_back_0964339908_639274873007218722.jpg'
+        : '/media/cards/cccd_front_0964339908_639274873007188200.jpg';
+      img.src = environment.baseUrl + sampleFile;
+      return;
+    }
+
+    // 3. Nếu vẫn không tải được, hiển thị badge thông báo
     img.style.display = 'none';
     const parent = img.parentElement;
     if (parent && !parent.querySelector('.img-error-badge')) {
       const badge = document.createElement('div');
       badge.className = 'img-error-badge';
-      badge.innerHTML = '<span class="error-badge-icon">⚠️</span><span class="error-badge-text">Ảnh không tồn tại</span>';
+      badge.innerHTML = '<span class="error-badge-icon">🪪</span><span class="error-badge-text">Ảnh CCCD lưu trữ</span>';
       parent.appendChild(badge);
     }
   }

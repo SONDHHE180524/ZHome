@@ -27,6 +27,10 @@ export class PropertyService {
     return this.http.put<any>(`${this.apiUrl}/${id}`, data);
   }
 
+  deleteProperty(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  }
+
   updatePropertyImage(id: number, imageBase64: string): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${id}/image`, { imageBase64 });
   }
