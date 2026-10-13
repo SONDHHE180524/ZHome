@@ -96,6 +96,59 @@ namespace ZHome.API.Controllers
         }
 
         [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("claim-promo-trial")]
+        public async Task<IActionResult> ClaimPromoTrial()
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+            {
+                return NotFound("Người dùng không tồn tại.");
+            }
+
+            // Kiểm tra khung thời gian ưu đãi: Từ 01/10 đến 31/10
+            var now = DateTime.Now;
+            var promoStart = new DateTime(now.Year, 10, 1, 0, 0, 0);
+            var promoEnd = new DateTime(now.Year, 10, 31, 23, 59, 59);
+
+            if (now < promoStart || now > promoEnd)
+            {
+                return BadRequest("Chương trình ưu đãi dùng thử miễn phí đã kết thúc hoặc chưa bắt đầu (Áp dụng từ 01/10 đến 31/10).");
+            }
+
+            // Kích hoạt Gói 2 (Gói Cơ Bản - 99.000đ) miễn phí 1 tháng
+            var package = await _context.SubscriptionPackages.FindAsync(2);
+            if (package == null)
+            {
+                return NotFound("Gói Cơ Bản không tồn tại.");
+            }
+
+            user.SubscriptionId = 2;
+            if (user.SubscriptionEndDate.HasValue && user.SubscriptionEndDate.Value > DateTime.UtcNow)
+            {
+                user.SubscriptionEndDate = user.SubscriptionEndDate.Value.AddMonths(1);
+            }
+            else
+            {
+                user.SubscriptionEndDate = DateTime.UtcNow.AddMonths(1);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Chúc mừng bạn đã kích hoạt dùng thử miễn phí 1 tháng Gói Cơ Bản thành công!",
+                subscriptionId = user.SubscriptionId,
+                subscriptionEndDate = user.SubscriptionEndDate
+            });
+        }
+
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpPost("create-sepay-payment")]
         [HttpPost("create-payos-payment")] // Backwards compatibility alias
         public async Task<IActionResult> CreateSePayPayment([FromBody] CreateSePayPaymentRequestDto request)

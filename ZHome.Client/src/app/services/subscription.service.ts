@@ -63,6 +63,10 @@ export class SubscriptionService {
     return this.http.post<any>(`${this.apiUrl}/purchase`, { packageId, months });
   }
 
+  claimPromoTrial(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/claim-promo-trial`, {});
+  }
+
   createSePayPayment(packageId: number, months: number = 1): Observable<SePayPaymentResponse> {
     return this.http.post<SePayPaymentResponse>(`${this.apiUrl}/create-sepay-payment`, { packageId, months });
   }

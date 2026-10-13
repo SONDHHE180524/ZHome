@@ -46,7 +46,6 @@ import { environment } from '../../../environments/environment';
                     <td>
                       <div class="landlord-info-cell">
                         <span class="landlord-name-val">{{ item.fullName }}</span>
-                        <span class="landlord-date-val">Đăng ký: {{ item.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
                       </div>
                     </td>
                     <td>
@@ -174,10 +173,6 @@ import { environment } from '../../../environments/environment';
       font-weight: 700;
       color: var(--text-main);
       font-size: 0.95rem;
-    }
-    .landlord-date-val {
-      font-size: 0.75rem;
-      color: var(--text-dark);
     }
     .contact-cell {
       font-size: 0.9rem;
