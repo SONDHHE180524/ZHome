@@ -59,14 +59,35 @@ import { environment } from '../../../environments/environment';
                     </td>
                     <td>
                       <div class="cccd-images-cell">
-                        <div class="image-thumb-wrapper" (click)="zoomImage(getImageUrl(item.cccdFrontUrl), 'Mặt trước CCCD')">
-                          <img [src]="getImageUrl(item.cccdFrontUrl)" alt="Mặt trước" class="cccd-thumb" />
-                          <span class="zoom-overlay">🔍 Xem</span>
-                        </div>
-                        <div class="image-thumb-wrapper" (click)="zoomImage(getImageUrl(item.cccdBackUrl), 'Mặt sau CCCD')">
-                          <img [src]="getImageUrl(item.cccdBackUrl)" alt="Mặt sau" class="cccd-thumb" />
-                          <span class="zoom-overlay">🔍 Xem</span>
-                        </div>
+                        @if (item.cccdFrontUrl) {
+                          <div class="image-thumb-wrapper" (click)="zoomImage(item.cccdFrontUrl, 'Mặt trước CCCD - ' + item.fullName, $event)" title="Nhấn để xem phóng to ảnh mặt trước">
+                            <img [src]="getImageUrl(item.cccdFrontUrl)" 
+                                 alt="Mặt trước" 
+                                 class="cccd-thumb" 
+                                 (error)="onImageError($event, item.cccdFrontUrl)" />
+                            <span class="zoom-overlay">🔍 Xem</span>
+                          </div>
+                        } @else {
+                          <div class="no-image-placeholder" title="Chưa cập nhật ảnh mặt trước">
+                            <span class="placeholder-icon">🪪</span>
+                            <span class="placeholder-text">Chưa có ảnh</span>
+                          </div>
+                        }
+
+                        @if (item.cccdBackUrl) {
+                          <div class="image-thumb-wrapper" (click)="zoomImage(item.cccdBackUrl, 'Mặt sau CCCD - ' + item.fullName, $event)" title="Nhấn để xem phóng to ảnh mặt sau">
+                            <img [src]="getImageUrl(item.cccdBackUrl)" 
+                                 alt="Mặt sau" 
+                                 class="cccd-thumb" 
+                                 (error)="onImageError($event, item.cccdBackUrl)" />
+                            <span class="zoom-overlay">🔍 Xem</span>
+                          </div>
+                        } @else {
+                          <div class="no-image-placeholder" title="Chưa cập nhật ảnh mặt sau">
+                            <span class="placeholder-icon">🪪</span>
+                            <span class="placeholder-text">Chưa có ảnh</span>
+                          </div>
+                        }
                       </div>
                     </td>
                     <td>
@@ -120,7 +141,10 @@ import { environment } from '../../../environments/environment';
             <button (click)="closeZoom()" class="modal-close-btn">&times;</button>
             <h3 class="viewer-title">{{ zoomedImageTitle() }}</h3>
             <div class="viewer-image-wrapper">
-              <img [src]="zoomedImageUrl()" alt="CCCD Zoom" class="viewer-img" />
+              <img [src]="zoomedImageUrl()" 
+                   alt="CCCD Zoom" 
+                   class="viewer-img" 
+                   (error)="onZoomImageError($event)" />
             </div>
           </div>
         </div>
@@ -233,6 +257,54 @@ import { environment } from '../../../environments/environment';
     }
     .image-thumb-wrapper:hover .zoom-overlay {
       opacity: 1;
+    }
+    .no-image-placeholder {
+      width: 80px;
+      height: 50px;
+      border-radius: var(--radius-sm);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed rgba(255, 255, 255, 0.18);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: var(--text-muted);
+      cursor: default;
+      user-select: none;
+    }
+    .placeholder-icon {
+      font-size: 0.95rem;
+      line-height: 1;
+    }
+    .placeholder-text {
+      font-size: 0.65rem;
+      white-space: nowrap;
+    }
+    .img-error-badge {
+      position: absolute;
+      inset: 0;
+      background: rgba(239, 68, 68, 0.12);
+      border: 1px dashed rgba(239, 68, 68, 0.45);
+      border-radius: var(--radius-sm);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2px;
+      color: #f87171;
+      padding: 2px;
+      text-align: center;
+      z-index: 2;
+    }
+    .img-error-badge .error-badge-icon {
+      font-size: 0.9rem;
+      line-height: 1;
+    }
+    .img-error-badge .error-badge-text {
+      font-size: 0.62rem;
+      line-height: 1.1;
+      font-weight: 500;
     }
     .actions-cell {
       display: flex;
@@ -440,8 +512,20 @@ export class AdminVerificationsComponent implements OnInit {
     });
   }
 
-  zoomImage(url: string, title: string): void {
-    this.zoomedImageUrl.set(url);
+  zoomImage(url: string, title: string, event?: MouseEvent): void {
+    if (!url) return;
+    const target = event?.currentTarget as HTMLElement;
+    const img = target?.querySelector('img') as HTMLImageElement;
+
+    // Nếu ảnh bị lỗi hoàn toàn không tải được
+    if (img && img.style.display === 'none') {
+      this.toastService.show('Không thể xem do tệp ảnh này không tồn tại trên hệ thống.', 'info');
+      return;
+    }
+
+    // Ưu tiên dùng URL ảnh đã tải thành công (kể cả URL fallback từ Render)
+    const effectiveUrl = (img && img.src && !img.src.includes('localhost:5000')) ? img.src : this.getImageUrl(url);
+    this.zoomedImageUrl.set(effectiveUrl);
     this.zoomedImageTitle.set(title);
   }
 
@@ -451,6 +535,36 @@ export class AdminVerificationsComponent implements OnInit {
 
   getImageUrl(url?: string): string {
     if (!url) return '';
-    return url.startsWith('http') ? url : environment.baseUrl + url;
+    return url.startsWith('http') ? url : environment.baseUrl + (url.startsWith('/') ? '' : '/') + url;
+  }
+
+  onImageError(event: Event, originalUrl?: string): void {
+    const img = event.target as HTMLImageElement;
+    if (!img) return;
+
+    // 1. Thử fallback tải từ server Render nếu trước đó đang tải từ localhost
+    if (img.src.includes('localhost:5000') && originalUrl) {
+      const cleanPath = originalUrl.startsWith('/') ? originalUrl : '/' + originalUrl;
+      img.src = 'https://zhome-be.onrender.com' + cleanPath;
+      return;
+    }
+
+    // 2. Nếu cả 2 nguồn đều không tồn tại file, ẩn ảnh vỡ và hiển thị badge thông báo chuyên nghiệp
+    img.style.display = 'none';
+    const parent = img.parentElement;
+    if (parent && !parent.querySelector('.img-error-badge')) {
+      const badge = document.createElement('div');
+      badge.className = 'img-error-badge';
+      badge.innerHTML = '<span class="error-badge-icon">⚠️</span><span class="error-badge-text">Ảnh không tồn tại</span>';
+      parent.appendChild(badge);
+    }
+  }
+
+  onZoomImageError(event: Event): void {
+    const img = event.target as HTMLImageElement;
+    if (!img) return;
+    if (img.src.includes('localhost:5000')) {
+      img.src = img.src.replace('http://localhost:5000', 'https://zhome-be.onrender.com');
+    }
   }
 }
