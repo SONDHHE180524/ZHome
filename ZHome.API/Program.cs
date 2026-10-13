@@ -290,6 +290,55 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
+// ==========================================
+// TỰ ĐỘNG ĐỒNG BỘ MEDIA/UPLOADS TỪ PRODUCTION (RENDER) NẾU LOCALHOST CHƯA CÓ
+// ==========================================
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase) || 
+        path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+    {
+        var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        var relativeFilePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var localFilePath = Path.Combine(webRoot, relativeFilePath);
+
+        if (!File.Exists(localFilePath))
+        {
+            try
+            {
+                var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+                var client = httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(5);
+                var remoteUrl = $"https://zhome-be.onrender.com{path}";
+                var response = await client.GetAsync(remoteUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var dir = Path.GetDirectoryName(localFilePath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    await File.WriteAllBytesAsync(localFilePath, bytes);
+
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+                    context.Response.ContentType = contentType;
+                    await context.Response.Body.WriteAsync(bytes);
+                    return;
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu lỗi mạng và chuyển tiếp sang pipeline kế tiếp (trả 404 bình thường)
+            }
+        }
+    }
+
+    await next();
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();

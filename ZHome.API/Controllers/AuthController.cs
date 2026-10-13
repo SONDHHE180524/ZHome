@@ -163,9 +163,10 @@ namespace ZHome.API.Controllers
                 var header = parts[0];
                 base64Data = parts[1];
 
-                if (header.Contains("image/jpeg")) extension = ".jpg";
+                if (header.Contains("image/jpeg") || header.Contains("image/jpg")) extension = ".jpg";
                 else if (header.Contains("image/webp")) extension = ".webp";
                 else if (header.Contains("image/gif")) extension = ".gif";
+                else if (header.Contains("image/png")) extension = ".png";
             }
 
             byte[] imageBytes = Convert.FromBase64String(base64Data);
