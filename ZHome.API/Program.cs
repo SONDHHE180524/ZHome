@@ -298,6 +298,7 @@ app.UseRouting();
 app.UseCors("AllowFrontend");
 
 // Kích hoạt Rate Limiter chống spam request và DDoS/Brute-force
+//ss
 app.UseRateLimiter();
 
 app.UseAuthentication();
