@@ -6,15 +6,20 @@ using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
 using ZHome.API.Models.Entities;
 
+using Microsoft.AspNetCore.SignalR;
+using ZHome.API.Hubs;
+
 namespace ZHome.API.Services
 {
     public class NotificationService : INotificationService
     {
         private readonly ZHomeDbContext _context;
+        private readonly IHubContext<NotificationHub> _hubContext;
 
-        public NotificationService(ZHomeDbContext context)
+        public NotificationService(ZHomeDbContext context, IHubContext<NotificationHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         public async Task<Notification> CreateNotificationAsync(long userId, string title, string message, string type, string? targetUrl = null, long? referenceId = null)
@@ -33,6 +38,28 @@ namespace ZHome.API.Services
 
             _context.Notifications.Add(notification);
             await _context.SaveChangesAsync();
+
+            // Real-time Push qua SignalR tới người dùng nhận thông báo
+            try
+            {
+                await _hubContext.Clients.Group($"user_{userId}").SendAsync("ReceiveNotification", new
+                {
+                    id = notification.Id,
+                    userId = notification.UserId,
+                    title = notification.Title,
+                    message = notification.Message,
+                    type = notification.Type,
+                    targetUrl = notification.TargetUrl,
+                    referenceId = notification.ReferenceId,
+                    isRead = notification.IsRead,
+                    createdAt = notification.CreatedAt
+                });
+            }
+            catch
+            {
+                // Bỏ qua nếu SignalR lỗi ngắt kết nối tạm thời
+            }
+
             return notification;
         }
 
@@ -62,6 +89,24 @@ namespace ZHome.API.Services
             if (adminUsers.Any())
             {
                 await _context.SaveChangesAsync();
+
+                // Real-time Push qua SignalR tới tất cả Quản trị viên
+                try
+                {
+                    await _hubContext.Clients.Group("admins").SendAsync("ReceiveNotification", new
+                    {
+                        title = title,
+                        message = message,
+                        type = type,
+                        targetUrl = targetUrl,
+                        referenceId = referenceId,
+                        createdAt = now
+                    });
+                }
+                catch
+                {
+                    // Bỏ qua nếu SignalR lỗi ngắt kết nối tạm thời
+                }
             }
         }
 

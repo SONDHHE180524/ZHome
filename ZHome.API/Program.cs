@@ -76,6 +76,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IBillService, BillService>();
 
 // Cấu hình cài đặt thanh toán (SePay & PayOS) từ appsettings.json
 builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
@@ -88,6 +89,7 @@ builder.Services.AddSingleton<PaymentOrderStore>();
 
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // ==========================================
 // 4. CẤU HÌNH SWAGGER UI
@@ -137,6 +139,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        // Cho phép SignalR WebSockets xác thực qua Query String access_token
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -354,5 +371,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ZHome.API.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();

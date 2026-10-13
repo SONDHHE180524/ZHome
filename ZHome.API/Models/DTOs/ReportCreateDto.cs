@@ -13,6 +13,8 @@ namespace ZHome.API.Models.DTOs
 
         public long? ContractId { get; set; }
         
+        public long? PropertyId { get; set; }
+        
         [Range(1, 5)]
         public int? Rating { get; set; }
     }

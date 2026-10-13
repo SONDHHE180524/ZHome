@@ -737,6 +737,9 @@ import { ToastService } from '../../services/toast.service';
               <!-- Footer Buttons (Hidden on Print) -->
               <div class="modal-actions-footer mt-4 no-print">
                 <button type="button" class="btn-cancel-custom" (click)="showLegalDocModal.set(false)">Đóng</button>
+                <a [href]="'/contract-print/' + (doc.id || doc.contractId)" target="_blank" class="btn-cancel-custom" style="border-color: #059669; color: #059669; font-weight: 600; text-decoration: none; display: inline-flex; align-items: center;">
+                  📄 Mở Bản In / Xuất PDF A4
+                </a>
                 <button type="button" class="btn-cancel-custom" style="border-color: #2563eb; color: #2563eb; font-weight: 600;" (click)="exportToWordDoc()">
                   Xuất File Word (.doc)
                 </button>

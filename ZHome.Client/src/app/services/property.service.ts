@@ -90,7 +90,7 @@ export class PropertyService {
     return this.http.post<any>(`${this.apiUrl}/favorites/${roomId}`, {});
   }
 
-  getPropertyReports(propertyId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/report/property/${propertyId}`);
+  getPropertyReports(propertyId: number): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/report/property/${propertyId}`);
   }
 }
