@@ -418,9 +418,12 @@ import { ReportService } from '../../services/report.service';
                 </div>
               }
             </div>
-            <div class="modal-footer">
+            <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
               <button class="btn btn-secondary" (click)="closeContractModal()">Đóng</button>
-              <button class="btn btn-primary" (click)="printContract()">️ In Hợp Đồng</button>
+              <a [href]="'/contract-print/' + contractDoc()?.contractId" target="_blank" class="btn btn-outline" style="text-decoration: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid #059669; color: #059669; font-weight: 600; padding: 8px 16px; border-radius: 6px;">
+                📄 Mở Bản In / Xuất PDF A4
+              </a>
+              <button class="btn btn-primary" (click)="printContract()">🖨️ In Hợp Đồng</button>
             </div>
           </div>
         </div>
@@ -1029,12 +1032,10 @@ export class MyRentalComponent implements OnInit {
   }
 
   canReport(startDate: string): boolean {
+    if (!startDate) return true;
     const start = new Date(startDate);
     const now = new Date();
-    const diffTime = now.getTime() - start.getTime();
-    if (diffTime < 0) return false;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays <= 30; // within 1 month after staying
+    return now.getTime() >= start.getTime(); // Có thể đánh giá bất cứ lúc nào trong suốt thời gian thuê
   }
 
   openReportModal(): void {
