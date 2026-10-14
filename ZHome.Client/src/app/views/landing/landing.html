@@ -214,7 +214,7 @@
       </div>
 
       <!-- Hot Rooms Grid -->
-      @if (isLoading()) {
+      @if (isLoading() && hotProperties().length === 0) {
         <div class="loading-state-card">
           <div class="spinner"></div>
           <p>Đang tải danh sách phòng hot...</p>
@@ -227,7 +227,7 @@
       } @else {
         <div class="properties-grid">
           @for (prop of hotProperties(); track prop.propertyId) {
-            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop}"></ng-container>
+            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop, isHotSection: true}"></ng-container>
           }
         </div>
       }
@@ -674,14 +674,14 @@
   <!-- ========================================================== -->
   <!-- REUSABLE PROPERTY CARD TEMPLATE WITH 3-SECOND HOVER SLIDES -->
   <!-- ========================================================== -->
-  <ng-template #propertyCardTpl let-prop>
+  <ng-template #propertyCardTpl let-prop let-isHotSection="isHotSection">
     <div class="interactive-card property-card-rounded"
          (mouseenter)="startPropertyHoverSlideshow(prop)"
          (mouseleave)="stopPropertyHoverSlideshow(prop)"
          (click)="openPropertyDetail(prop)">
       
       <!-- Top Badges -->
-      @if (prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
+      @if (isHotSection || prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
         <div class="hot-badge-large">
           <span class="flame-icon">🔥</span>
           <span>HOT</span>

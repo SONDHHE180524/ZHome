@@ -25,7 +25,7 @@
   width: 100%;
   border-radius: 24px;
   overflow: hidden;
-  box-shadow: 0 20px 40px -10px rgba(180, 83, 9, 0.22);
+  box-shadow: 0 20px 40px -10px rgba(30, 58, 138, 0.28);
 }
 
 .banner-track {
@@ -46,17 +46,17 @@
   overflow: hidden;
 }
 
-/* Slide Gradients Warm & Premium */
+/* Slide Gradients Modern Deep Blue & Vibrant Sapphire */
 .slide-tim-tro {
-  background: linear-gradient(135deg, #a85111 0%, #c2691e 40%, #d97706 75%, #f59e0b 100%);
+  background: linear-gradient(135deg, #091a3c 0%, #173b7d 35%, #1d4ed8 70%, #0284c7 100%);
 }
 
 .slide-roommate {
-  background: linear-gradient(135deg, #9a3412 0%, #b44a1e 40%, #c2410c 75%, #ea580c 100%);
+  background: linear-gradient(135deg, #081a38 0%, #1e40af 40%, #2563eb 75%, #0ea5e9 100%);
 }
 
 .slide-quan-ly {
-  background: linear-gradient(135deg, #78350f 0%, #92400e 40%, #b45309 75%, #d97706 100%);
+  background: linear-gradient(135deg, #071e3d 0%, #0369a1 40%, #0284c7 75%, #38bdf8 100%);
 }
 
 .banner-grid {
@@ -128,8 +128,8 @@
   display: inline-flex;
   align-items: baseline;
   gap: 8px;
-  background: rgba(255, 255, 255, 0.88);
-  color: #92400e;
+  background: rgba(255, 255, 255, 0.94);
+  color: #1e3a8a;
   padding: 6px 18px;
   border-radius: 9999px;
   font-size: 0.95rem;
@@ -145,14 +145,14 @@
   font-size: 1.25rem;
   font-weight: bold;
   text-transform: none;
-  color: #b45309;
+  color: #0284c7;
 }
 
 .banner-web-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(0, 0, 0, 0.18);
+  background: rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(8px);
   padding: 4px 14px;
@@ -184,7 +184,7 @@
   align-items: center;
   gap: 8px;
   background: #ffffff;
-  color: #92400e;
+  color: #1d4ed8;
   border: none;
   padding: 12px 24px;
   border-radius: 9999px;
@@ -197,9 +197,9 @@
 
 .btn-banner-cta:hover {
   transform: translateY(-2px);
-  background: #fffbeb;
+  background: #f0f9ff;
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.24);
-  color: #78350f;
+  color: #0284c7;
 }
 
 .btn-banner-secondary {
