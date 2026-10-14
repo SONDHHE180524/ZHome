@@ -373,7 +373,7 @@
               </div>
               <div class="c-text">
                 <span class="c-label">Địa chỉ trụ sở chính:</span>
-                <span class="c-val">Khu Công Nghệ Cao Hòa Lạc, Thạch Thất, TP. Hà Nội</span>
+                <span class="c-val">Khu Công Nghệ Cao Hòa Lạc, Thạch Thất</span>
               </div>
             </div>
 
@@ -839,7 +839,7 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
           </svg>
-          <span>{{ prop.address }}</span>
+          <span>{{ formatDisplayAddress(prop.address) }}</span>
         </p>
 
         <div class="hot-card-price-row">
@@ -924,7 +924,7 @@
               <tr>
                 <td class="col-criteria">📍 Địa chỉ & Vị trí</td>
                 @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
-                  <td>{{ r.address }}</td>
+                  <td>{{ formatDisplayAddress(r.address) }}</td>
                 }
               </tr>
               <tr>

@@ -791,7 +791,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2001,
         propertyTitle: 'Trung Đức Home',
-        address: 'Chợ Hoà Lạc',
+        address: 'Thạch Hoà, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 1,
         landlordName: 'Trung Đức',
@@ -813,7 +813,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2002,
         propertyTitle: 'Biệt Thự Ngay Cổng ĐHQG',
-        address: 'Cổng phụ Đại học QGHN cơ sở Hoà Lạc',
+        address: 'Thạch Hoà, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 2,
         landlordName: 'Nguyễn Văn Minh',
@@ -835,7 +835,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2003,
         propertyTitle: 'C Home 6',
-        address: 'Hạ Bằng',
+        address: 'Hạ Bằng, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 3,
         landlordName: 'Hạ Bằng ZHome',
@@ -857,7 +857,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2004,
         propertyTitle: "C Home's 5",
-        address: 'Cây xăng 39',
+        address: 'Thạch Hoà, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 4,
         landlordName: 'C Home',
@@ -879,7 +879,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2005,
         propertyTitle: 'LuxHome - URHome',
-        address: 'Vận Lôi',
+        address: 'Bình Yên, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 5,
         landlordName: 'LuxHome',
@@ -901,7 +901,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2006,
         propertyTitle: 'Trọ Bắc Phú Cát',
-        address: 'Khu Tái Định Cư Bắc Phú Cát',
+        address: 'Phú Cát, Quốc Oai',
         isVerifiedTick: true,
         landlordId: 6,
         landlordName: 'Nguyễn Thành Tùng',
@@ -923,7 +923,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2007,
         propertyTitle: 'YoungHouse 2 - Phòng Studio 2...',
-        address: '64 Phú Hữu',
+        address: 'Tân Xã, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 7,
         landlordName: 'YoungHouse',
@@ -945,7 +945,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       {
         propertyId: 2008,
         propertyTitle: 'C Home 7',
-        address: 'Thôn 3',
+        address: 'Thạch Hoà, Thạch Thất',
         isVerifiedTick: true,
         landlordId: 8,
         landlordName: 'C Home',
@@ -1031,6 +1031,22 @@ export class LandingComponent implements OnInit, OnDestroy {
     if (id) {
       this.router.navigate(['/phong-tro-detail', id]);
     }
+  }
+
+  formatDisplayAddress(address?: string): string {
+    if (!address) return 'Thạch Thất';
+    let clean = address
+      .replace(/,\s*(TP\.?|Thành phố)?\s*Hà Nội/gi, '')
+      .replace(/,\s*Việt Nam/gi, '')
+      .replace(/(TP\.?|Thành phố)\s*Hà Nội/gi, '')
+      .replace(/Hà Nội/gi, '')
+      .trim();
+    clean = clean.replace(/^,\s*/, '').replace(/,\s*$/, '').trim();
+    const parts = clean.split(',').map(p => p.trim()).filter(Boolean);
+    if (parts.length <= 2) {
+      return clean || 'Thạch Thất';
+    }
+    return parts.slice(-2).join(', ');
   }
 
   defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
