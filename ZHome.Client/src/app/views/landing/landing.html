@@ -194,7 +194,21 @@
     <!-- 1.2 SECTION: LỰA CHỌN CHỖ Ở HOT (EXACT MATCH TO USER SCREENSHOT) -->
     <section class="hot-properties-section">
       <div class="hot-section-header">
-        <h2 class="hot-section-title">Lựa chọn chỗ ở HOT</h2>
+        <h2 class="hot-section-title">
+          <span>Lựa chọn chỗ ở HOT</span>
+          <span class="title-hot-flame-wrapper">
+            <svg class="flame-svg-title" viewBox="0 0 24 24" fill="url(#flameGradTitle)" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="flameGradTitle" x1="0" y1="1" x2="0" y2="0">
+                  <stop offset="0%" stop-color="#ea580c"/>
+                  <stop offset="55%" stop-color="#ef4444"/>
+                  <stop offset="100%" stop-color="#fde047"/>
+                </linearGradient>
+              </defs>
+              <path d="M12 23c4.97 0 9-4.03 9-9 0-4.07-3.04-7.44-4.88-9.15a1 1 0 0 0-1.63.78C14.3 8.35 13.5 10 12 10c-1.5 0-2.5-1.5-2.5-3.5 0-.96-.4-2.18-1-3.15a1 1 0 0 0-1.74.07C5.35 6.2 3 10.02 3 14c0 4.97 4.03 9 9 9z"/>
+            </svg>
+          </span>
+        </h2>
         <p class="hot-section-subtitle">Lựa chọn chỗ ở HOT mà chúng tôi đề xuất cho bạn</p>
       </div>
 
@@ -754,8 +768,24 @@
              (load)="onImageLoaded($event)"
              (error)="onImageError($event)" />
 
-        <!-- Status Badge: Top Left (Còn phòng / Hết phòng) -->
+        <!-- Status Badge: Top Left (HOT Animation + Còn phòng / Hết phòng) -->
         <div class="thumb-badge-top-left">
+          @if (prop.isHot || prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.viewCount >= 8) {
+            <span class="hot-badge-anim" title="Phòng trọ HOT được quan tâm nhiều nhất!">
+              <svg class="flame-svg-anim" viewBox="0 0 24 24" fill="url(#flameGradBadge)" xmlns="http://www.w3.org/2000/svg">
+                <defs>
+                  <linearGradient id="flameGradBadge" x1="0" y1="1" x2="0" y2="0">
+                    <stop offset="0%" stop-color="#ea580c"/>
+                    <stop offset="55%" stop-color="#ef4444"/>
+                    <stop offset="100%" stop-color="#fde047"/>
+                  </linearGradient>
+                </defs>
+                <path d="M12 23c4.97 0 9-4.03 9-9 0-4.07-3.04-7.44-4.88-9.15a1 1 0 0 0-1.63.78C14.3 8.35 13.5 10 12 10c-1.5 0-2.5-1.5-2.5-3.5 0-.96-.4-2.18-1-3.15a1 1 0 0 0-1.74.07C5.35 6.2 3 10.02 3 14c0 4.97 4.03 9 9 9z"/>
+              </svg>
+              <span class="hot-badge-text">HOT</span>
+            </span>
+          }
+
           @if (prop.vacantRoomsCount > 0 || prop.status === 'Available') {
             <span class="status-pill green-pill">Còn phòng</span>
           } @else {
@@ -763,7 +793,7 @@
           }
         </div>
 
-        <!-- Top Right Actions: Grid Icon + Heart Icon + Compare Button -->
+        <!-- Top Right Actions: Compare Button + Favorite Button (Square icon removed) -->
         <div class="thumb-actions-top-right">
           <!-- So Sánh Button (Max 3) -->
           <button class="btn-compare-tag"
@@ -774,12 +804,6 @@
               <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
             <span>{{ isRoomInCompare(prop) ? 'Đang so sánh' : 'So sánh' }}</span>
-          </button>
-
-          <button class="action-circle-btn" title="Xem tổng quan layout">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-            </svg>
           </button>
 
           <button class="action-circle-btn" (click)="toggleFavorite(prop, $event)" title="Lưu yêu thích">
