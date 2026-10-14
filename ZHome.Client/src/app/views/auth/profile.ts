@@ -177,6 +177,53 @@ import { environment } from '../../../environments/environment';
                     </div>
                   </div>
 
+                  <!-- Landlord CCCD Photos Section -->
+                  @if (profileData()?.roleName === 'Landlord' || profileData()?.roleName === 'Administrator') {
+                    <div class="cccd-section-wrapper mt-4">
+                      <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="bank-icon-badge">🪪</span>
+                        <div>
+                          <h4 class="m-0 font-bold text-dark">Ảnh Căn Cước Công Dân (Mặt trước & Mặt sau)</h4>
+                          <p class="text-muted text-xs m-0">Tải lên ảnh chụp rõ nét để duyệt tích xanh xác thực chủ trọ chính chủ</p>
+                        </div>
+                      </div>
+
+                      <div class="cccd-profile-grid mt-3">
+                        <!-- Front CCCD -->
+                        <div class="cccd-profile-card">
+                          <label class="form-label font-bold text-sm">Mặt trước CCCD</label>
+                          <div class="cccd-profile-preview" (click)="profileCccdFrontInput.click()">
+                            @if (cccdFrontPreview()) {
+                              <img [src]="cccdFrontPreview()" alt="Mặt trước CCCD" class="cccd-fit-img" (error)="handleImageError($event)" />
+                            } @else {
+                              <div class="cccd-placeholder-box">
+                                <i class="fas fa-camera fa-2x mb-2 text-primary"></i>
+                                <span>Bấm để tải ảnh mặt trước</span>
+                              </div>
+                            }
+                          </div>
+                          <input #profileCccdFrontInput type="file" accept="image/*" class="d-none" (change)="onCccdFileSelect($event, 'front')" />
+                        </div>
+
+                        <!-- Back CCCD -->
+                        <div class="cccd-profile-card">
+                          <label class="form-label font-bold text-sm">Mặt sau CCCD</label>
+                          <div class="cccd-profile-preview" (click)="profileCccdBackInput.click()">
+                            @if (cccdBackPreview()) {
+                              <img [src]="cccdBackPreview()" alt="Mặt sau CCCD" class="cccd-fit-img" (error)="handleImageError($event)" />
+                            } @else {
+                              <div class="cccd-placeholder-box">
+                                <i class="fas fa-camera fa-2x mb-2 text-primary"></i>
+                                <span>Bấm để tải ảnh mặt sau</span>
+                              </div>
+                            }
+                          </div>
+                          <input #profileCccdBackInput type="file" accept="image/*" class="d-none" (change)="onCccdFileSelect($event, 'back')" />
+                        </div>
+                      </div>
+                    </div>
+                  }
+
                   <!-- Landlord Banking & QR Code Settings -->
                   @if (profileData()?.roleName === 'Landlord' || profileData()?.roleName === 'Administrator') {
                     <div class="bank-section-wrapper mt-4">
@@ -839,10 +886,53 @@ import { environment } from '../../../environments/environment';
       animation: spin 1s infinite linear;
       margin: 0 auto;
     }
-    @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+    .cccd-section-wrapper {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 18px 20px;
     }
+    .cccd-profile-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .cccd-profile-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cccd-profile-preview {
+      height: 160px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      background: #ffffff;
+      transition: all 0.2s;
+    }
+    .cccd-profile-preview:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .cccd-fit-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .cccd-placeholder-box {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #64748b;
+      font-size: 0.85rem;
+      text-align: center;
+      padding: 12px;
+    }
+    .d-none { display: none; }
   `]
 })
 export class ProfileComponent implements OnInit {
@@ -859,6 +949,11 @@ export class ProfileComponent implements OnInit {
 
   avatarPreview = signal<string>('');
   selectedAvatarBase64 = '';
+
+  cccdFrontPreview = signal<string>('');
+  cccdBackPreview = signal<string>('');
+  selectedCccdFrontBase64 = '';
+  selectedCccdBackBase64 = '';
 
   selectedBankQrBase64 = '';
 
@@ -919,6 +1014,10 @@ export class ProfileComponent implements OnInit {
           bankAccountName: data.bankAccountName || '',
           bankQrPreview: data.bankQrUrl || ''
         };
+        this.cccdFrontPreview.set(data.cccdFrontUrl ? this.getImageUrl(data.cccdFrontUrl) : '');
+        this.cccdBackPreview.set(data.cccdBackUrl ? this.getImageUrl(data.cccdBackUrl) : '');
+        this.selectedCccdFrontBase64 = '';
+        this.selectedCccdBackBase64 = '';
         this.authService.updateSessionProfile(data.fullName, data.email, data.avatarUrl);
         this.isLoading.set(false);
       },
@@ -994,6 +1093,29 @@ export class ProfileComponent implements OnInit {
     }
   }
 
+  onCccdFileSelect(event: any, side: 'front' | 'back'): void {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        this.toastService.show('Ảnh CCCD không được vượt quá 5MB.', 'info');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        const base64 = reader.result as string;
+        if (side === 'front') {
+          this.cccdFrontPreview.set(base64);
+          this.selectedCccdFrontBase64 = base64;
+        } else {
+          this.cccdBackPreview.set(base64);
+          this.selectedCccdBackBase64 = base64;
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
   clearCustomQr(): void {
     this.selectedBankQrBase64 = '';
     this.editModel.bankQrPreview = '';
@@ -1024,6 +1146,13 @@ export class ProfileComponent implements OnInit {
       bankAccountName: this.editModel.bankAccountName || null
     };
 
+    if (this.selectedCccdFrontBase64) {
+      payload.cccdFrontBase64 = this.selectedCccdFrontBase64;
+    }
+    if (this.selectedCccdBackBase64) {
+      payload.cccdBackBase64 = this.selectedCccdBackBase64;
+    }
+
     if (this.selectedBankQrBase64) {
       payload.bankQrBase64 = this.selectedBankQrBase64;
     } else if (this.editModel.bankQrPreview === '' && this.profileData()?.bankQrUrl) {
@@ -1038,6 +1167,10 @@ export class ProfileComponent implements OnInit {
         this.avatarPreview.set('');
         this.selectedAvatarBase64 = '';
         this.selectedBankQrBase64 = '';
+        this.selectedCccdFrontBase64 = '';
+        this.selectedCccdBackBase64 = '';
+        if (res.cccdFrontUrl) this.cccdFrontPreview.set(this.getImageUrl(res.cccdFrontUrl));
+        if (res.cccdBackUrl) this.cccdBackPreview.set(this.getImageUrl(res.cccdBackUrl));
         this.editModel.bankQrPreview = res.bankQrUrl || '';
         
         this.authService.updateSessionProfile(res.fullName, res.email, res.avatarUrl);

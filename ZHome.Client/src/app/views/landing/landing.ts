@@ -304,11 +304,7 @@ import { environment } from '../../../environments/environment';
             }
 
             <div class="property-thumbnail">
-              @if (prop.imageUrls && prop.imageUrls.length > 0) {
-                <img [src]="getImageUrl(prop.imageUrls[0])" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
-              } @else {
-                <div class="placeholder-img" [style.background]="getRandomGradient(prop.propertyId)"></div>
-              }
+              <img [src]="getImageUrl(prop.imageUrls?.[0])" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
               
               <div class="card-overlay-top">
                 @if (prop.vacantRoomsCount > 0) {
@@ -1692,6 +1688,18 @@ export class LandingComponent implements OnInit {
   groupProperties(list: any[]): void {
     const map = new Map<number, any>();
     for (const item of list) {
+      const rawPropImages: string[] = [];
+      if (item.propertyImageUrl && typeof item.propertyImageUrl === 'string') {
+        rawPropImages.push(...item.propertyImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean));
+      }
+      if (item.imageUrls && Array.isArray(item.imageUrls)) {
+        for (const u of item.imageUrls) {
+          if (u && typeof u === 'string') {
+            rawPropImages.push(...u.split(',').map((s: string) => s.trim()).filter(Boolean));
+          }
+        }
+      }
+
       if (!map.has(item.propertyId)) {
         map.set(item.propertyId, {
           propertyId: item.propertyId,
@@ -1706,7 +1714,7 @@ export class LandingComponent implements OnInit {
           viewCount: item.viewCount || 0,
           vacantRoomsCount: 0,
           rooms: [],
-          imageUrls: item.propertyImageUrl ? [item.propertyImageUrl] : (item.imageUrls || []),
+          imageUrls: rawPropImages.length > 0 ? Array.from(new Set(rawPropImages)) : [this.defaultPropertyImage],
           averageRating: item.averageRating,
           reviewCount: item.reviewCount,
           subscriptionId: item.subscriptionId,
@@ -1730,8 +1738,17 @@ export class LandingComponent implements OnInit {
       if (prop.totalRooms < prop.rooms.length) {
         prop.totalRooms = prop.rooms.length;
       }
-      if (prop.imageUrls.length === 0 && item.imageUrls && item.imageUrls.length > 0) {
-        prop.imageUrls = item.imageUrls;
+      if (item.imageUrls && Array.isArray(item.imageUrls)) {
+        for (const u of item.imageUrls) {
+          if (u && typeof u === 'string') {
+            const split = u.split(',').map((s: string) => s.trim()).filter(Boolean);
+            for (const img of split) {
+              if (!prop.imageUrls.includes(img)) {
+                prop.imageUrls.push(img);
+              }
+            }
+          }
+        }
       }
     }
     
@@ -1837,13 +1854,25 @@ export class LandingComponent implements OnInit {
     }
   }
 
+  defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
+
   onImageError(event: any): void {
-    event.target.style.display = 'none';
+    const target = event.target as HTMLImageElement;
+    const fallback = this.getImageUrl(this.defaultPropertyImage);
+    if (target && target.src !== fallback) {
+      target.src = fallback;
+    }
   }
 
-  getImageUrl(url: string): string {
-    if (!url) return '';
-    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
+  getImageUrl(url?: string): string {
+    if (!url) return this.defaultPropertyImage;
+    if (url.includes(',')) {
+      url = url.split(',')[0].trim();
+    }
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   getRandomGradient(id: number): string {

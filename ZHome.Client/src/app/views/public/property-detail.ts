@@ -1455,13 +1455,35 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   getImageList(prop: any): string[] {
+    const rawList: string[] = [];
     if (prop?.imageUrls && prop.imageUrls.length > 0) {
-      return prop.imageUrls;
+      for (const u of prop.imageUrls) {
+        if (typeof u === 'string' && u.includes(',')) {
+          rawList.push(...u.split(',').map((s: string) => s.trim()).filter(Boolean));
+        } else if (u) {
+          rawList.push(u);
+        }
+      }
     }
     if (prop?.propertyImageUrl) {
-      return [prop.propertyImageUrl];
+      if (typeof prop.propertyImageUrl === 'string' && prop.propertyImageUrl.includes(',')) {
+        rawList.push(...prop.propertyImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean));
+      } else {
+        rawList.push(prop.propertyImageUrl);
+      }
     }
-    return [];
+
+    const unique = Array.from(new Set(rawList.filter(Boolean)));
+    const hasCustomImages = unique.some(u => u.includes('/media/') || u.startsWith('data:'));
+    if (hasCustomImages) {
+      // If custom uploaded images exist, exclude stock Unsplash mock images
+      const filtered = unique.filter(u => !u.includes('images.unsplash.com'));
+      if (filtered.length > 0) return filtered;
+    }
+    if (unique.length === 0) {
+      return [this.defaultPropertyImage];
+    }
+    return unique;
   }
 
   getSideImages(prop: any): string[] {
@@ -1476,14 +1498,32 @@ export class PropertyDetailComponent implements OnInit {
     return list.length - 5;
   }
 
-  getImageUrl(url: string): string {
-    if (!url) return '';
+  defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
+
+  getImageUrl(url?: string): string {
+    if (!url) return this.defaultPropertyImage;
+    if (url.includes(',')) {
+      url = url.split(',')[0].trim();
+    }
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${environment.baseUrl}${url}`;
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   onImageError(event: any) {
-    event.target.src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop';
+    const target = event.target as HTMLElement;
+    if (target) {
+      const subItem = target.closest('.gallery-sub-item');
+      if (subItem) {
+        (subItem as HTMLElement).style.display = 'none';
+        return;
+      }
+      const lightboxWrapper = target.closest('.lightbox-img-wrapper');
+      if (lightboxWrapper) {
+        (lightboxWrapper as HTMLElement).style.display = 'none';
+        return;
+      }
+      (target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" fill="%23f1f5f9"><rect width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="20" font-family="sans-serif">Hình ảnh đang cập nhật</text></svg>';
+    }
   }
 
   getMinPrice(prop: any): number {

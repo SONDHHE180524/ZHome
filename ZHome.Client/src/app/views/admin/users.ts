@@ -112,13 +112,14 @@ import { environment } from '../../../environments/environment';
             <table class="users-table">
               <thead>
                 <tr>
-                  <th style="min-width: 200px;">Người dùng</th>
-                  <th style="min-width: 180px;">Số điện thoại / Email</th>
-                  <th style="min-width: 140px;">Vai trò</th>
-                  <th style="min-width: 130px;">Xác minh CCCD</th>
-                  <th style="min-width: 140px;">Gói cước</th>
-                  <th style="min-width: 110px;">Ngày tạo</th>
-                  <th class="text-right" style="min-width: 90px;">Thao tác</th>
+                  <th style="min-width: 190px;">Người dùng</th>
+                  <th style="min-width: 160px;">Số điện thoại / Email</th>
+                  <th style="min-width: 120px;">Vai trò</th>
+                  <th style="min-width: 120px;">Xác minh CCCD</th>
+                  <th style="min-width: 130px;">Gói cước</th>
+                  <th style="min-width: 180px;">Thời gian hoạt động</th>
+                  <th style="min-width: 100px;">Ngày tạo</th>
+                  <th class="text-right" style="min-width: 120px;">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,14 +184,39 @@ import { environment } from '../../../environments/environment';
                       </span>
                     </td>
 
-                    <!-- Cột 6: Ngày tạo -->
+                    <!-- Cột 6: Thời gian hoạt động -->
+                    <td>
+                      <div class="activity-cell">
+                        @if (isUserOnline(u.lastActiveAt)) {
+                          <span class="active-pill online">
+                            <span class="dot-online"></span> Đang trực tuyến
+                          </span>
+                        } @else {
+                          <span class="active-time">{{ formatTimeAgo(u.lastActiveAt) }}</span>
+                        }
+                        <div class="login-subtext">
+                          <span class="text-muted">Đăng nhập:</span> {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd/MM HH:mm') : 'Chưa có' }}
+                        </div>
+                      </div>
+                    </td>
+
+                    <!-- Cột 7: Ngày tạo -->
                     <td>
                       <span class="date-text">{{ u.createdAt | date:'dd/MM/yyyy' }}</span>
                     </td>
 
-                    <!-- Cột 7: Thao tác -->
+                    <!-- Cột 8: Thao tác -->
                     <td class="text-right">
                       <div class="action-buttons">
+                        <button class="btn-action log" (click)="openActivityLogModal(u)" title="Xem nhật ký hoạt động / Log">
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                          </svg>
+                        </button>
                         <button class="btn-action edit" (click)="openEditModal(u)" title="Chỉnh sửa">
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
@@ -569,6 +595,106 @@ import { environment } from '../../../environments/environment';
                   {{ isSubmitting() ? 'Đang xóa...' : 'Xóa tài khoản' }}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- MODAL: NHẬT KÝ HOẠT ĐỘNG CỦA TÀI KHOẢN -->
+      @if (showActivityModal()) {
+        <div class="modal-backdrop" (click)="closeActivityModal()">
+          <div class="modal-card modal-lg animate-pop" (click)="$event.stopPropagation()">
+            <div class="modal-header">
+              <div class="d-flex align-items-center gap-2">
+                <span class="header-icon-badge">📜</span>
+                <div>
+                  <h3 class="m-0">Nhật Ký Hoạt Động & Thời Gian Hoạt Động</h3>
+                  <span class="text-xs text-muted">Lịch sử đăng nhập, thiết bị và các thao tác của tài khoản</span>
+                </div>
+              </div>
+              <button class="modal-close-btn" (click)="closeActivityModal()">✕</button>
+            </div>
+
+            <div class="modal-body p-0">
+              <!-- User Summary Strip -->
+              <div class="activity-user-strip">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="user-avatar" [class.avatar-admin]="activeUserForLogs()?.roleName === 'Administrator'" [class.avatar-landlord]="activeUserForLogs()?.roleName === 'Landlord'">
+                    {{ getInitials(activeUserForLogs()?.fullName || '') }}
+                  </div>
+                  <div>
+                    <h4 class="m-0 font-bold text-dark">{{ activeUserForLogs()?.fullName }}</h4>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                      <span class="role-badge" [ngClass]="getRoleBadgeClass(activeUserForLogs()?.roleName || '')">
+                        {{ getRoleDisplayName(activeUserForLogs()?.roleName || '') }}
+                      </span>
+                      <span class="text-xs text-muted">📞 {{ activeUserForLogs()?.phone }}</span>
+                      <span class="text-xs text-muted">🆔 #{{ activeUserForLogs()?.id }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="activity-meta-stats">
+                  <div class="meta-stat-item">
+                    <span class="meta-lbl">Trạng thái hiện tại:</span>
+                    @if (isUserOnline(activeUserForLogs()?.lastActiveAt)) {
+                      <strong class="text-emerald font-bold">🟢 Đang trực tuyến</strong>
+                    } @else {
+                      <strong class="text-dark">{{ formatTimeAgo(activeUserForLogs()?.lastActiveAt) }}</strong>
+                    }
+                  </div>
+                  <div class="meta-stat-item">
+                    <span class="meta-lbl">Đăng nhập lần cuối:</span>
+                    <strong class="text-dark">{{ activeUserForLogs()?.lastLoginAt ? (activeUserForLogs()?.lastLoginAt | date:'dd/MM/yyyy HH:mm') : 'Chưa có' }}</strong>
+                  </div>
+                  <div class="meta-stat-item">
+                    <span class="meta-lbl">Tổng thao tác ghi nhận:</span>
+                    <strong class="text-primary font-bold">{{ userLogsList().length }} hoạt động</strong>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Log timeline list -->
+              <div class="activity-timeline-wrap p-3">
+                @if (isLoadingUserLogs()) {
+                  <div class="text-center py-4">
+                    <div class="spinner"></div>
+                    <p class="text-muted mt-2">Đang tải nhật ký hoạt động...</p>
+                  </div>
+                } @else if (userLogsList().length === 0) {
+                  <div class="empty-logs text-center py-4">
+                    <span class="empty-icon"></span>
+                    <p class="text-muted m-0">Tài khoản này chưa có bản ghi hoạt động nào.</p>
+                  </div>
+                } @else {
+                  <div class="timeline-items-flow">
+                    @for (log of userLogsList(); track log.id) {
+                      <div class="timeline-log-card">
+                        <div class="log-left-indicator">
+                          <span class="log-badge-icon" [ngClass]="getLogActionClass(log.action)">
+                            {{ getLogActionIcon(log.action) }}
+                          </span>
+                        </div>
+                        <div class="log-content-box">
+                          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                            <strong class="log-action-title">{{ log.action }}</strong>
+                            <span class="log-time-tag">{{ log.createdAt | date:'HH:mm:ss dd/MM/yyyy' }} ({{ formatTimeAgo(log.createdAt) }})</span>
+                          </div>
+                          <p class="log-desc m-0">{{ log.description }}</p>
+                          <div class="log-meta-footer mt-2 d-flex gap-3 text-xs text-muted">
+                            <span>🌐 IP: {{ log.ipAddress || '127.0.0.1' }}</span>
+                            <span>💻 Thiết bị: {{ log.userAgent || 'Trình duyệt web' }}</span>
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeActivityModal()">Đóng</button>
             </div>
           </div>
         </div>
@@ -1008,10 +1134,152 @@ import { environment } from '../../../environments/environment';
       border-color: #bfdbfe;
     }
 
+    .btn-action.log:hover {
+      background: #f0fdf4;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+
     .btn-action.delete:hover {
       background: #fee2e2;
       color: #ef4444;
       border-color: #fecaca;
+    }
+
+    /* ACTIVITY TIME CELL */
+    .activity-cell {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+    .active-pill.online {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #059669;
+      background: #ecfdf5;
+      padding: 2px 7px;
+      border-radius: 6px;
+      width: fit-content;
+      border: 1px solid #a7f3d0;
+    }
+    .dot-online {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
+      animation: pulse-online 2s infinite;
+    }
+    @keyframes pulse-online {
+      0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+      70% { transform: scale(1); box-shadow: 0 0 0 5px rgba(16, 185, 129, 0); }
+      100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+    }
+    .active-time {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #1e293b;
+    }
+    .login-subtext {
+      font-size: 0.72rem;
+      color: #64748b;
+    }
+
+    /* ACTIVITY LOG MODAL STYLES */
+    .modal-lg {
+      max-width: 820px;
+      width: 95%;
+    }
+    .header-icon-badge {
+      font-size: 1.4rem;
+      background: #eff6ff;
+      padding: 6px 10px;
+      border-radius: 10px;
+    }
+    .activity-user-strip {
+      background: #f8fafc;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+    .activity-meta-stats {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .meta-stat-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .meta-lbl {
+      color: #64748b;
+      font-weight: 600;
+    }
+    .activity-timeline-wrap {
+      max-height: 480px;
+      overflow-y: auto;
+    }
+    .timeline-items-flow {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .timeline-log-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 14px;
+      align-items: flex-start;
+      transition: all 0.15s;
+    }
+    .timeline-log-card:hover {
+      border-color: #cbd5e1;
+      background: #fcfdfe;
+    }
+    .log-badge-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+    }
+    .log-badge-icon.act-login { background: #eff6ff; color: #2563eb; }
+    .log-badge-icon.act-prop { background: #f0fdf4; color: #15803d; }
+    .log-badge-icon.act-admin { background: #faf5ff; color: #7e22ce; }
+    .log-badge-icon.act-other { background: #f1f5f9; color: #475569; }
+    .log-content-box {
+      flex: 1;
+    }
+    .log-action-title {
+      font-size: 0.88rem;
+      color: #0f172a;
+    }
+    .log-time-tag {
+      font-size: 0.75rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .log-desc {
+      font-size: 0.82rem;
+      color: #334155;
     }
 
     /* PAGINATION BAR */
@@ -1869,5 +2137,85 @@ export class AdminUsersComponent implements OnInit {
         this.toastService.show(err.error || 'Không thể xóa tài khoản.', 'error');
       }
     });
+  }
+
+  // Activity Log Drawer State & Handlers
+  showActivityModal = signal(false);
+  isLoadingUserLogs = signal(false);
+  activeUserForLogs = signal<any | null>(null);
+  userLogsList = signal<any[]>([]);
+
+  isUserOnline(dateStr?: string | Date): boolean {
+    if (!dateStr) return false;
+    const date = new Date(dateStr);
+    const diffMs = Date.now() - date.getTime();
+    return diffMs >= 0 && diffMs < 15 * 60 * 1000; // < 15 mins
+  }
+
+  formatTimeAgo(dateStr?: string | Date): string {
+    if (!dateStr) return 'Chưa có hoạt động';
+    const date = new Date(dateStr);
+    const diffSec = Math.floor((Date.now() - date.getTime()) / 1000);
+
+    if (diffSec < 60) return 'Vừa mới xong';
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} phút trước`;
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} giờ trước`;
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay === 1) return `Hôm qua ${date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+    if (diffDay < 7) return `${diffDay} ngày trước`;
+    return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  }
+
+  getLogActionClass(action: string): string {
+    if (!action) return 'act-other';
+    const a = action.toLowerCase();
+    if (a.includes('đăng nhập') || a.includes('login')) return 'act-login';
+    if (a.includes('nhà trọ') || a.includes('phòng') || a.includes('tầng')) return 'act-prop';
+    if (a.includes('quản trị') || a.includes('admin') || a.includes('xác minh')) return 'act-admin';
+    return 'act-other';
+  }
+
+  getLogActionIcon(action: string): string {
+    if (!action) return '⚡';
+    const a = action.toLowerCase();
+    if (a.includes('đăng nhập') || a.includes('login')) return '🔑';
+    if (a.includes('nhà trọ') || a.includes('phòng')) return '🏢';
+    if (a.includes('hợp đồng')) return '📝';
+    if (a.includes('thanh toán') || a.includes('hóa đơn')) return '💰';
+    if (a.includes('quản trị') || a.includes('xác minh')) return '🛡️';
+    if (a.includes('đăng ký')) return '👤';
+    return '⚡';
+  }
+
+  openActivityLogModal(user: any): void {
+    this.activeUserForLogs.set(user);
+    this.showActivityModal.set(true);
+    this.isLoadingUserLogs.set(true);
+    this.userLogsList.set([]);
+
+    this.adminService.getUserActivityLogs(user.id).subscribe({
+      next: (res) => {
+        this.isLoadingUserLogs.set(false);
+        this.userLogsList.set(res.logs || []);
+        if (res.user) {
+          this.activeUserForLogs.set({
+            ...user,
+            ...res.user
+          });
+        }
+      },
+      error: () => {
+        this.isLoadingUserLogs.set(false);
+        this.toastService.show('Không thể tải nhật ký hoạt động của tài khoản này.', 'error');
+      }
+    });
+  }
+
+  closeActivityModal(): void {
+    this.showActivityModal.set(false);
+    this.activeUserForLogs.set(null);
+    this.userLogsList.set([]);
   }
 }

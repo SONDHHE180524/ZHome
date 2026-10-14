@@ -2578,9 +2578,11 @@ export class LandlordPropertiesComponent implements OnInit {
     reader.readAsDataURL(file);
   }
 
-  getImageUrl(url: string): string {
-    if (!url) return '';
-    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
+  getImageUrl(url?: string): string {
+    if (!url) return `${environment.baseUrl}/media/properties/0919919919_639275077481748600.jpg`;
+    if (url.includes(',')) url = url.split(',')[0].trim();
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   // Add Room handlers

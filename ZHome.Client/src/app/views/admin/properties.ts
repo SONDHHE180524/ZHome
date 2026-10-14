@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-admin-properties',
@@ -75,7 +76,7 @@ import { ToastService } from '../../services/toast.service';
           @for (prop of filteredProperties(); track prop.propertyId) {
             <div class="property-card">
               <div class="prop-image-box">
-                <img [src]="prop.imageUrl || 'assets/images/default-property.jpg'" [alt]="prop.title" (error)="onImgError($event)" />
+                <img [src]="getImageUrl(prop.imageUrl)" [alt]="prop.title" (error)="onImgError($event)" />
                 <span class="prop-badge" [class.badge-verified]="prop.isVerifiedTick">
                   {{ prop.isVerifiedTick ? ' Chính chủ' : 'Chưa xác minh' }}
                 </span>
@@ -1146,8 +1147,22 @@ export class AdminPropertiesComponent implements OnInit {
     }
   }
 
+  getImageUrl(url?: string): string {
+    if (!url) return 'assets/images/default-property.jpg';
+    if (url.includes(',')) {
+      url = url.split(',')[0].trim();
+    }
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
   onImgError(event: Event): void {
-    (event.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80';
+    const target = event.target as HTMLImageElement;
+    if (target && !target.src.includes('data:image/svg')) {
+      target.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="250" viewBox="0 0 400 250" fill="%23f1f5f9"><rect width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="16" font-family="sans-serif">Chưa có ảnh</text></svg>';
+    }
   }
 
   // Modals operations: Properties

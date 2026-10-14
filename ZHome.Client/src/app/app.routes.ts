@@ -68,6 +68,10 @@ export const routes: Routes = [
         path: 'transactions', 
         loadComponent: () => import('./views/admin/transactions').then(m => m.AdminTransactionsComponent) 
       },
+      { 
+        path: 'activity-logs', 
+        loadComponent: () => import('./views/admin/activity-logs').then(m => m.AdminActivityLogsComponent) 
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

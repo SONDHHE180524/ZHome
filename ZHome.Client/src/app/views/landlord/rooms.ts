@@ -7,6 +7,25 @@ import { ContractService } from '../../services/contract.service';
 import { ToastService } from '../../services/toast.service';
 import { environment } from '../../../environments/environment';
 
+export interface FloorConfig {
+  floorNumber: number;
+  floorName: string;
+  startRoom: string;
+  endRoom: string;
+  price: number;
+  area: number;
+  maxOccupants: number;
+}
+
+export interface GeneratedRoomPreview {
+  roomNumber: string;
+  floor: number;
+  floorName: string;
+  price: number;
+  area: number;
+  maxOccupants: number;
+}
+
 @Component({
   selector: 'app-landlord-rooms',
   standalone: true,
@@ -34,9 +53,12 @@ import { environment } from '../../../environments/environment';
         <div>
           <h1 class="page-title m-0">Quản lý phòng</h1>
         </div>
-        <div>
-          <button type="button" (click)="openAddRoomModal()" class="btn-create-room">
-            <span class="plus-icon">+</span> Thêm phòng mới
+        <div class="d-flex gap-2">
+          <button type="button" (click)="openBatchRoomsModal()" class="btn-create-room">
+            <span class="plus-icon">🏢</span> Tạo phòng theo tầng
+          </button>
+          <button type="button" (click)="openSingleRoomModal()" class="btn-create-room-secondary">
+            <span class="plus-icon">+</span> Thêm 1 phòng
           </button>
         </div>
       </div>
@@ -144,35 +166,92 @@ import { environment } from '../../../environments/environment';
           <span class="empty-icon"></span>
           <h3 class="mt-2 font-bold text-dark">Không tìm thấy phòng trọ nào</h3>
           <p class="text-muted">Thử thay đổi bộ lọc hoặc thêm phòng trọ mới vào hệ thống</p>
-          <button (click)="openAddRoomModal()" class="btn-create-room mt-3">+ Thêm phòng ngay</button>
+          <button (click)="openBatchRoomsModal()" class="btn-create-room mt-3">🏢 Tạo phòng theo tầng ngay</button>
         </div>
       } @else {
+        <!-- Sub-header bar: Toggle All Buttons -->
+        <div class="properties-sub-bar d-flex justify-content-between align-items-center mb-3">
+          <span class="text-xs text-muted font-bold">
+            Hiển thị <strong>{{ displayedProperties().length }}</strong> nhà trọ (Bấm vào nhà trọ để mở rộng xem và sửa phòng)
+          </span>
+          <div class="d-flex gap-2">
+            <button type="button" class="btn-toggle-all" (click)="expandAllProperties()">
+              🔽 Xổ ra tất cả
+            </button>
+            <button type="button" class="btn-toggle-all" (click)="collapseAllProperties()">
+              🔼 Thu gọn tất cả
+            </button>
+          </div>
+        </div>
+
         <div class="properties-accordion-stack">
           @for (prop of displayedProperties(); track prop.id) {
-            <div class="property-accordion-card">
+            <div class="property-accordion-card mb-3" [class.is-expanded]="isPropertyExpanded(prop.id)">
               
               <!-- Property Header Banner -->
-              <div class="prop-accordion-header" (click)="togglePropertyCollapse(prop.id)">
+              <div class="prop-accordion-header" (click)="togglePropertyExpand(prop.id)">
                 <div class="prop-header-info">
                   <img [src]="getImageUrl(prop.imageUrl)" alt="Ảnh trọ" class="prop-avatar-thumb" />
                   <div>
-                    <h2 class="prop-title-text m-0">{{ prop.title }}</h2>
+                    <div class="d-flex align-items-center gap-2">
+                      <h2 class="prop-title-text m-0">{{ prop.title }}</h2>
+                      <span class="badge-prop-rooms">{{ prop.totalRoomsCount }} phòng</span>
+                    </div>
                     <p class="prop-address-text m-0">{{ prop.address }}</p>
                   </div>
                 </div>
 
-                <div class="prop-header-toggle">
-                  <span class="chevron-arrow" [class.collapsed]="isPropertyCollapsed(prop.id)">▲</span>
+                <div class="prop-header-right-zone" (click)="$event.stopPropagation()">
+                  <!-- Quick status stats -->
+                  <div class="prop-stats-pills">
+                    <span class="prop-stat-badge bg-green">
+                      <span class="dot-status green"></span>
+                      Trống: <strong>{{ prop.availableRoomsCount }}</strong>
+                    </span>
+                    <span class="prop-stat-badge bg-blue">
+                      <span class="dot-status blue"></span>
+                      Đang thuê: <strong>{{ prop.rentedRoomsCount }}</strong>
+                    </span>
+                  </div>
+
+                  <!-- Quick Action Buttons -->
+                  <div class="prop-quick-actions">
+                    <button 
+                      type="button" 
+                      class="btn-prop-quick edit" 
+                      (click)="editProperty(prop.id)" 
+                      title="Chỉnh sửa thông tin và cấu hình tầng của trọ này">
+                      ✏️ Sửa trọ
+                    </button>
+                    <button 
+                      type="button" 
+                      class="btn-prop-quick add" 
+                      (click)="openBatchRoomsModal(prop.id)" 
+                      title="Thêm phòng theo tầng cho trọ này">
+                      🏢 Thêm phòng
+                    </button>
+                    <button 
+                      type="button" 
+                      class="btn-prop-toggle" 
+                      [class.expanded]="isPropertyExpanded(prop.id)"
+                      (click)="togglePropertyExpand(prop.id)">
+                      @if (isPropertyExpanded(prop.id)) {
+                        <span>Thu gọn ▲</span>
+                      } @else {
+                        <span>Xổ ra ({{ prop.matchedRooms.length }} phòng) ▼</span>
+                      }
+                    </button>
+                  </div>
                 </div>
               </div>
 
               <!-- Rooms Grid Section (3 Rooms Per Row) -->
-              @if (!isPropertyCollapsed(prop.id)) {
+              @if (isPropertyExpanded(prop.id)) {
                 <div class="prop-rooms-body">
                   @if (prop.matchedRooms.length === 0) {
                     <div class="empty-rooms-in-prop text-center py-4">
                       <p class="text-muted m-0">Không có phòng nào phù hợp với bộ lọc trong khu trọ này.</p>
-                      <button (click)="openAddRoomModalWithProp(prop.id)" class="btn-link-add mt-2">+ Thêm phòng cho khu trọ này</button>
+                      <button (click)="openBatchRoomsModal(prop.id)" class="btn-link-add mt-2">+ Tạo phòng theo tầng cho khu trọ này</button>
                     </div>
                   } @else {
                     <div class="rooms-grid">
@@ -282,121 +361,262 @@ import { environment } from '../../../environments/environment';
       <!-- 1. ADD ROOM MODAL (REDESIGNED MATCHING USER SCREENSHOT) -->
       @if (showAddRoomModal()) {
         <div class="modal-backdrop" (click)="showAddRoomModal.set(false)">
-          <div class="modal-card max-w-680" (click)="$event.stopPropagation()">
+          <div class="modal-card" [class.max-w-880]="addRoomTab() === 'batch'" [class.max-w-680]="addRoomTab() === 'single'" (click)="$event.stopPropagation()">
             
             <!-- Modal Header -->
             <div class="modal-header-clean">
-              <h2 class="modal-main-title m-0">THÊM PHÒNG</h2>
+              <div>
+                <h2 class="modal-main-title m-0">THÊM PHÒNG TRỌ</h2>
+                <p class="modal-subtitle-text m-0 text-muted text-xs mt-1">Cấu hình tự động theo tầng hoặc thêm từng phòng riêng lẻ</p>
+              </div>
               <button type="button" (click)="showAddRoomModal.set(false)" class="modal-close-x">&times;</button>
             </div>
 
-            <form (ngSubmit)="submitAddRoom()" class="modal-form-body">
-              
-              <!-- Section: Thông tin cơ bản -->
-              <div class="form-sub-header mb-4">
-                <h3 class="section-title-bold m-0">Thông tin cơ bản</h3>
-                <p class="section-subtitle-muted m-0">Các thông tin cơ bản của phòng trọ</p>
-              </div>
+            <!-- TAB PILLS -->
+            <div class="add-room-tab-pills mb-4">
+              <button 
+                type="button" 
+                class="room-tab-pill" 
+                [class.active]="addRoomTab() === 'batch'" 
+                (click)="addRoomTab.set('batch')">
+                🏢 Tạo phòng theo tầng (Hàng loạt)
+              </button>
+              <button 
+                type="button" 
+                class="room-tab-pill" 
+                [class.active]="addRoomTab() === 'single'" 
+                (click)="addRoomTab.set('single')">
+                ➕ Thêm 1 phòng đơn lẻ
+              </button>
+            </div>
 
-              <!-- 1. Nhà trọ * -->
-              <div class="form-group mb-3">
-                <label class="form-label-custom">Nhà trọ <span class="text-danger">*</span></label>
-                <select [(ngModel)]="newRoomData.propertyId" name="propertyId" required class="form-control-custom">
-                  <option [value]="0">Chọn nhà trọ</option>
-                  @for (p of propertyList(); track p.id) {
-                    <option [value]="p.id">{{ p.title }}</option>
-                  }
-                </select>
-              </div>
+            @if (addRoomTab() === 'batch') {
+              <div class="batch-tab-body">
+                <!-- Chọn nhà trọ -->
+                <div class="form-group mb-3">
+                  <label class="form-label-custom">Chọn nhà trọ áp dụng <span class="text-danger">*</span></label>
+                  <select [ngModel]="batchPropertyId()" (ngModelChange)="batchPropertyId.set(+$event)" name="batchPropId" required class="form-control-custom">
+                    <option [value]="0">-- Chọn nhà trọ --</option>
+                    @for (p of propertyList(); track p.id) {
+                      <option [value]="p.id">{{ p.title }} ({{ p.address }})</option>
+                    }
+                  </select>
+                </div>
 
-              <!-- 2. Tên phòng * -->
-              <div class="form-group mb-3">
-                <label class="form-label-custom">Tên phòng <span class="text-danger">*</span></label>
-                <input 
-                  type="text" 
-                  [(ngModel)]="newRoomData.roomNumber" 
-                  name="roomNumber" 
-                  required 
-                  placeholder="Nhập tên phòng" 
-                  class="form-control-custom" />
-              </div>
+                <!-- Cấu hình tầng & khoảng số phòng -->
+                <div class="floor-config-box mb-3">
+                  <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                      <h4 class="m-0 font-bold text-dark text-sm">Cấu hình tầng & khoảng số phòng</h4>
+                      <p class="m-0 text-muted text-xs">Hệ thống sẽ tự động tạo danh sách phòng theo số thứ tự và gán giá thuê tương ứng từng tầng</p>
+                    </div>
+                    <span class="badge-total-rooms">
+                      Tổng cộng: <strong>{{ totalBatchRoomsCount() }}</strong> phòng
+                    </span>
+                  </div>
 
-              <!-- 3. Giá thuê * & Giá cọc (2 columns) -->
-              <div class="row-2-cols mb-3">
-                <div class="form-group">
-                  <label class="form-label-custom">Giá thuê <span class="text-danger">*</span></label>
+                  <div class="floor-rows-list d-flex flex-column gap-3">
+                    @for (floor of batchFloors(); track floor.floorNumber; let idx = $index) {
+                      <div class="floor-row-card">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <div class="d-flex align-items-center gap-2">
+                            <span class="floor-badge-pill">Tầng {{ floor.floorNumber }}</span>
+                            <span class="text-xs text-muted font-bold">({{ getFloorRoomCount(floor) }} phòng)</span>
+                          </div>
+                          @if (batchFloors().length > 1) {
+                            <button type="button" (click)="removeBatchFloor(idx)" class="btn-remove-floor">
+                              ✕ Xóa tầng này
+                            </button>
+                          }
+                        </div>
+
+                        <div class="floor-inputs-grid">
+                          <div class="form-group">
+                            <label class="form-label text-xs">Từ số phòng <span class="text-danger">*</span></label>
+                            <input 
+                              type="text" 
+                              [(ngModel)]="floor.startRoom" 
+                              name="batchStartRoom_{{idx}}" 
+                              placeholder="VD: 1" 
+                              class="form-control form-control-sm font-bold" />
+                          </div>
+
+                          <div class="arrow-divider">→</div>
+
+                          <div class="form-group">
+                            <label class="form-label text-xs">Đến số phòng <span class="text-danger">*</span></label>
+                            <input 
+                              type="text" 
+                              [(ngModel)]="floor.endRoom" 
+                              name="batchEndRoom_{{idx}}" 
+                              placeholder="VD: 10" 
+                              [class.is-invalid]="hasInvalidBatchRange(floor)"
+                              class="form-control form-control-sm font-bold" />
+                            @if (hasInvalidBatchRange(floor)) {
+                              <span class="text-danger text-xs d-block mt-1">Số sau phải lớn hơn số trước</span>
+                            }
+                          </div>
+
+                          <div class="form-group">
+                            <label class="form-label text-xs">Giá thuê tầng {{ floor.floorNumber }} (đ/tháng) <span class="text-danger">*</span></label>
+                            <input 
+                              type="number" 
+                              step="50000" 
+                              [(ngModel)]="floor.price" 
+                              name="batchPrice_{{idx}}" 
+                              placeholder="VD: 2000000" 
+                              class="form-control form-control-sm text-primary font-bold" />
+                            <span class="text-xs text-muted">{{ floor.price | number:'1.0-0' }} đ/tháng</span>
+                          </div>
+
+                          <div class="form-group">
+                            <label class="form-label text-xs">Diện tích (m²)</label>
+                            <input 
+                              type="number" 
+                              [(ngModel)]="floor.area" 
+                              name="batchArea_{{idx}}" 
+                              placeholder="25" 
+                              class="form-control form-control-sm" />
+                          </div>
+                        </div>
+                      </div>
+                    }
+                  </div>
+
+                  <!-- Nút thêm tầng -->
+                  <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+                    <button type="button" (click)="addBatchFloor()" class="btn-add-floor">
+                      + Thêm tầng tiếp theo (Tầng {{ batchFloors().length + 1 }})
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Modal Actions Toolbar -->
+                <div class="modal-actions-footer">
+                  <button type="button" (click)="showAddRoomModal.set(false)" class="btn-cancel-custom">Hủy</button>
+                  <button 
+                    type="button" 
+                    (click)="submitBatchRooms()" 
+                    [disabled]="isSubmittingBatch() || batchGeneratedRooms().length === 0 || !batchPropertyId() || hasAnyInvalidBatchRange()" 
+                    class="btn-submit-custom">
+                    @if (isSubmittingBatch()) {
+                      Đang tạo các phòng...
+                    } @else {
+                      Tạo ngay {{ totalBatchRoomsCount() }} phòng
+                    }
+                  </button>
+                </div>
+              </div>
+            } @else {
+              <!-- Single room form -->
+              <form (ngSubmit)="submitAddRoom()" class="modal-form-body">
+                
+                <!-- Section: Thông tin cơ bản -->
+                <div class="form-sub-header mb-4">
+                  <h3 class="section-title-bold m-0">Thông tin cơ bản</h3>
+                  <p class="section-subtitle-muted m-0">Các thông tin cơ bản của phòng trọ</p>
+                </div>
+
+                <!-- 1. Nhà trọ * -->
+                <div class="form-group mb-3">
+                  <label class="form-label-custom">Nhà trọ <span class="text-danger">*</span></label>
+                  <select [(ngModel)]="newRoomData.propertyId" name="propertyId" required class="form-control-custom">
+                    <option [value]="0">Chọn nhà trọ</option>
+                    @for (p of propertyList(); track p.id) {
+                      <option [value]="p.id">{{ p.title }}</option>
+                    }
+                  </select>
+                </div>
+
+                <!-- 2. Tên phòng * -->
+                <div class="form-group mb-3">
+                  <label class="form-label-custom">Tên phòng <span class="text-danger">*</span></label>
                   <input 
-                    type="number" 
-                    [(ngModel)]="newRoomData.price" 
-                    name="price" 
+                    type="text" 
+                    [(ngModel)]="newRoomData.roomNumber" 
+                    name="roomNumber" 
                     required 
-                    placeholder="Nhập giá thuê" 
+                    placeholder="Nhập tên phòng" 
                     class="form-control-custom" />
                 </div>
-                <div class="form-group">
-                  <label class="form-label-custom">Giá cọc</label>
-                  <input 
-                    type="number" 
-                    [(ngModel)]="newRoomData.deposit" 
-                    name="deposit" 
-                    placeholder="Giá cọc" 
-                    class="form-control-custom" />
-                </div>
-              </div>
 
-              <!-- 4. Diện tích *, Số người ở tối đa *, Số giường (3 columns) -->
-              <div class="row-3-cols mb-3">
-                <div class="form-group">
-                  <label class="form-label-custom">Diện tích <span class="text-danger">*</span></label>
-                  <input 
-                    type="number" 
-                    step="0.1" 
-                    [(ngModel)]="newRoomData.area" 
-                    name="area" 
-                    required 
-                    placeholder="Nhập diện tích" 
-                    class="form-control-custom" />
+                <!-- 3. Giá thuê * & Giá cọc (2 columns) -->
+                <div class="row-2-cols mb-3">
+                  <div class="form-group">
+                    <label class="form-label-custom">Giá thuê <span class="text-danger">*</span></label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="newRoomData.price" 
+                      name="price" 
+                      required 
+                      placeholder="Nhập giá thuê" 
+                      class="form-control-custom" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label-custom">Giá cọc</label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="newRoomData.deposit" 
+                      name="deposit" 
+                      placeholder="Giá cọc" 
+                      class="form-control-custom" />
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label-custom">Số người ở tối đa <span class="text-danger">*</span></label>
-                  <input 
-                    type="number" 
-                    [(ngModel)]="newRoomData.maxOccupants" 
-                    name="maxOccupants" 
-                    required 
-                    placeholder="Nhập số người ở tối đa" 
-                    class="form-control-custom" />
+
+                <!-- 4. Diện tích *, Số người ở tối đa *, Số giường (3 columns) -->
+                <div class="row-3-cols mb-3">
+                  <div class="form-group">
+                    <label class="form-label-custom">Diện tích <span class="text-danger">*</span></label>
+                    <input 
+                      type="number" 
+                      step="0.1" 
+                      [(ngModel)]="newRoomData.area" 
+                      name="area" 
+                      required 
+                      placeholder="Nhập diện tích" 
+                      class="form-control-custom" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label-custom">Số người ở tối đa <span class="text-danger">*</span></label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="newRoomData.maxOccupants" 
+                      name="maxOccupants" 
+                      required 
+                      placeholder="Nhập số người ở tối đa" 
+                      class="form-control-custom" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label-custom">Số giường</label>
+                    <input 
+                      type="number" 
+                      [(ngModel)]="newRoomData.bedsCount" 
+                      name="bedsCount" 
+                      placeholder="1" 
+                      class="form-control-custom" />
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label class="form-label-custom">Số giường</label>
-                  <input 
-                    type="number" 
-                    [(ngModel)]="newRoomData.bedsCount" 
-                    name="bedsCount" 
-                    placeholder="1" 
-                    class="form-control-custom" />
+
+                <!-- 6. Chu kỳ thu tiền * -->
+                <div class="form-group mb-4">
+                  <label class="form-label-custom">Chu kỳ thu tiền <span class="text-danger">*</span></label>
+                  <select [(ngModel)]="newRoomData.paymentCycle" name="paymentCycle" required class="form-control-custom">
+                    <option value="1 tháng">1 tháng</option>
+                    <option value="2 tháng">2 tháng</option>
+                    <option value="3 tháng">3 tháng</option>
+                    <option value="6 tháng">6 tháng</option>
+                    <option value="12 tháng">12 tháng</option>
+                  </select>
                 </div>
-              </div>
 
-              <!-- 6. Chu kỳ thu tiền * -->
-              <div class="form-group mb-4">
-                <label class="form-label-custom">Chu kỳ thu tiền <span class="text-danger">*</span></label>
-                <select [(ngModel)]="newRoomData.paymentCycle" name="paymentCycle" required class="form-control-custom">
-                  <option value="1 tháng">1 tháng</option>
-                  <option value="2 tháng">2 tháng</option>
-                  <option value="3 tháng">3 tháng</option>
-                  <option value="6 tháng">6 tháng</option>
-                  <option value="12 tháng">12 tháng</option>
-                </select>
-              </div>
+                <!-- Modal Actions Toolbar -->
+                <div class="modal-actions-footer">
+                  <button type="button" (click)="showAddRoomModal.set(false)" class="btn-cancel-custom">Hủy</button>
+                  <button type="submit" class="btn-submit-custom">Thêm phòng</button>
+                </div>
 
-              <!-- Modal Actions Toolbar -->
-              <div class="modal-actions-footer">
-                <button type="button" (click)="showAddRoomModal.set(false)" class="btn-cancel-custom">Hủy</button>
-                <button type="submit" class="btn-submit-custom">Thêm phòng</button>
-              </div>
-
-            </form>
+              </form>
+            }
           </div>
         </div>
       }
@@ -977,6 +1197,24 @@ import { environment } from '../../../environments/environment';
     .btn-create-room:hover {
       background: #1d4ed8;
     }
+    .btn-create-room-secondary {
+      background: #ffffff;
+      color: #2563eb;
+      border: 1.5px solid #bfdbfe;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.92rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+    .btn-create-room-secondary:hover {
+      background: #eff6ff;
+      border-color: #2563eb;
+    }
     .plus-icon {
       font-size: 1.1rem;
       line-height: 1;
@@ -1127,20 +1365,48 @@ import { environment } from '../../../environments/environment';
     }
 
     /* 5. PROPERTY ACCORDION CARD */
+    .properties-sub-bar {
+      padding: 4px 2px;
+    }
+    .btn-toggle-all {
+      background: #ffffff;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .btn-toggle-all:hover {
+      background: #f1f5f9;
+      color: #0f172a;
+      border-color: #94a3b8;
+    }
+
     .properties-accordion-stack {
       display: flex;
       flex-direction: column;
-      gap: 24px;
+      gap: 16px;
     }
     .property-accordion-card {
       background: #ffffff;
       border: 1px solid #e2e8f0;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      transition: all 0.2s ease;
+    }
+    .property-accordion-card.is-expanded {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.08);
     }
     .prop-accordion-header {
-      padding: 16px 20px;
+      padding: 16px 22px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -1148,41 +1414,149 @@ import { environment } from '../../../environments/environment';
       user-select: none;
       background: #ffffff;
       transition: background 0.15s;
+      gap: 16px;
+      flex-wrap: wrap;
     }
     .prop-accordion-header:hover {
-      background: #fcfdfe;
+      background: #f8fafc;
     }
     .prop-header-info {
       display: flex;
       align-items: center;
       gap: 16px;
+      flex: 1;
+      min-width: 260px;
     }
     .prop-avatar-thumb {
-      width: 52px;
-      height: 52px;
-      border-radius: 10px;
+      width: 54px;
+      height: 54px;
+      border-radius: 12px;
       object-fit: cover;
       border: 1px solid #e2e8f0;
       flex-shrink: 0;
     }
     .prop-title-text {
-      font-size: 1.2rem;
+      font-size: 1.15rem;
       font-weight: 800;
       color: #0f172a;
+    }
+    .badge-prop-rooms {
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      border: 1px solid #e2e8f0;
     }
     .prop-address-text {
       font-size: 0.82rem;
       color: #64748b;
       margin-top: 3px !important;
     }
-    .chevron-arrow {
-      font-size: 0.85rem;
-      color: #64748b;
-      display: inline-block;
-      transition: transform 0.2s ease;
+
+    .prop-header-right-zone {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
     }
-    .chevron-arrow.collapsed {
-      transform: rotate(180deg);
+    .prop-stats-pills {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .prop-stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 8px;
+      white-space: nowrap;
+    }
+    .prop-stat-badge.bg-green {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+    .prop-stat-badge.bg-blue {
+      background: #eff6ff;
+      color: #2563eb;
+      border: 1px solid #bfdbfe;
+    }
+    .dot-status {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+    }
+    .dot-status.green {
+      background: #10b981;
+    }
+    .dot-status.blue {
+      background: #3b82f6;
+    }
+
+    .prop-quick-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-prop-quick {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-prop-quick.edit {
+      background: #ffffff;
+      color: #1e293b;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-prop-quick.edit:hover {
+      background: #f1f5f9;
+      border-color: #94a3b8;
+    }
+    .btn-prop-quick.add {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+    .btn-prop-quick.add:hover {
+      background: #dbeafe;
+    }
+    .btn-prop-toggle {
+      padding: 7px 14px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      border: none;
+      background: #2563eb;
+      color: #ffffff;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+      white-space: nowrap;
+    }
+    .btn-prop-toggle:hover {
+      background: #1d4ed8;
+    }
+    .btn-prop-toggle.expanded {
+      background: #f1f5f9;
+      color: #334155;
+      border: 1px solid #cbd5e1;
+      box-shadow: none;
+    }
+    .btn-prop-toggle.expanded:hover {
+      background: #e2e8f0;
+      color: #0f172a;
     }
 
     /* 3 ROOMS PER ROW GRID */
@@ -1482,6 +1856,181 @@ import { environment } from '../../../environments/environment';
     .max-w-560 { max-width: 560px; }
     .max-w-680 { max-width: 680px; }
     .max-w-720 { max-width: 720px; }
+    .max-w-880 { max-width: 880px; }
+
+    /* ADD ROOM TAB PILLS */
+    .add-room-tab-pills {
+      display: flex;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 10px;
+    }
+    .room-tab-pill {
+      flex: 1;
+      padding: 9px 16px;
+      border: none;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #64748b;
+      background: transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .room-tab-pill.active {
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+    }
+
+    /* FLOOR CONFIGURATION SECTION (BATCH ROOMS) */
+    .floor-config-box {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .badge-total-rooms {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .floor-row-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+    }
+    .floor-row-card:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+    }
+    .floor-badge-pill {
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.02em;
+    }
+    .btn-remove-floor {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .btn-remove-floor:hover {
+      background: #fee2e2;
+    }
+    .floor-inputs-grid {
+      display: grid;
+      grid-template-columns: minmax(80px, 1fr) auto minmax(80px, 1fr) minmax(130px, 1.4fr) minmax(70px, 0.8fr);
+      align-items: center;
+      gap: 10px;
+    }
+    @media (max-width: 768px) {
+      .floor-inputs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .arrow-divider {
+      color: #94a3b8;
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding-top: 18px;
+      text-align: center;
+    }
+    .btn-add-floor {
+      background: #eff6ff;
+      border: 1.5px dashed #3b82f6;
+      color: #2563eb;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-add-floor:hover {
+      background: #dbeafe;
+      border-color: #1d4ed8;
+    }
+    .btn-link-reset {
+      background: none;
+      border: none;
+      color: #64748b;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .rooms-preview-container {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 1rem;
+    }
+    .max-h-180 { max-height: 180px; }
+    .overflow-y-auto { overflow-y: auto; }
+    .preview-room-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+    }
+    .preview-room-pill.floor-1 {
+      background: #eff6ff;
+      border-color: #bfdbfe;
+      color: #1e40af;
+    }
+    .preview-room-pill.floor-2 {
+      background: #fdf2f8;
+      border-color: #fbcfe8;
+      color: #9d174d;
+    }
+    .preview-room-pill.floor-other {
+      background: #f0fdf4;
+      border-color: #bbf7d0;
+      color: #166534;
+    }
+    .preview-room-pill .rm-price {
+      background: rgba(255, 255, 255, 0.7);
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-size: 0.75rem;
+    }
+    .preview-room-pill .rm-del {
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-size: 1rem;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+    }
+    .preview-room-pill .rm-del:hover {
+      color: #ef4444;
+    }
 
     .modal-header-clean {
       display: flex;
@@ -2010,11 +2559,105 @@ export class LandlordRoomsComponent implements OnInit {
   searchRoomNumber = signal<string>('');
   selectedSort = signal<string>('default');
 
-  collapsedProperties = signal<Set<number>>(new Set());
+  expandedProperties = signal<Set<number>>(new Set());
   activeRoomMenu = signal<number | null>(null);
 
   // Modals state
   showAddRoomModal = signal(false);
+  addRoomTab = signal<'batch' | 'single'>('batch');
+  batchPropertyId = signal<number>(0);
+  isSubmittingBatch = signal(false);
+
+  batchFloors = signal<FloorConfig[]>([
+    { floorNumber: 1, floorName: 'Tầng 1', startRoom: '1', endRoom: '10', price: 2000000, area: 25, maxOccupants: 2 },
+    { floorNumber: 2, floorName: 'Tầng 2', startRoom: '11', endRoom: '20', price: 3000000, area: 25, maxOccupants: 2 }
+  ]);
+  batchExcludedRooms = signal<string[]>([]);
+
+  hasInvalidBatchRange(floor: FloorConfig): boolean {
+    const startStr = (floor.startRoom || '').trim();
+    const endStr = (floor.endRoom || '').trim();
+    if (!startStr || !endStr) return false;
+    const startMatch = startStr.match(/^(.*?)(\d+)$/);
+    const endMatch = endStr.match(/^(.*?)(\d+)$/);
+    if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+      return parseInt(endMatch[2], 10) <= parseInt(startMatch[2], 10);
+    }
+    return false;
+  }
+
+  hasAnyInvalidBatchRange(): boolean {
+    return this.batchFloors().some(f => this.hasInvalidBatchRange(f));
+  }
+
+  batchGeneratedRooms = computed(() => {
+    const list: GeneratedRoomPreview[] = [];
+    const excluded = this.batchExcludedRooms();
+
+    for (const f of this.batchFloors()) {
+      const startStr = (f.startRoom || '').trim();
+      const endStr = (f.endRoom || '').trim();
+
+      if (!startStr) continue;
+
+      const startMatch = startStr.match(/^(.*?)(\d+)$/);
+      const endMatch = endStr.match(/^(.*?)(\d+)$/);
+
+      if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+        const prefix = startMatch[1];
+        const startNum = parseInt(startMatch[2], 10);
+        const endNum = parseInt(endMatch[2], 10);
+
+        // Validation: end must be strictly greater than start
+        if (endNum <= startNum) continue;
+
+        const shouldPad = startMatch[2].startsWith('0') && startMatch[2].length > 1;
+        const padLen = shouldPad ? Math.max(startMatch[2].length, endMatch[2].length) : 0;
+        const safeMax = Math.min(endNum, startNum + 99);
+
+        for (let i = startNum; i <= safeMax; i++) {
+          const numStr = padLen > 0 ? i.toString().padStart(padLen, '0') : i.toString();
+          const roomNumber = prefix + numStr;
+          if (!excluded.includes(roomNumber)) {
+            list.push({
+              roomNumber,
+              floor: f.floorNumber,
+              floorName: f.floorName,
+              price: f.price || 2000000,
+              area: f.area || 25,
+              maxOccupants: f.maxOccupants || 2
+            });
+          }
+        }
+      } else {
+        if (startStr && !excluded.includes(startStr)) {
+          list.push({
+            roomNumber: startStr,
+            floor: f.floorNumber,
+            floorName: f.floorName,
+            price: f.price || 2000000,
+            area: f.area || 25,
+            maxOccupants: f.maxOccupants || 2
+          });
+        }
+        if (endStr && endStr !== startStr && !excluded.includes(endStr)) {
+          list.push({
+            roomNumber: endStr,
+            floor: f.floorNumber,
+            floorName: f.floorName,
+            price: f.price || 2000000,
+            area: f.area || 25,
+            maxOccupants: f.maxOccupants || 2
+          });
+        }
+      }
+    }
+
+    return list;
+  });
+
+  totalBatchRoomsCount = computed(() => this.batchGeneratedRooms().length);
+
   newRoomData = {
     propertyId: 0,
     roomNumber: '',
@@ -2124,22 +2767,36 @@ export class LandlordRoomsComponent implements OnInit {
     if (propId > 0) {
       const p = props.find(x => x.id === propId);
       if (!p) return [];
+      const pRooms = p.rooms || [];
       return [{
         ...p,
-        matchedRooms: rooms.filter(r => r.propertyId === p.id)
+        matchedRooms: rooms.filter(r => r.propertyId === p.id),
+        totalRoomsCount: pRooms.length,
+        availableRoomsCount: pRooms.filter((r: any) => r.status === 'Available').length,
+        rentedRoomsCount: pRooms.filter((r: any) => r.status === 'Rented').length
       }];
     }
 
-    return props.map(p => ({
-      ...p,
-      matchedRooms: rooms.filter(r => r.propertyId === p.id)
-    })).filter(p => p.matchedRooms.length > 0 || (search === '' && status === 'All'));
+    return props.map(p => {
+      const pRooms = p.rooms || [];
+      return {
+        ...p,
+        matchedRooms: rooms.filter(r => r.propertyId === p.id),
+        totalRoomsCount: pRooms.length,
+        availableRoomsCount: pRooms.filter((r: any) => r.status === 'Available').length,
+        rentedRoomsCount: pRooms.filter((r: any) => r.status === 'Rented').length
+      };
+    }).filter(p => p.matchedRooms.length > 0 || (search === '' && status === 'All'));
   });
 
   ngOnInit(): void {
     this.route.queryParams.subscribe(params => {
       if (params['propertyId']) {
-        this.selectedPropertyIdFilter.set(Number(params['propertyId']));
+        const pId = Number(params['propertyId']);
+        this.selectedPropertyIdFilter.set(pId);
+        if (pId > 0) {
+          this.expandedProperties.set(new Set([pId]));
+        }
       }
     });
     this.fetchRoomsList();
@@ -2184,12 +2841,14 @@ export class LandlordRoomsComponent implements OnInit {
   onPropertyFilterChange(): void {
     const propId = this.selectedPropertyIdFilter();
     if (propId > 0) {
+      this.expandedProperties.set(new Set([propId]));
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { propertyId: propId },
         queryParamsHandling: 'merge'
       });
     } else {
+      this.expandedProperties.set(new Set());
       this.router.navigate([], {
         relativeTo: this.route,
         queryParams: { propertyId: null },
@@ -2198,18 +2857,31 @@ export class LandlordRoomsComponent implements OnInit {
     }
   }
 
-  isPropertyCollapsed(propId: number): boolean {
-    return this.collapsedProperties().has(propId);
+  isPropertyExpanded(propId: number): boolean {
+    return this.expandedProperties().has(propId);
   }
 
-  togglePropertyCollapse(propId: number): void {
-    const set = new Set(this.collapsedProperties());
+  togglePropertyExpand(propId: number): void {
+    const set = new Set(this.expandedProperties());
     if (set.has(propId)) {
       set.delete(propId);
     } else {
       set.add(propId);
     }
-    this.collapsedProperties.set(set);
+    this.expandedProperties.set(set);
+  }
+
+  expandAllProperties(): void {
+    const allIds = this.displayedProperties().map(p => p.id);
+    this.expandedProperties.set(new Set(allIds));
+  }
+
+  collapseAllProperties(): void {
+    this.expandedProperties.set(new Set());
+  }
+
+  editProperty(propId: number): void {
+    this.router.navigate(['/landlord/create-property'], { queryParams: { id: propId } });
   }
 
   toggleRoomMenu(roomId: number): void {
@@ -2317,10 +2989,78 @@ export class LandlordRoomsComponent implements OnInit {
     });
   }
 
-  // Add Room
-  openAddRoomModal(): void {
+  // Add Room Methods
+  getFloorRoomCount(floor: FloorConfig): number {
+    const startStr = (floor.startRoom || '').trim();
+    const endStr = (floor.endRoom || '').trim();
+    if (!startStr) return 0;
+    const startMatch = startStr.match(/^(.*?)(\d+)$/);
+    const endMatch = endStr.match(/^(.*?)(\d+)$/);
+    if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+      const min = Math.min(parseInt(startMatch[2], 10), parseInt(endMatch[2], 10));
+      const max = Math.max(parseInt(startMatch[2], 10), parseInt(endMatch[2], 10));
+      return Math.min(max - min + 1, 100);
+    }
+    return startStr === endStr || !endStr ? 1 : 2;
+  }
+
+  addBatchFloor(): void {
+    const nextNum = this.batchFloors().length + 1;
+    const startNum = `${(nextNum - 1) * 10 + 1}`;
+    const endNum = `${nextNum * 10}`;
+    const prevPrice = this.batchFloors().length > 0 ? this.batchFloors()[this.batchFloors().length - 1].price : 2000000;
+
+    this.batchFloors.update(prev => [
+      ...prev,
+      {
+        floorNumber: nextNum,
+        floorName: `Tầng ${nextNum}`,
+        startRoom: startNum,
+        endRoom: endNum,
+        price: prevPrice,
+        area: 25,
+        maxOccupants: 2
+      }
+    ]);
+  }
+
+  removeBatchFloor(index: number): void {
+    if (this.batchFloors().length <= 1) {
+      this.toastService.show('Phải có ít nhất 1 tầng!', 'info');
+      return;
+    }
+    this.batchFloors.update(prev => prev.filter((_, i) => i !== index));
+  }
+
+  excludeBatchRoom(roomNumber: string): void {
+    this.batchExcludedRooms.update(prev => [...prev, roomNumber]);
+  }
+
+  resetBatchExcludedRooms(): void {
+    this.batchExcludedRooms.set([]);
+  }
+
+  initBatchFloors(): void {
+    this.batchExcludedRooms.set([]);
+    this.batchFloors.set([
+      { floorNumber: 1, floorName: 'Tầng 1', startRoom: '1', endRoom: '10', price: 2000000, area: 25, maxOccupants: 2 },
+      { floorNumber: 2, floorName: 'Tầng 2', startRoom: '11', endRoom: '20', price: 3000000, area: 25, maxOccupants: 2 }
+    ]);
+  }
+
+  openBatchRoomsModal(propId?: number): void {
     const props = this.propertyList();
-    const defaultPropId = this.selectedPropertyIdFilter() > 0 ? this.selectedPropertyIdFilter() : (props.length > 0 ? props[0].id : 0);
+    const defaultPropId = propId || (this.selectedPropertyIdFilter() > 0 ? this.selectedPropertyIdFilter() : (props.length > 0 ? props[0].id : 0));
+    this.addRoomTab.set('batch');
+    this.batchPropertyId.set(defaultPropId);
+    this.initBatchFloors();
+    this.showAddRoomModal.set(true);
+  }
+
+  openSingleRoomModal(propId?: number): void {
+    const props = this.propertyList();
+    const defaultPropId = propId || (this.selectedPropertyIdFilter() > 0 ? this.selectedPropertyIdFilter() : (props.length > 0 ? props[0].id : 0));
+    this.addRoomTab.set('single');
     this.newRoomData = {
       propertyId: defaultPropId,
       roomNumber: '',
@@ -2334,18 +3074,92 @@ export class LandlordRoomsComponent implements OnInit {
     this.showAddRoomModal.set(true);
   }
 
+  openAddRoomModal(): void {
+    this.openBatchRoomsModal();
+  }
+
   openAddRoomModalWithProp(propId: number): void {
-    this.newRoomData = {
-      propertyId: propId,
-      roomNumber: '',
-      price: null,
-      deposit: null,
-      area: null,
-      maxOccupants: null,
-      bedsCount: 1,
-      paymentCycle: '1 tháng'
+    this.openBatchRoomsModal(propId);
+  }
+
+  submitBatchRooms(): void {
+    const propId = Number(this.batchPropertyId());
+    if (!propId) {
+      this.toastService.show('Vui lòng chọn nhà trọ cần tạo phòng!', 'error');
+      return;
+    }
+
+    if (this.hasAnyInvalidBatchRange()) {
+      this.toastService.show('Vui lòng kiểm tra lại: Số phòng kết thúc phải lớn hơn số phòng bắt đầu!', 'error');
+      return;
+    }
+
+    const rooms = this.batchGeneratedRooms();
+    if (rooms.length === 0) {
+      this.toastService.show('Chưa có phòng nào được tạo! Vui lòng kiểm tra lại cấu hình từ số phòng đến số phòng.', 'error');
+      return;
+    }
+
+    this.isSubmittingBatch.set(true);
+
+    const payload = rooms.map(r => ({
+      roomNumber: r.roomNumber,
+      price: r.price,
+      area: r.area,
+      maxOccupants: r.maxOccupants,
+      deposit: r.price,
+      status: 'Available',
+      paymentCycle: '1 tháng',
+      bedsCount: 1
+    }));
+
+    this.propertyService.addRoomsBatch(propId, payload).subscribe({
+      next: (res) => {
+        this.isSubmittingBatch.set(false);
+        this.toastService.show(`Đã tạo thành công ${res.createdCount || rooms.length} phòng cho khu trọ!`, 'success');
+        this.showAddRoomModal.set(false);
+        this.fetchRoomsList();
+      },
+      error: () => {
+        // Fallback: create sequentially
+        this.createBatchRoomsSequentially(propId, payload);
+      }
+    });
+  }
+
+  private createBatchRoomsSequentially(propertyId: number, rooms: any[]): void {
+    let createdCount = 0;
+    let failedCount = 0;
+    let index = 0;
+
+    const createNext = () => {
+      if (index >= rooms.length) {
+        this.isSubmittingBatch.set(false);
+        this.showAddRoomModal.set(false);
+        this.fetchRoomsList();
+        if (createdCount > 0) {
+          this.toastService.show(`Đã tạo ${createdCount} phòng cho khu trọ!`, 'success');
+        }
+        if (failedCount > 0) {
+          this.toastService.show(`${failedCount} phòng bị trùng hoặc vượt giới hạn gói.`, 'info');
+        }
+        return;
+      }
+
+      const room = rooms[index++];
+      this.propertyService.addRoom(propertyId, room).subscribe({
+        next: () => {
+          createdCount++;
+          createNext();
+        },
+        error: () => {
+          failedCount++;
+          createNext();
+        }
+      });
     };
-    this.showAddRoomModal.set(true);
+
+    createNext();
   }
 
   submitAddRoom(): void {
@@ -2512,7 +3326,9 @@ export class LandlordRoomsComponent implements OnInit {
   }
 
   getImageUrl(url?: string): string {
-    if (!url) return '';
-    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
+    if (!url) return `${environment.baseUrl}/media/properties/0919919919_639275077481748600.jpg`;
+    if (url.includes(',')) url = url.split(',')[0].trim();
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 }

@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal, computed } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -6,6 +6,25 @@ import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
 import { environment } from '../../../environments/environment';
+
+export interface FloorConfig {
+  floorNumber: number;
+  floorName: string;
+  startRoom: string;
+  endRoom: string;
+  price: number;
+  area: number;
+  maxOccupants: number;
+}
+
+export interface GeneratedRoomPreview {
+  roomNumber: string;
+  floor: number;
+  floorName: string;
+  price: number;
+  area: number;
+  maxOccupants: number;
+}
 
 @Component({
   selector: 'app-create-property',
@@ -50,28 +69,6 @@ import { environment } from '../../../environments/environment';
               required 
               class="form-control" 
               placeholder="Tên trọ" />
-          </div>
-
-          <!-- Row 2: Số lượng phòng & Diện tích (2 Cols) -->
-          <div class="grid-2-col mb-3">
-            <div class="form-group">
-              <label class="form-label">Số lượng phòng</label>
-              <input 
-                type="number" 
-                name="roomCount" 
-                [(ngModel)]="roomCount" 
-                class="form-control" 
-                placeholder="Số lượng phòng" />
-            </div>
-            <div class="form-group">
-              <label class="form-label">Diện tích (m²)</label>
-              <input 
-                type="number" 
-                name="area" 
-                [(ngModel)]="area" 
-                class="form-control" 
-                placeholder="Diện tích" />
-            </div>
           </div>
 
           <!-- Row 3: Address Dropdowns (2 Cols: Tỉnh/Thành phố & Quận/Huyện) -->
@@ -132,7 +129,7 @@ import { environment } from '../../../environments/environment';
           </div>
 
           <!-- GOOGLE MAPS API & LOCATION LINK SECTION -->
-          <div class="google-maps-box p-3 rounded">
+          <div class="google-maps-box p-3 rounded mb-4">
             <div class="d-flex align-items-center justify-content-between mb-2">
               <label class="form-label text-primary font-bold m-0 d-flex align-items-center gap-2">
                 <i class="fas fa-map-marked-alt text-danger"></i> Định vị Google Maps (Lấy vị trí API trọ)
@@ -154,6 +151,110 @@ import { environment } from '../../../environments/environment';
                 placeholder="Dán liên kết từ Google Maps (VD: https://maps.app.goo.gl/... hoặc 21.0135,105.5255)..." />
               <button type="button" class="btn btn-primary" (click)="verifyGoogleMapLink()">
                 Xác minh vị trí
+              </button>
+            </div>
+          </div>
+
+          <!-- CẤU HÌNH SỐ TẦNG & TẠO PHÒNG TỰ ĐỘNG (Bên dưới Google Maps) -->
+          <div class="floor-config-box">
+            <div class="floor-config-header d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+              <div>
+                <h3 class="m-0 font-bold" style="color: #0f172a; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 1.2rem;">🏢</span> 
+                  @if (isEditMode()) { Cấu hình số tầng & Danh sách phòng } @else { Cấu hình số tầng & Tạo danh sách phòng tự động }
+                </h3>
+                <p class="m-0 text-muted text-sm mt-1">
+                  @if (isEditMode()) {
+                    Quản lý danh sách tầng, khoảng phòng và mức giá thuê cho khu trọ.
+                  } @else {
+                    Điền số tầng, khoảng phòng (ví dụ: từ 1 đến 10) và mức giá riêng cho từng tầng.
+                  }
+                </p>
+              </div>
+              <div class="badge-total-rooms">
+                Tổng cộng: <strong style="color: #2563eb; font-size: 1.1rem;">{{ totalRoomCount() }} phòng</strong>
+              </div>
+            </div>
+
+            <!-- Danh sách từng tầng -->
+            <div class="floor-cards-wrapper d-flex flex-column gap-3">
+              @for (floor of floors(); track floor.floorNumber; let idx = $index) {
+                <div class="floor-row-card animate-fade-in" [class.has-error]="isFloorRangeInvalid(floor)">
+                  <div class="floor-row-top d-flex justify-content-between align-items-center mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="floor-badge-pill">Tầng {{ floor.floorNumber }}</span>
+                      <span class="floor-rooms-indicator text-xs text-muted">
+                        Số lượng: <strong>{{ getFloorRoomCount(floor) }} phòng</strong>
+                      </span>
+                    </div>
+                    @if (floors().length > 1) {
+                      <button type="button" (click)="removeFloor(idx)" class="btn-remove-floor" title="Xóa tầng này">
+                        &times; Xóa tầng
+                      </button>
+                    }
+                  </div>
+
+                  <div class="floor-inputs-grid">
+                    <div class="form-group">
+                      <label class="form-label text-xs">Từ số phòng <span class="text-danger">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="floor.startRoom" 
+                        name="startRoom_{{idx}}" 
+                        placeholder="VD: 1" 
+                        class="form-control form-control-sm font-bold"
+                        [class.is-invalid]="isFloorRangeInvalid(floor)" />
+                    </div>
+
+                    <div class="arrow-divider">→</div>
+
+                    <div class="form-group">
+                      <label class="form-label text-xs">Đến số phòng <span class="text-danger">*</span></label>
+                      <input 
+                        type="text" 
+                        [(ngModel)]="floor.endRoom" 
+                        name="endRoom_{{idx}}" 
+                        placeholder="VD: 10" 
+                        class="form-control form-control-sm font-bold"
+                        [class.is-invalid]="isFloorRangeInvalid(floor)" />
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label text-xs">Giá thuê tầng {{ floor.floorNumber }} (đ/tháng) <span class="text-danger">*</span></label>
+                      <input 
+                        type="number" 
+                        step="50000" 
+                        [(ngModel)]="floor.price" 
+                        name="price_{{idx}}" 
+                        placeholder="VD: 2000000" 
+                        class="form-control form-control-sm text-primary font-bold" />
+                      <span class="text-xs text-muted">{{ floor.price | number:'1.0-0' }} đ/tháng</span>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label text-xs">Diện tích (m²)</label>
+                      <input 
+                        type="number" 
+                        [(ngModel)]="floor.area" 
+                        name="area_{{idx}}" 
+                        placeholder="25" 
+                        class="form-control form-control-sm" />
+                    </div>
+                  </div>
+
+                  @if (getFloorRangeError(floor)) {
+                    <div class="floor-error-msg text-danger text-xs mt-2 d-flex align-items-center gap-1 font-bold">
+                      <span>⚠️</span> {{ getFloorRangeError(floor) }}
+                    </div>
+                  }
+                </div>
+              }
+            </div>
+
+            <!-- Nút thêm tầng -->
+            <div class="d-flex justify-content-between align-items-center mt-3 flex-wrap gap-2">
+              <button type="button" (click)="addFloor()" class="btn-add-floor">
+                + Thêm tầng tiếp theo (Tầng {{ floors().length + 1 }})
               </button>
             </div>
           </div>
@@ -390,6 +491,105 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    /* FLOOR CONFIGURATION SECTION */
+    .floor-config-box {
+      background: #f8fafc;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    .badge-total-rooms {
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      color: #1e40af;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+      font-weight: 600;
+    }
+    .floor-row-card {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 10px;
+      padding: 1rem 1.25rem;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      transition: all 0.2s ease;
+    }
+    .floor-row-card:hover {
+      border-color: #93c5fd;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.06);
+    }
+    .floor-badge-pill {
+      background: #2563eb;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 12px;
+      letter-spacing: 0.02em;
+    }
+    .btn-remove-floor {
+      background: transparent;
+      border: none;
+      color: #ef4444;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 2px 8px;
+      border-radius: 4px;
+      transition: background 0.15s;
+    }
+    .btn-remove-floor:hover {
+      background: #fee2e2;
+    }
+    .floor-inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr 1.5fr 1fr;
+      align-items: center;
+      gap: 12px;
+    }
+    @media (max-width: 768px) {
+      .floor-inputs-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .arrow-divider {
+      color: #94a3b8;
+      font-weight: bold;
+      font-size: 1.1rem;
+      padding-top: 18px;
+      text-align: center;
+    }
+    .btn-add-floor {
+      background: #eff6ff;
+      border: 1.5px dashed #3b82f6;
+      color: #2563eb;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-add-floor:hover {
+      background: #dbeafe;
+      border-color: #1d4ed8;
+    }
+    .floor-row-card.has-error {
+      border-color: #f87171 !important;
+      background: #fff8f8;
+    }
+    .form-control.is-invalid {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+    }
+    .floor-error-msg {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 6px;
+      padding: 6px 10px;
+    }
+
     .create-property-wrapper {
       max-width: 960px;
       margin: 0 auto;
@@ -814,7 +1014,248 @@ export class CreatePropertyComponent implements OnInit {
 
   title = '';
   roomCount: number | null = null;
-  area: number | null = null;
+  area: number | null = 25;
+
+  // Cấu hình phòng theo tầng
+  floors = signal<FloorConfig[]>([
+    { floorNumber: 1, floorName: 'Tầng 1', startRoom: '1', endRoom: '10', price: 2000000, area: 25, maxOccupants: 2 },
+    { floorNumber: 2, floorName: 'Tầng 2', startRoom: '11', endRoom: '20', price: 3000000, area: 25, maxOccupants: 2 }
+  ]);
+  existingRoomsList: any[] = [];
+
+  isFloorRangeInvalid(floor: FloorConfig): boolean {
+    return this.getFloorRangeError(floor) !== '';
+  }
+
+  getFloorRangeError(floor: FloorConfig): string {
+    const startStr = (floor.startRoom || '').trim();
+    const endStr = (floor.endRoom || '').trim();
+
+    if (!startStr || !endStr) {
+      return '';
+    }
+
+    const startMatch = startStr.match(/^(.*?)(\d+)$/);
+    const endMatch = endStr.match(/^(.*?)(\d+)$/);
+
+    if (startMatch && endMatch) {
+      if (startMatch[1] !== endMatch[1]) {
+        return 'Tiền tố tên phòng phải giống nhau (VD: P1 đến P10)';
+      }
+      const startNum = parseInt(startMatch[2], 10);
+      const endNum = parseInt(endMatch[2], 10);
+
+      if (endNum <= startNum) {
+        return `Số phòng kết thúc (${endStr}) phải lớn hơn số phòng bắt đầu (${startStr})!`;
+      }
+    } else {
+      if (startStr === endStr) {
+        return 'Số phòng kết thúc phải khác và lớn hơn số phòng bắt đầu!';
+      }
+    }
+
+    return '';
+  }
+
+  generatedRooms = computed(() => {
+    const list: GeneratedRoomPreview[] = [];
+
+    for (const f of this.floors()) {
+      const startStr = (f.startRoom || '').trim();
+      const endStr = (f.endRoom || '').trim();
+
+      if (!startStr) continue;
+
+      const startMatch = startStr.match(/^(.*?)(\d+)$/);
+      const endMatch = endStr.match(/^(.*?)(\d+)$/);
+
+      if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+        const prefix = startMatch[1];
+        const startNum = parseInt(startMatch[2], 10);
+        const endNum = parseInt(endMatch[2], 10);
+
+        // Validation: endNum must be greater than startNum
+        if (endNum <= startNum) {
+          continue; // Skip invalid floor range
+        }
+
+        // Only pad with zeroes if startRoom explicitly had leading zero(es)
+        const hasLeadingZero = startMatch[2].startsWith('0') || (startMatch[2].length === endMatch[2].length && startMatch[2].length > 1 && startNum < 100);
+        const padLen = hasLeadingZero ? Math.max(startMatch[2].length, endMatch[2].length) : 0;
+
+        const safeMax = Math.min(endNum, startNum + 99); // Max 100 rooms per floor
+
+        for (let i = startNum; i <= safeMax; i++) {
+          const numStr = padLen > 0 ? i.toString().padStart(padLen, '0') : i.toString();
+          const roomNumber = prefix + numStr;
+          list.push({
+            roomNumber,
+            floor: f.floorNumber,
+            floorName: f.floorName,
+            price: f.price || 2000000,
+            area: f.area || 25,
+            maxOccupants: f.maxOccupants || 2
+          });
+        }
+      } else {
+        if (startStr) {
+          list.push({
+            roomNumber: startStr,
+            floor: f.floorNumber,
+            floorName: f.floorName,
+            price: f.price || 2000000,
+            area: f.area || 25,
+            maxOccupants: f.maxOccupants || 2
+          });
+        }
+        if (endStr && endStr !== startStr) {
+          list.push({
+            roomNumber: endStr,
+            floor: f.floorNumber,
+            floorName: f.floorName,
+            price: f.price || 2000000,
+            area: f.area || 25,
+            maxOccupants: f.maxOccupants || 2
+          });
+        }
+      }
+    }
+
+    return list;
+  });
+
+  totalRoomCount = computed(() => this.generatedRooms().length);
+
+  getFloorRoomCount(floor: FloorConfig): number {
+    const startStr = (floor.startRoom || '').trim();
+    const endStr = (floor.endRoom || '').trim();
+    if (!startStr || !endStr) return 0;
+    const startMatch = startStr.match(/^(.*?)(\d+)$/);
+    const endMatch = endStr.match(/^(.*?)(\d+)$/);
+    if (startMatch && endMatch && startMatch[1] === endMatch[1]) {
+      const startNum = parseInt(startMatch[2], 10);
+      const endNum = parseInt(endMatch[2], 10);
+      if (endNum <= startNum) return 0;
+      return Math.min(endNum - startNum + 1, 100);
+    }
+    return startStr === endStr || !endStr ? 1 : 2;
+  }
+
+  addFloor(): void {
+    const nextNum = this.floors().length + 1;
+    const currentFloors = this.floors();
+    let nextStart = (nextNum - 1) * 10 + 1;
+    let nextEnd = nextNum * 10;
+    let nextPrice = 3000000;
+    let nextArea = 25;
+
+    if (currentFloors.length > 0) {
+      const lastFloor = currentFloors[currentFloors.length - 1];
+      nextPrice = lastFloor.price || 3000000;
+      nextArea = lastFloor.area || 25;
+      const endMatch = (lastFloor.endRoom || '').trim().match(/^(.*?)(\d+)$/);
+      if (endMatch) {
+        const lastEndNum = parseInt(endMatch[2], 10);
+        const prefix = endMatch[1];
+        nextStart = lastEndNum + 1;
+        nextEnd = lastEndNum + 10;
+        this.floors.update(prev => [
+          ...prev,
+          {
+            floorNumber: nextNum,
+            floorName: `Tầng ${nextNum}`,
+            startRoom: prefix ? `${prefix}${nextStart}` : `${nextStart}`,
+            endRoom: prefix ? `${prefix}${nextEnd}` : `${nextEnd}`,
+            price: nextPrice,
+            area: nextArea,
+            maxOccupants: 2
+          }
+        ]);
+        return;
+      }
+    }
+
+    this.floors.update(prev => [
+      ...prev,
+      {
+        floorNumber: nextNum,
+        floorName: `Tầng ${nextNum}`,
+        startRoom: `${nextStart}`,
+        endRoom: `${nextEnd}`,
+        price: nextPrice,
+        area: nextArea,
+        maxOccupants: 2
+      }
+    ]);
+  }
+
+  removeFloor(index: number): void {
+    if (this.floors().length <= 1) {
+      this.toastService.show('Khu trọ cần ít nhất 1 tầng!', 'info');
+      return;
+    }
+    this.floors.update(prev => prev.filter((_, i) => i !== index));
+  }
+
+  parseRoomsIntoFloors(rooms: any[]): FloorConfig[] {
+    if (!rooms || rooms.length === 0) {
+      return [
+        { floorNumber: 1, floorName: 'Tầng 1', startRoom: '1', endRoom: '10', price: 2000000, area: 25, maxOccupants: 2 },
+        { floorNumber: 2, floorName: 'Tầng 2', startRoom: '11', endRoom: '20', price: 3000000, area: 25, maxOccupants: 2 }
+      ];
+    }
+
+    const numericRooms = rooms.map(r => {
+      const match = (r.roomNumber || '').match(/^(.*?)(\d+)$/);
+      return {
+        ...r,
+        prefix: match ? match[1] : '',
+        num: match ? parseInt(match[2], 10) : 0,
+        rawNumberStr: match ? match[2] : r.roomNumber
+      };
+    });
+
+    const isHundredsPattern = numericRooms.some(r => r.num >= 101 && r.num <= 999 && !numericRooms.some(x => x.num < 100 && x.num > 0));
+
+    const floorGroups = new Map<number, typeof numericRooms>();
+
+    if (isHundredsPattern) {
+      for (const r of numericRooms) {
+        const fNum = Math.floor(r.num / 100) || 1;
+        if (!floorGroups.has(fNum)) floorGroups.set(fNum, []);
+        floorGroups.get(fNum)!.push(r);
+      }
+    } else {
+      const sorted = [...numericRooms].sort((a, b) => a.num - b.num);
+      for (let i = 0; i < sorted.length; i++) {
+        const fNum = Math.floor(i / 10) + 1;
+        if (!floorGroups.has(fNum)) floorGroups.set(fNum, []);
+        floorGroups.get(fNum)!.push(sorted[i]);
+      }
+    }
+
+    const configs: FloorConfig[] = [];
+    const sortedFloors = Array.from(floorGroups.keys()).sort((a, b) => a - b);
+    for (const fNum of sortedFloors) {
+      const fRooms = floorGroups.get(fNum)!;
+      fRooms.sort((a, b) => a.num - b.num);
+      const first = fRooms[0];
+      const last = fRooms[fRooms.length - 1];
+      configs.push({
+        floorNumber: fNum,
+        floorName: `Tầng ${fNum}`,
+        startRoom: first.roomNumber,
+        endRoom: last.roomNumber,
+        price: first.price || 2000000,
+        area: first.area || 25,
+        maxOccupants: first.maxOccupants || 2
+      });
+    }
+
+    return configs.length > 0 ? configs : [
+      { floorNumber: 1, floorName: 'Tầng 1', startRoom: '1', endRoom: '10', price: 2000000, area: 25, maxOccupants: 2 }
+    ];
+  }
   selectedProvince = 'Thành phố Hà Nội';
 
   addressModel = {
@@ -935,27 +1376,33 @@ export class CreatePropertyComponent implements OnInit {
         this.title = prop.title || prop.propertyTitle || '';
         this.roomCount = prop.totalRooms || prop.rooms?.length || null;
         if (prop.rooms && prop.rooms.length > 0) {
+          this.existingRoomsList = prop.rooms;
+          this.floors.set(this.parseRoomsIntoFloors(prop.rooms));
           this.area = prop.rooms[0].area || null;
         }
 
+        const loadedImgs: string[] = [];
+        if (prop.imageUrls && Array.isArray(prop.imageUrls)) {
+          prop.imageUrls.forEach((u: string) => {
+            if (u && typeof u === 'string') {
+              loadedImgs.push(...u.split(',').map((s: string) => s.trim()).filter(Boolean));
+            }
+          });
+        }
         if (prop.imageUrl || prop.propertyImageUrl) {
-          const img = prop.imageUrl || prop.propertyImageUrl;
-          this.coverPhotoBase64.set(img);
-          if (!this.galleryPreviews().includes(img)) {
-            this.galleryPreviews.update(prev => [...prev, img]);
+          const raw = prop.imageUrl || prop.propertyImageUrl;
+          if (raw && typeof raw === 'string') {
+            loadedImgs.push(...raw.split(',').map((s: string) => s.trim()).filter(Boolean));
           }
         }
 
-        if (prop.rooms && prop.rooms.length > 0) {
-          prop.rooms.forEach((r: any) => {
-            if (r.imageUrls && r.imageUrls.length > 0) {
-              r.imageUrls.forEach((img: string) => {
-                if (!this.galleryPreviews().includes(img)) {
-                  this.galleryPreviews.update(prev => [...prev, img]);
-                }
-              });
-            }
-          });
+        const uniqueImgs = Array.from(new Set(loadedImgs.filter(Boolean)));
+        const hasCustom = uniqueImgs.some(u => u.includes('/media/') || u.startsWith('data:'));
+        const finalImgs = hasCustom ? uniqueImgs.filter(u => !u.includes('images.unsplash.com')) : uniqueImgs;
+
+        this.galleryPreviews.set(finalImgs);
+        if (finalImgs.length > 0) {
+          this.coverPhotoBase64.set(finalImgs[0]);
         }
 
         // Parse address: e.g. "123, xã Thạch Hòa, Thạch Thất, Thành phố Hà Nội"
@@ -1026,20 +1473,31 @@ export class CreatePropertyComponent implements OnInit {
             this.title = publicProp.propertyTitle || '';
             this.roomCount = publicProp.totalRooms || null;
             if (publicProp.rooms && publicProp.rooms.length > 0) {
+              this.existingRoomsList = publicProp.rooms;
+              this.floors.set(this.parseRoomsIntoFloors(publicProp.rooms));
               this.area = publicProp.rooms[0].area || null;
             }
-            if (publicProp.propertyImageUrl) {
-              this.coverPhotoBase64.set(publicProp.propertyImageUrl);
-              if (!this.galleryPreviews().includes(publicProp.propertyImageUrl)) {
-                this.galleryPreviews.update(prev => [...prev, publicProp.propertyImageUrl]);
-              }
-            }
-            if (publicProp.imageUrls && publicProp.imageUrls.length > 0) {
-              publicProp.imageUrls.forEach((img: string) => {
-                if (!this.galleryPreviews().includes(img)) {
-                  this.galleryPreviews.update(prev => [...prev, img]);
+            const loadedPublicImgs: string[] = [];
+            if (publicProp.imageUrls && Array.isArray(publicProp.imageUrls)) {
+              publicProp.imageUrls.forEach((u: string) => {
+                if (u && typeof u === 'string') {
+                  loadedPublicImgs.push(...u.split(',').map((s: string) => s.trim()).filter(Boolean));
                 }
               });
+            }
+            if (publicProp.propertyImageUrl) {
+              const raw = publicProp.propertyImageUrl;
+              if (raw && typeof raw === 'string') {
+                loadedPublicImgs.push(...raw.split(',').map((s: string) => s.trim()).filter(Boolean));
+              }
+            }
+            const uniquePublic = Array.from(new Set(loadedPublicImgs.filter(Boolean)));
+            const hasCustomPublic = uniquePublic.some(u => u.includes('/media/') || u.startsWith('data:'));
+            const finalPublic = hasCustomPublic ? uniquePublic.filter(u => !u.includes('images.unsplash.com')) : uniquePublic;
+
+            this.galleryPreviews.set(finalPublic);
+            if (finalPublic.length > 0) {
+              this.coverPhotoBase64.set(finalPublic[0]);
             }
             if (publicProp.address) {
               const parts = publicProp.address.split(',').map((p: string) => p.trim());
@@ -1275,6 +1733,15 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
       return;
     }
 
+    // Validate all floor ranges
+    for (const f of this.floors()) {
+      const err = this.getFloorRangeError(f);
+      if (err) {
+        this.toastService.show(`Lỗi ${f.floorName}: ${err}`, 'error');
+        return;
+      }
+    }
+
     this.isLoading.set(true);
 
     const fullAddress = this.computedFullAddress();
@@ -1310,19 +1777,36 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
       compiledDesc += `Ghi chú & Mô tả:\n${this.userDescription}`;
     }
 
+    const newBase64Images = this.galleryPreviews().filter(img => img && img.startsWith('data:image'));
+    const existingImages = this.galleryPreviews().filter(img => img && !img.startsWith('data:image'));
+
     const payload = {
       title: this.title,
       address: fullAddress,
       description: compiledDesc.trim(),
-      imageBase64: this.coverPhotoBase64() || null
+      imageBase64: this.coverPhotoBase64() || null,
+      imageBase64s: newBase64Images,
+      existingImageUrls: existingImages
     };
 
     if (this.isEditMode() && this.editPropertyId()) {
-      this.propertyService.updateProperty(this.editPropertyId()!, payload).subscribe({
-        next: (updatedProp) => {
-          this.isLoading.set(false);
-          this.toastService.show(`Đã cập nhật thành công khu trọ "${this.title}"!`, 'success');
-          this.router.navigate(['/landlord/properties']);
+      const propId = this.editPropertyId()!;
+      this.propertyService.updateProperty(propId, payload).subscribe({
+        next: () => {
+          // Sync all floors & rooms to match configured floors
+          this.propertyService.syncFloors(propId, this.floors()).subscribe({
+            next: () => {
+              this.isLoading.set(false);
+              this.toastService.show(`Đã cập nhật khu trọ "${this.title}" và đồng bộ ${this.totalRoomCount()} phòng thành công!`, 'success');
+              this.router.navigate(['/landlord/rooms'], { queryParams: { propertyId: propId } });
+            },
+            error: (err) => {
+              this.isLoading.set(false);
+              const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Đã cập nhật thông tin trọ nhưng lỗi đồng bộ phòng.');
+              this.toastService.show(msg, 'info');
+              this.router.navigate(['/landlord/rooms'], { queryParams: { propertyId: propId } });
+            }
+          });
         },
         error: (err) => {
           this.isLoading.set(false);
@@ -1335,40 +1819,40 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
 
     this.propertyService.createProperty(payload).subscribe({
       next: (createdProp) => {
-        const totalRooms = this.roomCount && this.roomCount > 0 ? this.roomCount : 1;
-        const defaultArea = this.area && this.area > 0 ? this.area : 25;
-        const galleryImages = this.galleryBase64s();
+        const roomsToCreate = this.generatedRooms();
 
-        let createdCount = 0;
-        for (let i = 1; i <= totalRooms; i++) {
-          const roomPayload = {
-            roomNumber: `${100 + i}`,
-            price: 2500000,
-            area: defaultArea,
-            maxOccupants: 2,
-            amenities: selectedAmenities,
-            imageBase64s: i === 1 ? galleryImages : []
-          };
-
-          this.propertyService.addRoom(createdProp.id, roomPayload).subscribe({
-            next: () => {
-              createdCount++;
-              if (createdCount === totalRooms) {
-                this.isLoading.set(false);
-                this.toastService.show(`Đã tạo thành công khu trọ "${createdProp.title}" với ${totalRooms} phòng!`, 'success');
-                this.router.navigate(['/landlord/properties']);
-              }
-            },
-            error: () => {
-              createdCount++;
-              if (createdCount === totalRooms) {
-                this.isLoading.set(false);
-                this.toastService.show(`Đã tạo thành công khu trọ "${createdProp.title}"!`, 'success');
-                this.router.navigate(['/landlord/properties']);
-              }
-            }
-          });
+        if (!roomsToCreate || roomsToCreate.length === 0) {
+          this.isLoading.set(false);
+          this.toastService.show(`Đã tạo thành công khu trọ "${createdProp.title}"!`, 'success');
+          this.router.navigate(['/landlord/properties']);
+          return;
         }
+
+        const batchPayload = roomsToCreate.map(r => ({
+          roomNumber: r.roomNumber,
+          price: r.price,
+          area: r.area,
+          maxOccupants: r.maxOccupants || 2,
+          amenities: selectedAmenities
+        }));
+
+        this.propertyService.addRoomsBatch(createdProp.id, batchPayload).subscribe({
+          next: () => {
+            this.isLoading.set(false);
+            this.toastService.show(`Đã tạo thành công khu trọ "${createdProp.title}" với đủ ${batchPayload.length} phòng!`, 'success');
+            this.router.navigate(['/landlord/rooms'], { queryParams: { propertyId: createdProp.id } });
+          },
+          error: (err) => {
+            if (err.status === 403 && err.error?.message) {
+              this.isLoading.set(false);
+              this.toastService.show(err.error.message, 'error');
+              this.router.navigate(['/landlord/rooms'], { queryParams: { propertyId: createdProp.id } });
+              return;
+            }
+            // Fallback sequentially in case of batch network/timeout issue
+            this.createRoomsSequentially(createdProp.id, batchPayload, createdProp.title);
+          }
+        });
       },
       error: (err) => {
         this.isLoading.set(false);
@@ -1376,5 +1860,45 @@ LIÊN HỆ XEM PHÒNG TRỰC TIẾP:
         this.toastService.show(msg, 'error');
       }
     });
+  }
+
+  private createRoomsSequentially(propId: number, rooms: any[], propTitle: string, onComplete?: () => void): void {
+    let createdCount = 0;
+    let failedCount = 0;
+    let index = 0;
+
+    const createNext = () => {
+      if (index >= rooms.length) {
+        this.isLoading.set(false);
+        if (createdCount > 0 && failedCount === 0) {
+          this.toastService.show(`Đã tạo thành công khu trọ "${propTitle}" với đủ ${createdCount} phòng!`, 'success');
+        } else if (createdCount > 0 && failedCount > 0) {
+          this.toastService.show(`Đã tạo ${createdCount} phòng thành công, ${failedCount} phòng bị lỗi hoặc trùng số phòng.`, 'info');
+        } else {
+          this.toastService.show(`Không thể tạo phòng. Vui lòng kiểm tra lại giới hạn gói cước.`, 'error');
+        }
+        if (onComplete) {
+          onComplete();
+        } else {
+          this.router.navigate(['/landlord/rooms'], { queryParams: { propertyId: propId } });
+        }
+        return;
+      }
+
+      const room = rooms[index++];
+      this.propertyService.addRoom(propId, room).subscribe({
+        next: () => {
+          createdCount++;
+          createNext();
+        },
+        error: (err) => {
+          console.warn(`Lỗi tạo phòng ${room.roomNumber}:`, err);
+          failedCount++;
+          createNext();
+        }
+      });
+    };
+
+    createNext();
   }
 }

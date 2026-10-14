@@ -97,6 +97,9 @@ import { environment } from '../../../environments/environment';
                     </td>
                     <td>
                       <div class="actions-cell">
+                        <button (click)="openEditCccdModal(item)" class="btn btn-primary btn-xs" title="Cập nhật ảnh CCCD">
+                          <i class="fas fa-camera me-1"></i>Sửa CCCD
+                        </button>
                         @if (item.status === 'Pending' || item.status === 'Rejected') {
                           <button (click)="approve(item.userId)" class="btn btn-success btn-xs">Duyệt </button>
                         }
@@ -128,6 +131,65 @@ import { environment } from '../../../environments/environment';
               <div class="modal-actions mt-4">
                 <button type="button" (click)="closeRejectModal()" class="btn btn-secondary">Hủy</button>
                 <button type="submit" class="btn btn-danger" [disabled]="!rejectReason.trim()">Xác nhận từ chối</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      }
+
+      <!-- Edit CCCD Modal -->
+      @if (showEditCccdModal()) {
+        <div class="modal-backdrop" (click)="closeEditCccdModal()">
+          <div class="glass-panel modal-card max-w-600" (click)="$event.stopPropagation()">
+            <button (click)="closeEditCccdModal()" class="modal-close-btn">&times;</button>
+            <h2>Cập Nhật Ảnh CCCD Chủ Trọ</h2>
+            <p class="text-muted mt-1">Chủ trọ: <strong>{{ editingLandlord()?.fullName }}</strong> ({{ editingLandlord()?.phone }})</p>
+            
+            <form (ngSubmit)="saveCccd()" class="mt-4">
+              <div class="form-group mb-3">
+                <label for="adminCccdNum">Số CCCD / CMND</label>
+                <input id="adminCccdNum" type="text" [(ngModel)]="editCccdNumber" name="editCccdNumber" class="form-control" placeholder="Nhập 12 số CCCD" />
+              </div>
+
+              <div class="cccd-upload-grid mt-3">
+                <!-- Front CCCD -->
+                <div class="cccd-box">
+                  <label class="form-label font-bold text-sm">Ảnh mặt trước CCCD</label>
+                  <div class="cccd-preview-area" (click)="cccdFrontInput.click()">
+                    @if (editCccdFrontPreview()) {
+                      <img [src]="editCccdFrontPreview()" alt="Mặt trước" class="cccd-preview-img" />
+                    } @else {
+                      <div class="upload-placeholder">
+                        <i class="fas fa-id-card fa-2x mb-2 text-primary"></i>
+                        <span>Bấm để tải ảnh mặt trước</span>
+                      </div>
+                    }
+                  </div>
+                  <input #cccdFrontInput type="file" accept="image/*" class="d-none" (change)="onCccdFileSelect($event, 'front')" />
+                </div>
+
+                <!-- Back CCCD -->
+                <div class="cccd-box">
+                  <label class="form-label font-bold text-sm">Ảnh mặt sau CCCD</label>
+                  <div class="cccd-preview-area" (click)="cccdBackInput.click()">
+                    @if (editCccdBackPreview()) {
+                      <img [src]="editCccdBackPreview()" alt="Mặt sau" class="cccd-preview-img" />
+                    } @else {
+                      <div class="upload-placeholder">
+                        <i class="fas fa-id-card fa-2x mb-2 text-primary"></i>
+                        <span>Bấm để tải ảnh mặt sau</span>
+                      </div>
+                    }
+                  </div>
+                  <input #cccdBackInput type="file" accept="image/*" class="d-none" (change)="onCccdFileSelect($event, 'back')" />
+                </div>
+              </div>
+
+              <div class="modal-actions mt-4">
+                <button type="button" (click)="closeEditCccdModal()" class="btn btn-secondary">Hủy</button>
+                <button type="submit" class="btn btn-primary" [disabled]="isSavingCccd()">
+                  @if (isSavingCccd()) { <i class="fas fa-spinner fa-spin me-1"></i> Đang lưu... } @else { <i class="fas fa-save me-1"></i> Lưu ảnh CCCD }
+                </button>
               </div>
             </form>
           </div>
@@ -334,6 +396,50 @@ import { environment } from '../../../environments/environment';
     .max-w-400 {
       max-width: 400px;
     }
+    .max-w-600 {
+      max-width: 600px;
+    }
+    .cccd-upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    .cccd-box {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .cccd-preview-area {
+      height: 150px;
+      border: 2px dashed #cbd5e1;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      overflow: hidden;
+      background: #f8fafc;
+      transition: all 0.2s;
+    }
+    .cccd-preview-area:hover {
+      border-color: #3b82f6;
+      background: #eff6ff;
+    }
+    .cccd-preview-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .upload-placeholder {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      color: #64748b;
+      font-size: 0.8rem;
+      text-align: center;
+      padding: 10px;
+    }
+    .d-none { display: none; }
 
     /* Modal Backdrop */
     .modal-backdrop {
@@ -440,6 +546,16 @@ export class AdminVerificationsComponent implements OnInit {
   rejectUserId = 0;
   rejectReason = '';
 
+  // Edit CCCD States
+  showEditCccdModal = signal(false);
+  editingLandlord = signal<any>(null);
+  editCccdNumber = '';
+  editCccdFrontPreview = signal('');
+  editCccdBackPreview = signal('');
+  editCccdFrontBase64 = '';
+  editCccdBackBase64 = '';
+  isSavingCccd = signal(false);
+
   // Image Zoom States
   zoomedImageUrl = signal<string | null>(null);
   zoomedImageTitle = signal('');
@@ -512,6 +628,65 @@ export class AdminVerificationsComponent implements OnInit {
     });
   }
 
+  openEditCccdModal(item: any): void {
+    this.editingLandlord.set(item);
+    this.editCccdNumber = item.cccdNumber || '';
+    this.editCccdFrontPreview.set(item.cccdFrontUrl ? this.getImageUrl(item.cccdFrontUrl) : '');
+    this.editCccdBackPreview.set(item.cccdBackUrl ? this.getImageUrl(item.cccdBackUrl) : '');
+    this.editCccdFrontBase64 = '';
+    this.editCccdBackBase64 = '';
+    this.showEditCccdModal.set(true);
+  }
+
+  closeEditCccdModal(): void {
+    this.showEditCccdModal.set(false);
+    this.editingLandlord.set(null);
+  }
+
+  onCccdFileSelect(event: any, side: 'front' | 'back'): void {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e: any) => {
+      const b64 = e.target.result;
+      if (side === 'front') {
+        this.editCccdFrontPreview.set(b64);
+        this.editCccdFrontBase64 = b64;
+      } else {
+        this.editCccdBackPreview.set(b64);
+        this.editCccdBackBase64 = b64;
+      }
+    };
+    reader.readAsDataURL(file);
+  }
+
+  saveCccd(): void {
+    const landlord = this.editingLandlord();
+    if (!landlord) return;
+
+    this.isSavingCccd.set(true);
+    const payload = {
+      cccdNumber: this.editCccdNumber,
+      cccdFrontBase64: this.editCccdFrontBase64 || undefined,
+      cccdBackBase64: this.editCccdBackBase64 || undefined
+    };
+
+    this.adminService.updateLandlordCccd(landlord.userId, payload).subscribe({
+      next: (res) => {
+        this.isSavingCccd.set(false);
+        this.toastService.show(res.message || 'Đã cập nhật ảnh CCCD thành công!', 'success');
+        this.closeEditCccdModal();
+        this.fetchRequests();
+      },
+      error: (err) => {
+        this.isSavingCccd.set(false);
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Lỗi cập nhật ảnh CCCD.');
+        this.toastService.show(msg, 'error');
+      }
+    });
+  }
+
   zoomImage(url: string, title: string, event?: MouseEvent): void {
     if (!url) return;
     const target = event?.currentTarget as HTMLElement;
@@ -577,6 +752,20 @@ export class AdminVerificationsComponent implements OnInit {
     if (!img) return;
     if (img.src.includes('localhost:5000')) {
       img.src = img.src.replace('http://localhost:5000', 'https://zhome-be.onrender.com');
+    }
+  }
+
+  onThumbError(event: any): void {
+    const el = event.target as HTMLElement;
+    el.style.display = 'none';
+    if (el.parentElement) {
+      el.parentElement.classList.add('no-img-wrapper');
+      el.parentElement.innerHTML = `
+        <div class="no-thumb-box" title="Không tìm thấy ảnh">
+          <i class="fas fa-exclamation-circle" style="color: #cbd5e1; font-size: 1.1rem;"></i>
+          <span style="font-size: 0.65rem; color: #94a3b8;">Lỗi tải ảnh</span>
+        </div>
+      `;
     }
   }
 }

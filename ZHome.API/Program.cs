@@ -76,6 +76,7 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMediaStorageService, MediaStorageService>();
 builder.Services.AddScoped<IBillService, BillService>();
 
 // Cấu hình cài đặt thanh toán (SePay & PayOS) từ appsettings.json
@@ -262,10 +263,38 @@ using (var scope = app.Services.CreateScope())
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(50);
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(100);
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_qr_url VARCHAR(500);
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP WITH TIME ZONE;
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE;
                     END IF;
+
+                    CREATE TABLE IF NOT EXISTS public.activity_logs (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_id BIGINT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+                        user_name VARCHAR(150),
+                        user_role VARCHAR(50),
+                        action VARCHAR(100) NOT NULL,
+                        description TEXT,
+                        ip_address VARCHAR(50),
+                        user_agent VARCHAR(255),
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS ix_activity_logs_user_id ON public.activity_logs(user_id);
+                    CREATE INDEX IF NOT EXISTS ix_activity_logs_created_at ON public.activity_logs(created_at);
+
+                    CREATE TABLE IF NOT EXISTS public.media_files (
+                        id VARCHAR(255) PRIMARY KEY,
+                        content_type VARCHAR(100) NOT NULL,
+                        data BYTEA NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS ix_media_files_created_at ON public.media_files(created_at);
                 END $$;
             ");
         }
+
+        // Tự động sao lưu và đồng bộ toàn bộ file ảnh từ đĩa cứng lên database PostgreSQL (chống mất ảnh khi restart server)
+        var mediaStorage = scope.ServiceProvider.GetRequiredService<IMediaStorageService>();
+        await mediaStorage.SyncLocalDiskToDbAsync();
 
         // Tự động seed bổ sung đầy đủ danh sách Xã/Thị trấn/Phường cho tất cả 30 quận huyện Hà Nội
         await LocationSeeder.SeedMissingLocationsAsync(dbContext);
