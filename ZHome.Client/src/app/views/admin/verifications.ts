@@ -1,4 +1,4 @@
-﻿import { Component, inject, OnInit, signal } from '@angular/core';
+import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
@@ -58,6 +58,7 @@ import { environment } from '../../../environments/environment';
                       <span class="cccd-num-badge">{{ item.cccdNumber }}</span>
                     </td>
                     <td>
+                      <div class="cccd-images-cell">
                         @if (item.cccdFrontUrl) {
                           <div class="image-thumb-wrapper" (click)="zoomImage(item.cccdFrontUrl, 'Mặt trước CCCD - ' + item.fullName, $event)" title="Nhấn để xem phóng to ảnh mặt trước">
                             <img [src]="getImageUrl(item.cccdFrontUrl)" 
@@ -684,6 +685,8 @@ export class AdminVerificationsComponent implements OnInit {
         this.toastService.show(msg, 'error');
       }
     });
+  }
+
   zoomImage(url: string, title: string, event?: MouseEvent): void {
     if (!url) return;
     const target = event?.currentTarget as HTMLElement;
