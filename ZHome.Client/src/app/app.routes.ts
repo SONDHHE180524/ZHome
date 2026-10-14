@@ -1,59 +1,77 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
-import { LandingComponent } from './views/landing/landing';
-import { LoginComponent } from './views/auth/login';
-import { RegisterComponent } from './views/auth/register';
-import { LandlordLayoutComponent } from './views/landlord/layout';
-import { LandlordOverviewComponent } from './views/landlord/overview';
-import { LandlordRoomsComponent } from './views/landlord/rooms';
-import { LandlordPropertiesComponent } from './views/landlord/properties';
-import { CreatePropertyComponent } from './views/landlord/create-property';
-import { LandlordUtilityGridComponent } from './views/landlord/utility-grid';
-import { LandlordBillsComponent } from './views/landlord/bills';
-import { TenantBillsComponent } from './views/tenant/bills';
-import { TenantMatchComponent } from './views/tenant/match';
-import { MyRentalComponent } from './views/tenant/my-rental';
-import { BillPrintComponent } from './views/public/bill-print';
-import { AdminLayoutComponent } from './views/admin/layout';
-import { AdminDashboardComponent } from './views/admin/dashboard';
-import { AdminUsersComponent } from './views/admin/users';
-import { AdminPropertiesComponent } from './views/admin/properties';
-import { AdminVerificationsComponent } from './views/admin/verifications';
-import { AdminTransactionsComponent } from './views/admin/transactions';
-import { AdminActivityLogsComponent } from './views/admin/activity-logs';
-import { ProfileComponent } from './views/auth/profile';
-import { LandlordReportsComponent } from './views/landlord/reports';
-import { LandlordIncidentsComponent } from './views/landlord/incidents';
-import { LandlordPackagesComponent } from './views/landlord/packages';
-import { LandlordTransactionsComponent } from './views/landlord/transactions';
-import { LandlordContractsComponent } from './views/landlord/contracts';
-import { CreateContractComponent } from './views/landlord/create-contract';
-import { LandlordTenantsComponent } from './views/landlord/tenants';
-import { PropertyDetailComponent } from './views/public/property-detail';
 
 export const routes: Routes = [
-  { path: '', component: LandingComponent },
-  { path: 'phong-tro-detail/:id', component: PropertyDetailComponent },
-  { path: 'phong-tro/:id', component: PropertyDetailComponent },
-  { path: 'login', component: LoginComponent },
-  { path: 'register', component: RegisterComponent },
-  { path: 'packages', component: LandlordPackagesComponent },
-  { path: 'bill-print/:id', component: BillPrintComponent },
-  { path: 'profile', component: ProfileComponent, canActivate: [authGuard] },
+  // Public Landing Page (Lazy-loaded)
+  { 
+    path: '', 
+    loadComponent: () => import('./views/landing/landing').then(m => m.LandingComponent) 
+  },
+  { 
+    path: 'phong-tro-detail/:id', 
+    loadComponent: () => import('./views/public/property-detail').then(m => m.PropertyDetailComponent) 
+  },
+  { 
+    path: 'phong-tro/:id', 
+    loadComponent: () => import('./views/public/property-detail').then(m => m.PropertyDetailComponent) 
+  },
+  { 
+    path: 'login', 
+    loadComponent: () => import('./views/auth/login').then(m => m.LoginComponent) 
+  },
+  { 
+    path: 'register', 
+    loadComponent: () => import('./views/auth/register').then(m => m.RegisterComponent) 
+  },
+  { 
+    path: 'packages', 
+    loadComponent: () => import('./views/landlord/packages').then(m => m.LandlordPackagesComponent) 
+  },
+  { 
+    path: 'bill-print/:id', 
+    loadComponent: () => import('./views/public/bill-print').then(m => m.BillPrintComponent) 
+  },
+  { 
+    path: 'contract-print/:id', 
+    loadComponent: () => import('./views/public/contract-print').then(m => m.ContractPrintComponent) 
+  },
+  { 
+    path: 'profile', 
+    loadComponent: () => import('./views/auth/profile').then(m => m.ProfileComponent), 
+    canActivate: [authGuard] 
+  },
   
   // Admin protected routes with persistent Dashboard sidebar layout
   {
     path: 'admin',
-    component: AdminLayoutComponent,
+    loadComponent: () => import('./views/admin/layout').then(m => m.AdminLayoutComponent),
     canActivate: [authGuard],
     data: { roles: ['Administrator'] },
     children: [
-      { path: 'dashboard', component: AdminDashboardComponent },
-      { path: 'users', component: AdminUsersComponent },
-      { path: 'properties', component: AdminPropertiesComponent },
-      { path: 'verifications', component: AdminVerificationsComponent },
-      { path: 'transactions', component: AdminTransactionsComponent },
-      { path: 'activity-logs', component: AdminActivityLogsComponent },
+      { 
+        path: 'dashboard', 
+        loadComponent: () => import('./views/admin/dashboard').then(m => m.AdminDashboardComponent) 
+      },
+      { 
+        path: 'users', 
+        loadComponent: () => import('./views/admin/users').then(m => m.AdminUsersComponent) 
+      },
+      { 
+        path: 'properties', 
+        loadComponent: () => import('./views/admin/properties').then(m => m.AdminPropertiesComponent) 
+      },
+      { 
+        path: 'verifications', 
+        loadComponent: () => import('./views/admin/verifications').then(m => m.AdminVerificationsComponent) 
+      },
+      { 
+        path: 'transactions', 
+        loadComponent: () => import('./views/admin/transactions').then(m => m.AdminTransactionsComponent) 
+      },
+      { 
+        path: 'activity-logs', 
+        loadComponent: () => import('./views/admin/activity-logs').then(m => m.AdminActivityLogsComponent) 
+      },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -61,39 +79,84 @@ export const routes: Routes = [
   // Landlord protected routes with persistent Dashboard layout
   {
     path: 'landlord',
-    component: LandlordLayoutComponent,
+    loadComponent: () => import('./views/landlord/layout').then(m => m.LandlordLayoutComponent),
     canActivate: [authGuard],
     data: { roles: ['Landlord'] },
     children: [
-      { path: 'overview', component: LandlordOverviewComponent },
-      { path: 'rooms', component: LandlordRoomsComponent },
-      { path: 'properties', component: LandlordPropertiesComponent },
-      { path: 'create-property', component: CreatePropertyComponent },
-      { path: 'utility-grid', component: LandlordUtilityGridComponent },
-      { path: 'contracts', component: LandlordContractsComponent },
-      { path: 'create-contract', component: CreateContractComponent },
-      { path: 'tenants', component: LandlordTenantsComponent },
-      { path: 'bills', component: LandlordBillsComponent },
-      { path: 'transactions', component: LandlordTransactionsComponent },
-      { path: 'incidents', component: LandlordIncidentsComponent },
-      { path: 'reports', component: LandlordReportsComponent },
-      { path: 'packages', component: LandlordPackagesComponent },
+      { 
+        path: 'overview', 
+        loadComponent: () => import('./views/landlord/overview').then(m => m.LandlordOverviewComponent) 
+      },
+      { 
+        path: 'rooms', 
+        loadComponent: () => import('./views/landlord/rooms').then(m => m.LandlordRoomsComponent) 
+      },
+      { 
+        path: 'properties', 
+        loadComponent: () => import('./views/landlord/properties').then(m => m.LandlordPropertiesComponent) 
+      },
+      { 
+        path: 'create-property', 
+        loadComponent: () => import('./views/landlord/create-property').then(m => m.CreatePropertyComponent) 
+      },
+      { 
+        path: 'utility-grid', 
+        loadComponent: () => import('./views/landlord/utility-grid').then(m => m.LandlordUtilityGridComponent) 
+      },
+      { 
+        path: 'contracts', 
+        loadComponent: () => import('./views/landlord/contracts').then(m => m.LandlordContractsComponent) 
+      },
+      { 
+        path: 'create-contract', 
+        loadComponent: () => import('./views/landlord/create-contract').then(m => m.CreateContractComponent) 
+      },
+      { 
+        path: 'tenants', 
+        loadComponent: () => import('./views/landlord/tenants').then(m => m.LandlordTenantsComponent) 
+      },
+      { 
+        path: 'bills', 
+        loadComponent: () => import('./views/landlord/bills').then(m => m.LandlordBillsComponent) 
+      },
+      { 
+        path: 'transactions', 
+        loadComponent: () => import('./views/landlord/transactions').then(m => m.LandlordTransactionsComponent) 
+      },
+      { 
+        path: 'incidents', 
+        loadComponent: () => import('./views/landlord/incidents').then(m => m.LandlordIncidentsComponent) 
+      },
+      { 
+        path: 'reports', 
+        loadComponent: () => import('./views/landlord/reports').then(m => m.LandlordReportsComponent) 
+      },
+      { 
+        path: 'packages', 
+        loadComponent: () => import('./views/landlord/packages').then(m => m.LandlordPackagesComponent) 
+      },
       { path: '', redirectTo: 'overview', pathMatch: 'full' }
     ]
   },
 
   // Tenant & Public Match routes
-  { path: 'ghep-tro', component: TenantMatchComponent },
-  { path: 'tenant/match', component: TenantMatchComponent },
+  { 
+    path: 'ghep-tro', 
+    loadComponent: () => import('./views/tenant/match').then(m => m.TenantMatchComponent) 
+  },
+  { 
+    path: 'tenant/match', 
+    loadComponent: () => import('./views/tenant/match').then(m => m.TenantMatchComponent) 
+  },
   { 
     path: 'tenant/my-rental', 
-    component: MyRentalComponent,
+    loadComponent: () => import('./views/tenant/my-rental').then(m => m.MyRentalComponent),
     canActivate: [authGuard],
     data: { roles: ['Tenant'] }
   },
   { 
     path: 'tenant/bills', 
-    component: TenantBillsComponent,
+    loadComponent: () => import('./views/tenant/bills').then(m => m.TenantBillsComponent),
     canActivate: [authGuard],
     data: { roles: ['Tenant'] }
   },

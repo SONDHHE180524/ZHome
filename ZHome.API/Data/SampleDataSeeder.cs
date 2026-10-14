@@ -11,6 +11,16 @@ namespace ZHome.API.Data
     {
         public static async Task SeedAsync(ZHomeDbContext context)
         {
+            // 0. Tự động kiểm tra và phục hồi ảnh CCCD cho tất cả chủ trọ nếu thiếu file trên đĩa
+            try
+            {
+                await EnsureCccdImagesExistAsync(context);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SampleDataSeeder Warning] EnsureCccdImages: {ex.Message}");
+            }
+
             try
             {
                 // 1. Cập nhật giá các gói dịch vụ (Gói Cơ Bản: 99.000đ, Gói Nâng Cao: 199.000đ)
@@ -356,10 +366,72 @@ namespace ZHome.API.Data
                     await context.MatchingProfiles.AddRangeAsync(profiles);
                     await context.SaveChangesAsync();
                 }
+
+                // 4. Tự động kiểm tra và phục hồi ảnh CCCD cho tất cả chủ trọ nếu thiếu file trên đĩa
+                await EnsureCccdImagesExistAsync(context);
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[SampleDataSeeder Warning] {ex.Message}");
+            }
+        }
+
+        private static async Task EnsureCccdImagesExistAsync(ZHomeDbContext context)
+        {
+            try
+            {
+                string webRoot = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+                string cardsDir = Path.Combine(webRoot, "media", "cards");
+                if (!Directory.Exists(cardsDir))
+                {
+                    Directory.CreateDirectory(cardsDir);
+                }
+
+                // Tìm file mẫu CCCD có sẵn trên hệ thống
+                string? sampleFront = Directory.GetFiles(cardsDir, "cccd_front_*.jpg").FirstOrDefault()
+                    ?? Directory.GetFiles(cardsDir, "cccd_front_*.png").FirstOrDefault();
+                string? sampleBack = Directory.GetFiles(cardsDir, "cccd_back_*.jpg").FirstOrDefault()
+                    ?? Directory.GetFiles(cardsDir, "cccd_back_*.png").FirstOrDefault();
+
+                if (sampleFront == null || sampleBack == null)
+                {
+                    return;
+                }
+
+                var landlords = await context.Users
+                    .Where(u => u.RoleId == 2 && (!string.IsNullOrEmpty(u.CccdFrontUrl) || !string.IsNullOrEmpty(u.CccdBackUrl)))
+                    .ToListAsync();
+
+                foreach (var l in landlords)
+                {
+                    if (!string.IsNullOrEmpty(l.CccdFrontUrl))
+                    {
+                        string clean = l.CccdFrontUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                        string filePath = Path.Combine(webRoot, clean);
+                        if (!File.Exists(filePath))
+                        {
+                            string? dir = Path.GetDirectoryName(filePath);
+                            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                            File.Copy(sampleFront, filePath, true);
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(l.CccdBackUrl))
+                    {
+                        string clean = l.CccdBackUrl.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                        string filePath = Path.Combine(webRoot, clean);
+                        if (!File.Exists(filePath))
+                        {
+                            string? dir = Path.GetDirectoryName(filePath);
+                            if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+                            File.Copy(sampleBack, filePath, true);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[SampleDataSeeder] Lỗi khi auto-healing ảnh CCCD: {ex.Message}");
             }
         }
     }

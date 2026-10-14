@@ -41,16 +41,50 @@ namespace ZHome.API.Controllers
                 return Unauthorized();
             }
 
+            // Find contract for this tenant
+            Contract? contract = null;
+            if (request.ContractId.HasValue)
+            {
+                contract = await _context.Contracts
+                    .Include(c => c.Room).ThenInclude(r => r!.Property).ThenInclude(p => p!.Landlord)
+                    .Include(c => c.Tenant)
+                    .FirstOrDefaultAsync(c => c.Id == request.ContractId.Value && c.TenantId == tenantId);
+            }
+            else if (request.PropertyId.HasValue)
+            {
+                contract = await _context.Contracts
+                    .Include(c => c.Room).ThenInclude(r => r!.Property).ThenInclude(p => p!.Landlord)
+                    .Include(c => c.Tenant)
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Room != null && c.Room.PropertyId == request.PropertyId.Value);
+            }
+            else
+            {
+                contract = await _context.Contracts
+                    .Include(c => c.Room).ThenInclude(r => r!.Property).ThenInclude(p => p!.Landlord)
+                    .Include(c => c.Tenant)
+                    .FirstOrDefaultAsync(c => c.TenantId == tenantId && c.Status == "Active");
+            }
+
             // Validation: Feedback limits (Rating has value)
             if (request.Rating.HasValue)
             {
-                var currentMonthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-                var hasFeedbackThisMonth = await _context.Reports
-                    .AnyAsync(r => r.TenantId == tenantId && r.Rating.HasValue && r.CreatedAt >= currentMonthStart);
-                
-                if (hasFeedbackThisMonth)
+                if (contract == null)
                 {
-                    return BadRequest(new { message = "Mỗi tháng bạn chỉ được gửi đánh giá 1 lần." });
+                    return BadRequest(new { message = "Bạn cần có hợp đồng thuê tại khu trọ này để viết đánh giá." });
+                }
+
+                // If tenant already reviewed this contract, update the review
+                var existingReview = await _context.Reports
+                    .FirstOrDefaultAsync(r => r.TenantId == tenantId && r.ContractId == contract.Id && r.Rating.HasValue);
+
+                if (existingReview != null)
+                {
+                    existingReview.Title = request.Title;
+                    existingReview.Content = request.Content;
+                    existingReview.Rating = request.Rating;
+                    existingReview.CreatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    return Ok(new { message = "Cập nhật đánh giá thành công!", id = existingReview.Id });
                 }
             }
             else // Validation: Report limits (Rating is null)
@@ -70,21 +104,13 @@ namespace ZHome.API.Controllers
                 Title = request.Title,
                 Content = request.Content,
                 Status = "Pending",
-                ContractId = request.ContractId,
+                ContractId = contract?.Id ?? request.ContractId,
                 Rating = request.Rating,
                 CreatedAt = DateTime.UtcNow
             };
 
             _context.Reports.Add(report);
             await _context.SaveChangesAsync();
-
-            // Find contract & landlord info
-            var contract = await _context.Contracts
-                .Include(c => c.Room)
-                    .ThenInclude(r => r!.Property)
-                        .ThenInclude(p => p!.Landlord)
-                .Include(c => c.Tenant)
-                .FirstOrDefaultAsync(c => (request.ContractId.HasValue ? c.Id == request.ContractId.Value : (c.TenantId == tenantId && c.Status == "Active")));
 
             if (contract?.Room?.Property?.LandlordId != null)
             {
@@ -103,7 +129,7 @@ namespace ZHome.API.Controllers
                 );
             }
 
-            // Nếu đánh giá dưới 5 sao, gửi thông báo bắt buộc phản hồi cho chủ trọ
+            // Nếu đánh giá dưới 5 sao, gửi email cảnh báo cho chủ trọ
             if (report.Rating.HasValue && report.Rating.Value < 5 && contract?.Room?.Property?.Landlord != null && !string.IsNullOrWhiteSpace(contract.Room.Property.Landlord.Email))
             {
                 var landlord = contract.Room.Property.Landlord;
@@ -127,7 +153,7 @@ namespace ZHome.API.Controllers
                 _emailService.SendEmail(landlordEmail, subject, emailBodyHtml, out _);
             }
 
-            return Ok(new { message = "Gửi phản ánh sự cố thành công!" });
+            return Ok(new { message = report.Rating.HasValue ? "Đánh giá của bạn đã được ghi nhận thành công!" : "Gửi phản ánh sự cố thành công!" });
         }
 
         // Get tenant's reports
@@ -197,7 +223,7 @@ namespace ZHome.API.Controllers
                 .Include(r => r.Tenant)
                 .Include(r => r.Contract)
                     .ThenInclude(c => c!.Room)
-                .Where(r => r.Contract!.Room!.PropertyId == propertyId && r.Status != "Draft")
+                .Where(r => r.Contract != null && r.Contract.Room != null && r.Contract.Room.PropertyId == propertyId && r.Rating.HasValue && r.Status != "Draft")
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new {
                     r.Id,
@@ -213,12 +239,22 @@ namespace ZHome.API.Controllers
                 })
                 .ToListAsync();
 
+            var totalReviews = reports.Count;
+            double avgRating = totalReviews > 0 ? reports.Average(r => r.Rating ?? 5) : 5.0;
+            avgRating = Math.Round(avgRating, 1);
+
+            int fiveStar = reports.Count(r => r.Rating == 5);
+            int fourStar = reports.Count(r => r.Rating == 4);
+            int threeStar = reports.Count(r => r.Rating == 3);
+            int twoStar = reports.Count(r => r.Rating == 2);
+            int oneStar = reports.Count(r => r.Rating == 1);
+
             // Mask tenant name for privacy (e.g., "Nguyễn Văn A" -> "Nguyễn *** A")
             var maskedReports = reports.Select(r => {
-                var nameParts = r.TenantName.Split(' ');
+                var nameParts = (r.TenantName ?? "Khách thuê").Split(' ', StringSplitOptions.RemoveEmptyEntries);
                 var maskedName = nameParts.Length > 1 
                     ? $"{nameParts[0]} *** {nameParts[^1]}" 
-                    : r.TenantName;
+                    : (r.TenantName ?? "Khách thuê");
 
                 return new {
                     r.Id,
@@ -232,9 +268,20 @@ namespace ZHome.API.Controllers
                     TenantName = maskedName,
                     r.RoomNumber
                 };
-            });
+            }).ToList();
 
-            return Ok(maskedReports);
+            return Ok(new {
+                averageRating = avgRating,
+                totalReviews = totalReviews,
+                ratingBreakdown = new {
+                    five = fiveStar,
+                    four = fourStar,
+                    three = threeStar,
+                    two = twoStar,
+                    one = oneStar
+                },
+                reviews = maskedReports
+            });
         }
 
         // Update report status (Landlord only)

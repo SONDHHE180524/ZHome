@@ -425,7 +425,12 @@ namespace ZHome.API.Controllers
                     RoleName = u.Role != null ? u.Role.RoleName : "N/A",
                     u.AvatarUrl,
                     u.CccdNumber,
+                    u.CccdFrontUrl,
+                    u.CccdBackUrl,
                     u.VerificationStatus,
+                    u.BankName,
+                    u.BankAccountNumber,
+                    u.BankAccountName,
                     u.SubscriptionId,
                     SubscriptionName = u.SubscriptionPackage != null ? u.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
                     u.SubscriptionEndDate,
@@ -467,6 +472,9 @@ namespace ZHome.API.Controllers
                 user.CccdFrontUrl,
                 user.CccdBackUrl,
                 user.VerificationStatus,
+                user.BankName,
+                user.BankAccountNumber,
+                user.BankAccountName,
                 user.SubscriptionId,
                 SubscriptionName = user.SubscriptionPackage != null ? user.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
                 user.SubscriptionEndDate,
@@ -818,11 +826,51 @@ namespace ZHome.API.Controllers
             if (!string.IsNullOrEmpty(request.VerificationStatus))
             {
                 user.VerificationStatus = request.VerificationStatus;
+                // Nếu duyệt hoặc từ chối, cập nhật đồng bộ tích xanh cho các khu trọ của chủ trọ này
+                if (request.VerificationStatus == "Approved")
+                {
+                    var props = await _context.Properties.Where(p => p.LandlordId == id).ToListAsync();
+                    foreach (var p in props) p.IsVerifiedTick = true;
+                }
+                else if (request.VerificationStatus == "Rejected")
+                {
+                    var props = await _context.Properties.Where(p => p.LandlordId == id).ToListAsync();
+                    foreach (var p in props) p.IsVerifiedTick = false;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.CccdNumber))
+            {
+                user.CccdNumber = request.CccdNumber.Trim();
+            }
+
+            if (request.BankName != null)
+            {
+                user.BankName = request.BankName.Trim();
+            }
+
+            if (request.BankAccountNumber != null)
+            {
+                user.BankAccountNumber = request.BankAccountNumber.Trim();
+            }
+
+            if (request.BankAccountName != null)
+            {
+                user.BankAccountName = request.BankAccountName.Trim();
             }
 
             if (request.SubscriptionId.HasValue && request.SubscriptionId.Value > 0)
             {
                 user.SubscriptionId = request.SubscriptionId.Value;
+                if (user.SubscriptionId > 1 && (user.SubscriptionEndDate == null || user.SubscriptionEndDate < DateTime.UtcNow))
+                {
+                    user.SubscriptionEndDate = DateTime.UtcNow.AddDays(30);
+                }
+            }
+
+            if (request.SubscriptionEndDate.HasValue)
+            {
+                user.SubscriptionEndDate = request.SubscriptionEndDate.Value;
             }
 
             // Nếu Admin đổi mật khẩu mới cho user
@@ -908,7 +956,12 @@ namespace ZHome.API.Controllers
         public string? NewPassword { get; set; }
         public int RoleId { get; set; }
         public string? VerificationStatus { get; set; }
+        public string? CccdNumber { get; set; }
+        public string? BankName { get; set; }
+        public string? BankAccountNumber { get; set; }
+        public string? BankAccountName { get; set; }
         public int? SubscriptionId { get; set; }
+        public DateTime? SubscriptionEndDate { get; set; }
     }
 
     public class AssignRoleRequest

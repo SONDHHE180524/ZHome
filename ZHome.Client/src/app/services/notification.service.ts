@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { AuthService } from './auth.service';
 import { environment } from '../../environments/environment';
+import { SignalRService } from './signalr.service';
 
 export interface NotificationItem {
   id: number;
@@ -26,6 +27,8 @@ export class NotificationService {
   private readonly authService = inject(AuthService);
   private readonly apiUrl = `${environment.apiUrl}/notification`;
 
+  private readonly signalRService = inject(SignalRService);
+
   readonly notifications = signal<NotificationItem[]>([]);
   readonly unreadCount = signal<number>(0);
   readonly activeToast = signal<NotificationItem | null>(null);
@@ -36,8 +39,30 @@ export class NotificationService {
   private isInitialFetch = true;
 
   constructor() {
-    // Start polling automatically if user is already logged in
+    // 1. Lắng nghe thông báo Real-time tức thì từ SignalR
+    this.signalRService.newNotification$.subscribe((rt) => {
+      const newItem: NotificationItem = {
+        id: rt.id || Date.now(),
+        userId: 0,
+        title: rt.title,
+        message: rt.message,
+        type: rt.type || 'System',
+        targetUrl: rt.targetUrl,
+        referenceId: rt.referenceId,
+        isRead: false,
+        createdAt: rt.createdAt || new Date().toISOString()
+      };
+
+      // Đưa thông báo mới lên đầu danh sách và tăng số lượng chưa đọc ngay lập tức
+      this.notifications.update(list => [newItem, ...list]);
+      this.unreadCount.update(c => c + 1);
+      this.showToastPopup(newItem);
+      this.playNotificationSound();
+    });
+
+    // 2. Tự động kết nối và tải dữ liệu nếu người dùng đã đăng nhập
     if (this.authService.isLoggedIn()) {
+      this.signalRService.startConnection();
       this.startPolling();
     }
   }
@@ -133,14 +158,15 @@ export class NotificationService {
 
   startPolling(): void {
     this.stopPolling();
+    this.signalRService.startConnection();
     this.isInitialFetch = true;
     this.knownNotificationIds.clear();
     this.fetchNotifications();
 
-    // Poll every 5 seconds
+    // Poll mỗi 15 giây làm cơ chế đồng bộ nền dự phòng (fallback)
     this.pollingIntervalId = setInterval(() => {
       this.fetchNotifications();
-    }, 5000);
+    }, 15000);
   }
 
   stopPolling(): void {
@@ -148,6 +174,7 @@ export class NotificationService {
       clearInterval(this.pollingIntervalId);
       this.pollingIntervalId = null;
     }
+    this.signalRService.stopConnection();
   }
 
   private playNotificationSound(): void {

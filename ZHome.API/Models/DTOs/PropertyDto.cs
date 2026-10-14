@@ -20,6 +20,7 @@ namespace ZHome.API.Models.DTOs
         public string? ImageBase64 { get; set; }
         public List<string>? ImageBase64s { get; set; }
         public List<string>? ExistingImageUrls { get; set; }
+        public bool? IsVerifiedTick { get; set; }
     }
 
     public class UpdatePropertyImageDto

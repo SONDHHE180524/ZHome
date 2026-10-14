@@ -462,21 +462,85 @@ export class RegisterComponent {
   errorMessage = signal<string | null>(null);
 
   onFileSelected(event: any, type: 'front' | 'back'): void {
-    const file = event.target.files[0];
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e: any) => {
-      const base64 = e.target.result;
-      if (type === 'front') {
-        this.cccdFrontBase64.set(base64);
-        this.cccdFrontPreview.set(base64);
-      } else {
-        this.cccdBackBase64.set(base64);
-        this.cccdBackPreview.set(base64);
-      }
-    };
-    reader.readAsDataURL(file);
+    if (!file.type.startsWith('image/')) {
+      this.toastService.show('Vui lòng chọn tệp định dạng hình ảnh hợp lệ.', 'error');
+      input.value = '';
+      return;
+    }
+
+    // Tối ưu và nén ảnh (Canvas) về độ phân giải chuẩn rõ nét (1600px, 85% JPEG)
+    // Giúp tải lên nhanh chóng và không bao giờ vượt quá giới hạn payload của máy chủ
+    this.compressImage(file, 1600, 0.85)
+      .then((compressedBase64) => {
+        if (type === 'front') {
+          this.cccdFrontBase64.set(compressedBase64);
+          this.cccdFrontPreview.set(compressedBase64);
+        } else {
+          this.cccdBackBase64.set(compressedBase64);
+          this.cccdBackPreview.set(compressedBase64);
+        }
+      })
+      .catch(() => {
+        // Fallback đọc trực tiếp nếu thiết bị không hỗ trợ Canvas
+        const reader = new FileReader();
+        reader.onload = (e: any) => {
+          const base64 = e.target.result;
+          if (type === 'front') {
+            this.cccdFrontBase64.set(base64);
+            this.cccdFrontPreview.set(base64);
+          } else {
+            this.cccdBackBase64.set(base64);
+            this.cccdBackPreview.set(base64);
+          }
+        };
+        reader.readAsDataURL(file);
+      })
+      .finally(() => {
+        // Reset input để người dùng có thể chọn lại file cùng tên nếu muốn đổi
+        input.value = '';
+      });
+  }
+
+  private compressImage(file: File, maxDimension: number, quality: number): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e: any) => {
+        const img = new Image();
+        img.onload = () => {
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(e.target.result);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', quality));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   setRole(role: string): void {

@@ -286,6 +286,11 @@ namespace ZHome.API.Controllers
             if (request.Latitude.HasValue) property.Latitude = request.Latitude;
             if (request.Longitude.HasValue) property.Longitude = request.Longitude;
 
+            if (request.IsVerifiedTick.HasValue && User.IsInRole("Administrator"))
+            {
+                property.IsVerifiedTick = request.IsVerifiedTick.Value;
+            }
+
             var updatedUrls = new List<string>();
             if (request.ExistingImageUrls != null)
             {
@@ -331,6 +336,62 @@ namespace ZHome.API.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(MapPropertyToDto(property));
+        }
+
+        // Delete property (Checks if any room is occupied before deleting)
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProperty(long id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var property = await _context.Properties
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Amenities)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (property == null)
+            {
+                return NotFound(new { message = "Không tìm thấy nhà trọ." });
+            }
+
+            if (property.LandlordId != userId && !User.IsInRole("Administrator"))
+            {
+                return StatusCode(403, new { message = "Bạn không có quyền xóa nhà trọ này." });
+            }
+
+            // Kiểm tra xem có phòng nào đang có người ở hoặc có hợp đồng active không
+            var roomIds = property.Rooms.Select(r => r.Id).ToList();
+            var hasActiveContracts = await _context.Contracts
+                .AnyAsync(c => roomIds.Contains(c.RoomId) && c.Status == "Active");
+
+            var occupiedRooms = property.Rooms.Where(r => r.Status == "Occupied" || r.Status == "Rented").ToList();
+
+            if (hasActiveContracts || occupiedRooms.Any())
+            {
+                var roomNumbers = occupiedRooms.Select(r => r.RoomNumber).Distinct().ToList();
+                string details = roomNumbers.Any() ? $" (Phòng: {string.Join(", ", roomNumbers)})" : "";
+                return BadRequest(new { message = $"Không thể xóa nhà trọ vì đang có phòng có khách thuê{details}. Vui lòng làm thủ tục trả phòng/kết thúc hợp đồng trước khi xóa!" });
+            }
+
+            // Xóa cascade an toàn
+            foreach (var r in property.Rooms)
+            {
+                _context.RoomAmenities.RemoveRange(r.Amenities);
+                _context.RoomImages.RemoveRange(r.Images);
+            }
+            _context.Rooms.RemoveRange(property.Rooms);
+
+            _context.Properties.Remove(property);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã xóa nhà trọ và các phòng liên quan thành công." });
         }
 
         // Update property image
@@ -852,8 +913,8 @@ namespace ZHome.API.Controllers
             return Ok(dto);
         }
 
-        // Update room details for Landlord
-        [Authorize(Roles = "Landlord")]
+        // Update room details for Landlord and Administrator
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpPut("room/{roomId}")]
         public async Task<IActionResult> UpdateRoom(long roomId, [FromBody] RoomUpdateDto request)
         {
@@ -874,7 +935,7 @@ namespace ZHome.API.Controllers
                 return NotFound(new { message = "Không tìm thấy phòng trọ." });
             }
 
-            if (room.Property.LandlordId != landlordId)
+            if (room.Property.LandlordId != landlordId && !User.IsInRole("Administrator"))
             {
                 return StatusCode(403, new { message = "Bạn không có quyền chỉnh sửa phòng trọ này." });
             }
@@ -940,7 +1001,7 @@ namespace ZHome.API.Controllers
         }
 
         // Delete room
-        [Authorize(Roles = "Landlord")]
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpDelete("room/{roomId}")]
         public async Task<IActionResult> DeleteRoom(long roomId)
         {
@@ -961,15 +1022,16 @@ namespace ZHome.API.Controllers
                 return NotFound(new { message = "Không tìm thấy phòng trọ." });
             }
 
-            if (room.Property.LandlordId != landlordId)
+            if (room.Property.LandlordId != landlordId && !User.IsInRole("Administrator"))
             {
                 return StatusCode(403, new { message = "Bạn không có quyền xóa phòng trọ này." });
             }
 
             var hasActiveContracts = await _context.Contracts.AnyAsync(c => c.RoomId == roomId && c.Status == "Active");
-            if (hasActiveContracts)
+            var isOccupied = room.Status == "Occupied" || room.Status == "Rented";
+            if (hasActiveContracts || isOccupied)
             {
-                return BadRequest(new { message = "Không thể xóa phòng đang có hợp đồng thuê hoạt động. Vui lòng làm thủ tục trả phòng trước khi xóa." });
+                return BadRequest(new { message = "Không thể xóa phòng đang có khách thuê hoặc hợp đồng đang hoạt động. Vui lòng làm thủ tục trả phòng trước khi xóa." });
             }
 
             _context.RoomAmenities.RemoveRange(room.Amenities);

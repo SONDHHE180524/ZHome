@@ -77,6 +77,7 @@ builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IMediaStorageService, MediaStorageService>();
+builder.Services.AddScoped<IBillService, BillService>();
 
 // Cấu hình cài đặt thanh toán (SePay & PayOS) từ appsettings.json
 builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
@@ -87,8 +88,13 @@ builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddSingleton<PaymentOrderStore>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
+    });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // ==========================================
 // 4. CẤU HÌNH SWAGGER UI
@@ -138,6 +144,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        // Cho phép SignalR WebSockets xác thực qua Query String access_token
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -319,6 +340,55 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
+// ==========================================
+// TỰ ĐỘNG ĐỒNG BỘ MEDIA/UPLOADS TỪ PRODUCTION (RENDER) NẾU LOCALHOST CHƯA CÓ
+// ==========================================
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase) || 
+        path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+    {
+        var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        var relativeFilePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var localFilePath = Path.Combine(webRoot, relativeFilePath);
+
+        if (!File.Exists(localFilePath))
+        {
+            try
+            {
+                var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+                var client = httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(5);
+                var remoteUrl = $"https://zhome-be.onrender.com{path}";
+                var response = await client.GetAsync(remoteUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var dir = Path.GetDirectoryName(localFilePath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    await File.WriteAllBytesAsync(localFilePath, bytes);
+
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+                    context.Response.ContentType = contentType;
+                    await context.Response.Body.WriteAsync(bytes);
+                    return;
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu lỗi mạng và chuyển tiếp sang pipeline kế tiếp (trả 404 bình thường)
+            }
+        }
+    }
+
+    await next();
+});
+
 app.UseStaticFiles();
 
 app.UseRouting();
@@ -334,5 +404,6 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ZHome.API.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();
