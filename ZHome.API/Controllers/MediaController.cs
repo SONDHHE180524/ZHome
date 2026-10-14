@@ -18,14 +18,23 @@ namespace ZHome.API.Controllers
         }
 
         [HttpGet("{folder}/{fileName}")]
-        [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any)]
         public async Task<IActionResult> GetMedia(string folder, string fileName)
         {
+            var etag = $"\"{fileName.GetHashCode():x}\"";
+            if (Request.Headers.IfNoneMatch == etag)
+            {
+                return StatusCode(304);
+            }
+
             var result = await _mediaStorage.GetImageAsync(folder, fileName);
             if (result == null)
             {
                 return NotFound();
             }
+
+            // Thiết lập cache 30 ngày trên browser, tải lại trang sẽ lấy trực tiếp từ memory/disk cache tức thì (0ms)
+            Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+            Response.Headers["ETag"] = etag;
 
             return File(result.Value.Data, result.Value.ContentType);
         }

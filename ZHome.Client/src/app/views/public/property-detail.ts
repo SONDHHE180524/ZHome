@@ -29,7 +29,7 @@ import { environment } from '../../../environments/environment';
         <div class="gallery-grid-container mb-4" [class.single-image]="getImageList(prop).length === 1">
           <div class="gallery-main" (click)="openAllPhotosModal()">
             @if (getImageList(prop)[0]) {
-              <img [src]="getImageUrl(getImageList(prop)[0])" alt="Ảnh đại diện khu trọ" class="gallery-img" (error)="onImageError($event)" />
+              <img [src]="getImageUrl(getImageList(prop)[0])" alt="Ảnh đại diện khu trọ" class="gallery-img" decoding="async" (load)="$event.target.classList.add('loaded')" (error)="onImageError($event)" />
             }
             <div class="gallery-badge-top">
               @if (prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
@@ -58,7 +58,7 @@ import { environment } from '../../../environments/environment';
             <div class="gallery-side-grid">
               @for (imgUrl of getSideImages(prop); track $index) {
                 <div class="gallery-sub-item" (click)="openAllPhotosModal()">
-                  <img [src]="getImageUrl(imgUrl)" alt="Ảnh bổ sung" class="gallery-img" (error)="onImageError($event)" />
+                  <img [src]="getImageUrl(imgUrl)" alt="Ảnh bổ sung" class="gallery-img" loading="lazy" decoding="async" (load)="$event.target.classList.add('loaded')" (error)="onImageError($event)" />
                   
                   <!-- +N overlay on the 4th thumbnail if total images > 5 -->
                   @if ($index === 3 && getRemainingCount(prop) > 0) {
@@ -509,12 +509,25 @@ import { environment } from '../../../environments/environment';
       height: 100%;
       overflow: hidden;
       cursor: pointer;
+      background: #f1f5f9;
+    }
+    .gallery-sub-item {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: pointer;
+      background: #f1f5f9;
     }
     .gallery-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.4s ease;
+      opacity: 0;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s ease;
+    }
+    .gallery-img.loaded {
+      opacity: 1;
     }
     .gallery-main:hover .gallery-img, .gallery-sub-item:hover .gallery-img {
       transform: scale(1.03);
@@ -1512,6 +1525,7 @@ export class PropertyDetailComponent implements OnInit {
   onImageError(event: any) {
     const target = event.target as HTMLElement;
     if (target) {
+      target.classList.add('loaded');
       const subItem = target.closest('.gallery-sub-item');
       if (subItem) {
         (subItem as HTMLElement).style.display = 'none';

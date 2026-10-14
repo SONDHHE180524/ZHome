@@ -304,7 +304,7 @@ import { environment } from '../../../environments/environment';
             }
 
             <div class="property-thumbnail">
-              <img [src]="getImageUrl(prop.imageUrls?.[0])" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
+              <img [src]="getImageUrl(prop.imageUrls?.[0])" alt="Property Image" class="thumbnail-img" loading="lazy" decoding="async" (load)="onImageLoaded($event)" (error)="onImageError($event)" />
               
               <div class="card-overlay-top">
                 @if (prop.vacantRoomsCount > 0) {
@@ -885,12 +885,33 @@ import { environment } from '../../../environments/environment';
       overflow: hidden;
       margin-bottom: 0;
       border-radius: 20px 20px 0 0;
+      background: #f1f5f9;
+    }
+    .property-thumbnail::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: linear-gradient(90deg, #f1f5f9 0%, #e2e8f0 50%, #f1f5f9 100%);
+      background-size: 200% 100%;
+      animation: thumbShimmer 1.5s infinite;
+      z-index: 1;
+      pointer-events: none;
+    }
+    @keyframes thumbShimmer {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
     }
     .thumbnail-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+      position: relative;
+      z-index: 2;
+      opacity: 0;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+    .thumbnail-img.loaded {
+      opacity: 1;
     }
     .placeholder-img {
       width: 100%;
@@ -1856,8 +1877,18 @@ export class LandingComponent implements OnInit {
 
   defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
 
+  onImageLoaded(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (target) {
+      target.classList.add('loaded');
+    }
+  }
+
   onImageError(event: any): void {
     const target = event.target as HTMLImageElement;
+    if (target) {
+      target.classList.add('loaded');
+    }
     const fallback = this.getImageUrl(this.defaultPropertyImage);
     if (target && target.src !== fallback) {
       target.src = fallback;
