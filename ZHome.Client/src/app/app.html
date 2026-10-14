@@ -25,12 +25,20 @@
 
       <!-- Center Navigation Links (Clean Facebook Tabs Style) -->
       <nav class="nav-center">
-        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="closeAllMenus()" class="nav-tab" title="Trang chủ">
+        <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}" (click)="closeAllMenus()" class="nav-tab" title="Home">
           <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
             <circle cx="12" cy="13" r="2.5"/>
           </svg>
-          <span class="tab-label">Trang chủ</span>
+          <span class="tab-label">Home</span>
+        </a>
+
+        <!-- Phòng trọ Tab -->
+        <a routerLink="/phong-tro" routerLinkActive="active" (click)="closeAllMenus()" class="nav-tab" title="Phòng trọ">
+          <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>
+          </svg>
+          <span class="tab-label">Phòng trọ</span>
         </a>
 
         <!-- Public & Tenant Match Roommate Tab -->

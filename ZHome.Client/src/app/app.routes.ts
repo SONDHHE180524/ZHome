@@ -8,6 +8,10 @@ export const routes: Routes = [
     loadComponent: () => import('./views/landing/landing').then(m => m.LandingComponent) 
   },
   { 
+    path: 'phong-tro', 
+    loadComponent: () => import('./views/landing/landing').then(m => m.LandingComponent) 
+  },
+  { 
     path: 'phong-tro-detail/:id', 
     loadComponent: () => import('./views/public/property-detail').then(m => m.PropertyDetailComponent) 
   },

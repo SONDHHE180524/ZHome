@@ -1,0 +1,769 @@
+<div class="landing-page-wrapper animate-fade-in">
+
+  <!-- ========================================== -->
+  <!-- 1. VIEW MODE: HOME (TRANG CHỦ)             -->
+  <!-- ========================================== -->
+  @if (viewMode() === 'home') {
+
+    <!-- 1.1 PROMOTIONAL BANNER CAROUSEL (3 SLIDES LẤY Ý TƯỞNG TỪ ẢNH MẪU) -->
+    <section class="banner-carousel-section">
+      <div class="banner-carousel-container" (mouseenter)="pauseBannerAutoSlide()" (mouseleave)="resumeBannerAutoSlide()">
+        
+        <!-- Banners Wrapper -->
+        <div class="banner-track" [style.transform]="'translateX(-' + (activeBannerIndex() * 100) + '%)'">
+          
+          <!-- Slide 1: Tìm trọ nhanh -->
+          <div class="banner-slide slide-tim-tro">
+            <div class="banner-grid">
+              <div class="banner-content">
+                <div class="banner-brand-tag">
+                  <div class="brand-icon-house">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                      <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                  </div>
+                  <span>ZHOME TRỌ TIỆN ÍCH</span>
+                </div>
+
+                <h2 class="banner-title">
+                  <span>ĐĂNG TRỌ NHANH</span>
+                  <span class="highlight-text">HẾT PHÒNG NGAY</span>
+                </h2>
+
+                <div class="banner-badge-wrapper">
+                  <span class="banner-script-badge">HOÀN TOÀN <em>Miễn phí</em></span>
+                </div>
+
+                <div class="banner-web-pill">
+                  <span class="globe-icon">🌐</span>
+                  <span>Tại www.zhome.vn</span>
+                </div>
+
+                <p class="banner-desc">
+                  Tra cứu phòng trọ chính chủ, đầy đủ tiện nghi, giá niêm yết công khai và được bảo chứng trực tiếp bởi ZHome.
+                </p>
+
+                <div class="banner-actions">
+                  <button class="btn-banner-cta" (click)="switchToRooms()">
+                    <span>Khám phá phòng trọ ngay</span>
+                    <span class="arrow-right">→</span>
+                  </button>
+                  <button class="btn-banner-secondary" (click)="goToPostRoom()">
+                    <span>Đăng trọ miễn phí</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="banner-visual">
+                <div class="banner-img-frame">
+                  <img src="/assets/images/banners/banner_tim_tro_nhanh.jpg" alt="Tìm trọ nhanh ZHome" class="banner-hero-img" />
+                  <div class="glow-orb"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 2: Tìm Roommate theo yêu cầu -->
+          <div class="banner-slide slide-roommate">
+            <div class="banner-grid">
+              <div class="banner-content">
+                <div class="banner-brand-tag">
+                  <div class="brand-icon-house">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                      <circle cx="9" cy="7" r="4"/>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                  </div>
+                  <span>ZHOME GHÉP TRỌ</span>
+                </div>
+
+                <h2 class="banner-title">
+                  <span>TÌM ROOMMATE</span>
+                  <span class="highlight-text">THEO YÊU CẦU</span>
+                </h2>
+
+                <div class="banner-badge-wrapper">
+                  <span class="banner-script-badge">AI MATCHMAKER <em>98% Hợp Gu</em></span>
+                </div>
+
+                <div class="banner-web-pill">
+                  <span class="globe-icon">🌐</span>
+                  <span>Tại www.zhome.vn</span>
+                </div>
+
+                <p class="banner-desc">
+                  Ghép trọ thông minh cho sinh viên! Tìm bạn cùng phòng lý tưởng theo lối sống, thói quen sinh hoạt và trường học để sẻ chia tiền phòng.
+                </p>
+
+                <div class="banner-actions">
+                  <button class="btn-banner-cta" (click)="goToMatch()">
+                    <span>Đến sàn ghép trọ ngay</span>
+                    <span class="arrow-right">→</span>
+                  </button>
+                  <button class="btn-banner-secondary" (click)="goToMatch('post')">
+                    <span>Đăng tin tìm ở ghép</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="banner-visual">
+                <div class="banner-img-frame">
+                  <img src="/assets/images/banners/banner_roommate.jpg" alt="Tìm Roommate theo yêu cầu" class="banner-hero-img" />
+                  <div class="glow-orb"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slide 3: Quản lý trọ dễ dàng -->
+          <div class="banner-slide slide-quan-ly">
+            <div class="banner-grid">
+              <div class="banner-content">
+                <div class="banner-brand-tag">
+                  <div class="brand-icon-house">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                      <line x1="3" y1="9" x2="21" y2="9"/>
+                      <line x1="9" y1="21" x2="9" y2="9"/>
+                    </svg>
+                  </div>
+                  <span>ZHOME QUẢN TRỊ</span>
+                </div>
+
+                <h2 class="banner-title">
+                  <span>QUẢN LÝ TRỌ</span>
+                  <span class="highlight-text">DỄ DÀNG 100%</span>
+                </h2>
+
+                <div class="banner-badge-wrapper">
+                  <span class="banner-script-badge">DÀNH CHO <em>Chủ Trọ</em></span>
+                </div>
+
+                <div class="banner-web-pill">
+                  <span class="globe-icon">🌐</span>
+                  <span>Tại www.zhome.vn</span>
+                </div>
+
+                <p class="banner-desc">
+                  Giải pháp số hóa toàn diện: ghi chỉ số điện nước tự động, quản lý hợp đồng điện tử và tạo hóa đơn chỉ với 1 chạm.
+                </p>
+
+                <div class="banner-actions">
+                  <button class="btn-banner-cta" (click)="goToPackages()">
+                    <span>Xem gói giải pháp chủ trọ</span>
+                    <span class="arrow-right">→</span>
+                  </button>
+                  <button class="btn-banner-secondary" (click)="goToRegisterLandlord()">
+                    <span>Đăng ký làm chủ trọ</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="banner-visual">
+                <div class="banner-img-frame">
+                  <img src="/assets/images/banners/banner_quan_ly_tro.jpg" alt="Quản lý trọ dễ dàng" class="banner-hero-img" />
+                  <div class="glow-orb"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Carousel Navigation Arrows -->
+        <button class="carousel-arrow prev" (click)="prevBanner()" aria-label="Slide trước">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"/>
+          </svg>
+        </button>
+        <button class="carousel-arrow next" (click)="nextBanner()" aria-label="Slide tiếp theo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </button>
+
+        <!-- Carousel Dots Indicator (Expanded pill active dot like reference image) -->
+        <div class="carousel-dots">
+          @for (b of [0, 1, 2]; track $index) {
+            <button class="dot-btn" [class.active]="activeBannerIndex() === $index" (click)="goToBanner($index)" [attr.aria-label]="'Chuyển tới slide ' + ($index + 1)"></button>
+          }
+        </div>
+      </div>
+    </section>
+
+    <!-- 1.2 SECTION: PHÒNG HOT LÊN ĐẦU (HOT PROPERTIES SECTION) -->
+    <section class="hot-properties-section">
+      <div class="section-title-bar">
+        <div class="section-heading-col">
+          <div class="section-badge-hot">
+            <span class="flame-icon">🔥</span>
+            <span>ƯU TIÊN HÀNG ĐẦU</span>
+          </div>
+          <h2 class="section-main-title">Phòng Trọ HOT Nổi Bật</h2>
+          <p class="section-sub-title">Những lựa chọn phòng trọ cao cấp, vị trí đắc địa và được sinh viên săn đón nhiều nhất</p>
+        </div>
+        
+        <!-- View All Button to Switch to Phòng Trọ -->
+        <button class="btn-view-all-pill" (click)="switchToRooms()">
+          <span>Xem tất cả phòng trọ</span>
+          <span class="btn-arrow-circle">→</span>
+        </button>
+      </div>
+
+      <!-- Hot Rooms Grid -->
+      @if (isLoading()) {
+        <div class="loading-state-card">
+          <div class="spinner"></div>
+          <p>Đang tải danh sách phòng hot...</p>
+        </div>
+      } @else if (hotProperties().length === 0) {
+        <div class="empty-state-card">
+          <p>Hiện chưa có phòng hot nổi bật nào được đăng ký. Bạn có thể xem toàn bộ các phòng trọ có sẵn.</p>
+          <button class="btn-primary-pill" (click)="switchToRooms()">Xem toàn bộ phòng trọ</button>
+        </div>
+      } @else {
+        <div class="properties-grid">
+          @for (prop of hotProperties(); track prop.propertyId) {
+            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop}"></ng-container>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- 1.3 SECTION: GIỚI THIỆU NIỀM TIN (TRUST & REAL NUMBERS SECTION) -->
+    <section class="trust-metrics-section">
+      <div class="trust-header">
+        <div class="trust-badge">
+          <span>🛡️ UY TÍN & BẢO CHỨNG</span>
+        </div>
+        <h2 class="trust-title">Niềm Tin Được Khẳng Định Bằng Số Liệu Thực Tế</h2>
+        <p class="trust-subtitle">Hệ sinh thái kết nối và quản lý nhà trọ tiên phong, minh bạch và an toàn tuyệt đối</p>
+      </div>
+
+      <!-- 3 Real Numbers Stats Cards -->
+      <div class="stats-cards-grid">
+        <!-- Metric 1: Chủ trọ tin dùng -->
+        <div class="stat-card">
+          <div class="stat-icon-wrapper host-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="stat-number">10+</div>
+          <div class="stat-label">Chủ trọ tin dùng</div>
+          <p class="stat-desc">Đồng hành cùng các chủ nhà trọ tại Hòa Lạc và Hà Nội quản lý vận hành chuyên nghiệp, giảm tỷ lệ phòng trống tối đa.</p>
+        </div>
+
+        <!-- Metric 2: Phòng trọ đã xác thực -->
+        <div class="stat-card highlight-card">
+          <div class="stat-icon-wrapper verify-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <polyline points="9 12 11 14 15 10"/>
+            </svg>
+          </div>
+          <div class="stat-number">10+</div>
+          <div class="stat-label">Phòng trọ đã xác thực</div>
+          <p class="stat-desc">100% phòng trọ được đội ngũ ZHome kiểm tra thực tế, đúng hình ảnh, đúng giá thuê và tiện nghi cam kết.</p>
+        </div>
+
+        <!-- Metric 3: Sinh viên đã tìm trọ -->
+        <div class="stat-card">
+          <div class="stat-icon-wrapper student-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
+              <path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+          </div>
+          <div class="stat-number">50+</div>
+          <div class="stat-label">Sinh viên đã tìm trọ</div>
+          <p class="stat-desc">Hỗ trợ sinh viên các trường ĐH FPT, ĐHQGHN, Phenikaa, Bưu chính... an tâm tìm được nơi ở học tập lý tưởng.</p>
+        </div>
+      </div>
+
+      <!-- 3 Key Trust Pillars -->
+      <div class="trust-pillars-row">
+        <div class="pillar-item">
+          <span class="pillar-bullet">✓</span>
+          <div>
+            <strong>100% Thông tin minh bạch</strong>
+            <span>Giá thuê niêm yết rõ ràng, không phát sinh chi phí môi giới ngầm</span>
+          </div>
+        </div>
+        <div class="pillar-item">
+          <span class="pillar-bullet">✓</span>
+          <div>
+            <strong>Kết nối trực tiếp chủ trọ</strong>
+            <span>Xem số điện thoại, trao đổi nhanh qua Zalo không qua trung gian</span>
+          </div>
+        </div>
+        <div class="pillar-item">
+          <span class="pillar-bullet">✓</span>
+          <div>
+            <strong>Hỗ trợ & Bảo vệ 24/7</strong>
+            <span>Đồng hành xử lý hợp đồng, kiểm tra an toàn và giải quyết khiếu nại</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 1.4 SECTION: THÔNG TIN LIÊN HỆ CỦA BỌN TÔI (CONTACT INFORMATION SECTION) -->
+    <section class="contact-section">
+      <div class="contact-box-container">
+        
+        <!-- Left: Official Contact Details -->
+        <div class="contact-info-col">
+          <div class="contact-badge">
+            <span>📞 HỖ TRỢ TRỰC TIẾP</span>
+          </div>
+          <h2 class="contact-title">Thông Tin Liên Hệ ZHome</h2>
+          <p class="contact-desc">
+            Chúng tôi luôn lắng nghe và sẵn sàng hỗ trợ bạn tìm được phòng trọ ưng ý nhất hoặc giải đáp mọi thắc mắc về quản lý nhà trọ.
+          </p>
+
+          <div class="contact-details-list">
+            <div class="contact-detail-item">
+              <div class="c-icon hotline">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                </svg>
+              </div>
+              <div class="c-text">
+                <span class="c-label">Hotline tư vấn (24/7):</span>
+                <a href="tel:0888196666" class="c-val strong">0888 196 666 / 1900 6868</a>
+              </div>
+            </div>
+
+            <div class="contact-detail-item">
+              <div class="c-icon email">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                  <polyline points="22,6 12,13 2,6"/>
+                </svg>
+              </div>
+              <div class="c-text">
+                <span class="c-label">Email hỗ trợ:</span>
+                <a href="mailto:hotro@zhome.vn" class="c-val">hotro@zhome.vn</a>
+              </div>
+            </div>
+
+            <div class="contact-detail-item">
+              <div class="c-icon location">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/>
+                  <circle cx="12" cy="10" r="3"/>
+                </svg>
+              </div>
+              <div class="c-text">
+                <span class="c-label">Địa chỉ trụ sở chính:</span>
+                <span class="c-val">Khu Công Nghệ Cao Hòa Lạc, Thạch Thất, TP. Hà Nội</span>
+              </div>
+            </div>
+
+            <div class="contact-detail-item">
+              <div class="c-icon zalo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                </svg>
+              </div>
+              <div class="c-text">
+                <span class="c-label">Kênh Zalo OA & Fanpage:</span>
+                <span class="c-val">ZHome - Kênh Nhà Trọ Sinh Viên Hòa Lạc</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Quick Contact Form -->
+        <div class="contact-form-col">
+          <div class="form-card">
+            <h3 class="form-title">Gửi Yêu Cầu Hỗ Trợ Nhanh</h3>
+            <p class="form-sub">Điền thông tin và ZHome sẽ gọi lại tư vấn cho bạn trong vòng 15 phút</p>
+
+            <form (ngSubmit)="submitContact()" class="quick-contact-form">
+              <div class="form-group-rounded">
+                <label>Họ và tên của bạn</label>
+                <input type="text" [(ngModel)]="contactForm.fullName" name="fullName" placeholder="Ví dụ: Nguyễn Văn An" class="input-rounded" required />
+              </div>
+
+              <div class="form-group-rounded">
+                <label>Số điện thoại liên hệ</label>
+                <input type="tel" [(ngModel)]="contactForm.phone" name="phone" placeholder="Ví dụ: 0912 345 678" class="input-rounded" required />
+              </div>
+
+              <div class="form-group-rounded">
+                <label>Nhu cầu của bạn</label>
+                <select [(ngModel)]="contactForm.need" name="need" class="select-rounded">
+                  <option value="ThueTro">Tôi cần tìm thuê phòng trọ</option>
+                  <option value="GhepTro">Tôi cần tìm bạn ở ghép (Roommate)</option>
+                  <option value="DangTro">Tôi là chủ trọ muốn đăng tin & quản lý</option>
+                  <option value="Khac">Tư vấn hỗ trợ khác</option>
+                </select>
+              </div>
+
+              <div class="form-group-rounded">
+                <label>Lời nhắn / Khu vực muốn tìm</label>
+                <textarea [(ngModel)]="contactForm.message" name="message" rows="3" placeholder="Nhập yêu cầu chi tiết (ngân sách, tiện ích, vị trí...)" class="textarea-rounded"></textarea>
+              </div>
+
+              <button type="submit" class="btn-submit-contact">
+                <span>Gửi thông tin liên hệ</span>
+                <span class="arrow-icon">→</span>
+              </button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  } <!-- END VIEW MODE: HOME -->
+
+  <!-- ========================================== -->
+  <!-- 2. VIEW MODE: PHÒNG TRỌ (LISTINGS VIEW)    -->
+  <!-- ========================================== -->
+  @if (viewMode() === 'rooms') {
+    <section class="rooms-view-section">
+      
+      <!-- Rooms View Header with Back to Home -->
+      <div class="rooms-header-bar">
+        <div>
+          <button class="btn-back-home" (click)="switchToHome()">
+            <span>← Về trang chủ (Home)</span>
+          </button>
+          <h1 class="rooms-main-title">Khám Phá Toàn Bộ Phòng Trọ</h1>
+          <p class="rooms-sub-title">Tìm kiếm phòng trọ chính chủ, giá tốt, đầy đủ tiện nghi với bộ lọc thông minh</p>
+        </div>
+
+        <div class="rooms-count-badge">
+          <span>Tìm thấy <strong>{{ groupedProperties().length }}</strong> nhà trọ phù hợp</span>
+        </div>
+      </div>
+
+      <!-- SMART FILTER BAR: ĐẸP & BO TRÒN TẤT CẢ CÁC GÓC -->
+      <div class="smart-filter-box rounded-filter-panel glass-panel">
+        
+        <!-- Primary Search Pill Row -->
+        <div class="filter-main-pill">
+          
+          <!-- Search Input -->
+          <div class="filter-group search-box-rounded">
+            <span class="search-icon">🔍</span>
+            <input type="text" [(ngModel)]="searchQuery" (input)="onFilterChange()" placeholder="Tìm theo tên trọ, đường, địa chỉ..." class="input-pill" />
+          </div>
+
+          <div class="filter-sep"></div>
+
+          <!-- District Select -->
+          <div class="filter-group select-box-rounded">
+            <span class="filter-icon">📍</span>
+            <select [(ngModel)]="selectedDistrict" (change)="onDistrictChange()" class="select-pill">
+              <option value="">Tất cả Quận/Huyện</option>
+              @if (urbanDistricts().length > 0) {
+                <optgroup label="── 12 QUẬN NỘI THÀNH ──">
+                  @for (d of urbanDistricts(); track d.id) {
+                    <option [value]="d.name">Quận {{ d.name }}</option>
+                  }
+                </optgroup>
+              }
+              @if (suburbanDistricts().length > 0) {
+                <optgroup label="── HUYỆN & THỊ XÃ NGOẠI THÀNH ──">
+                  @for (d of suburbanDistricts(); track d.id) {
+                    <option [value]="d.name">{{ d.type }} {{ d.name }}</option>
+                  }
+                </optgroup>
+              }
+            </select>
+          </div>
+
+          <div class="filter-sep"></div>
+
+          <!-- Ward Select -->
+          <div class="filter-group select-box-rounded">
+            <span class="filter-icon">🏘️</span>
+            <select [(ngModel)]="selectedWard" (change)="onFilterChange()" [disabled]="!selectedDistrict" class="select-pill">
+              <option value="">{{ selectedDistrict ? (getSelectedDistrictType(selectedDistrict) === 'Quận' ? 'Tất cả Phường' : 'Tất cả Xã / Thị trấn') : 'Chọn Quận/Huyện trước' }}</option>
+              @for (w of wards(); track w.id) {
+                <option [value]="w.name">{{ w.type ? (w.type + ' ' + w.name) : w.name }}</option>
+              }
+            </select>
+          </div>
+
+          <div class="filter-sep"></div>
+
+          <!-- Price Popover Trigger -->
+          <div class="popover-btn-wrapper">
+            <button class="pill-popover-trigger rounded-popover-btn" (click)="togglePricePopover($event)">
+              <span class="trigger-icon">💰</span>
+              <span class="trigger-label">{{ getPriceLabel() }}</span>
+              <span class="chevron" [style.transform]="showPricePopover ? 'rotate(180deg)' : 'none'">▼</span>
+            </button>
+            
+            @if (showPricePopover) {
+              <div class="filter-popover price-popover rounded-popover-box animate-fade-in" (click)="$event.stopPropagation()">
+                <div class="popover-inputs-row">
+                  <div class="input-col">
+                    <label class="popover-label">Giá thấp nhất</label>
+                    <input type="number" class="popover-input rounded-input" [(ngModel)]="minPriceInput" (input)="onPriceInputCustom()" placeholder="0" />
+                  </div>
+                  <div class="arrow-sep">→</div>
+                  <div class="input-col">
+                    <label class="popover-label">Giá cao nhất</label>
+                    <input type="number" class="popover-input rounded-input" [(ngModel)]="maxPriceInput" (input)="onPriceInputCustom()" placeholder="10000" />
+                  </div>
+                </div>
+                
+                <div class="range-slider-wrapper">
+                  <input type="range" min="0" max="50" step="1" [(ngModel)]="sliderValue" (input)="onSliderChange()" class="price-slider" />
+                </div>
+
+                <div class="popover-options-list">
+                  <div class="popover-option" [class.selected]="selectedPriceOption === 'all'" (click)="selectPriceOption('all')">
+                    <span>Tất cả mức giá</span>
+                    @if (selectedPriceOption === 'all') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedPriceOption === 'under1m'" (click)="selectPriceOption('under1m')">
+                    <span>Dưới 1 triệu</span>
+                    @if (selectedPriceOption === 'under1m') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedPriceOption === '1to10m'" (click)="selectPriceOption('1to10m')">
+                    <span>1 - 10 triệu</span>
+                    @if (selectedPriceOption === '1to10m') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedPriceOption === '10to30m'" (click)="selectPriceOption('10to30m')">
+                    <span>10 - 30 triệu</span>
+                    @if (selectedPriceOption === '10to30m') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedPriceOption === '30to50m'" (click)="selectPriceOption('30to50m')">
+                    <span>30 - 50 triệu</span>
+                    @if (selectedPriceOption === '30to50m') { <span class="check-icon">✓</span> }
+                  </div>
+                </div>
+
+                <div class="popover-footer">
+                  <button class="btn-popover-reset rounded-btn" (click)="resetPriceFilter()">Đặt lại</button>
+                  <button class="btn-popover-apply rounded-btn" (click)="applyPriceFilter()">Áp dụng</button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="filter-sep"></div>
+
+          <!-- Area Popover Trigger -->
+          <div class="popover-btn-wrapper">
+            <button class="pill-popover-trigger rounded-popover-btn" (click)="toggleAreaPopover($event)">
+              <span class="trigger-icon">📐</span>
+              <span class="trigger-label">{{ getAreaLabel() }}</span>
+              <span class="chevron" [style.transform]="showAreaPopover ? 'rotate(180deg)' : 'none'">▼</span>
+            </button>
+            
+            @if (showAreaPopover) {
+              <div class="filter-popover area-popover rounded-popover-box animate-fade-in" (click)="$event.stopPropagation()">
+                <div class="popover-inputs-row">
+                  <div class="input-col">
+                    <label class="popover-label">Từ (m²)</label>
+                    <input type="number" class="popover-input rounded-input" [(ngModel)]="minAreaInput" (input)="onAreaInputCustom()" placeholder="0" />
+                  </div>
+                  <div class="arrow-sep">→</div>
+                  <div class="input-col">
+                    <label class="popover-label">Đến (m²)</label>
+                    <input type="number" class="popover-input rounded-input" [(ngModel)]="maxAreaInput" (input)="onAreaInputCustom()" placeholder="100" />
+                  </div>
+                </div>
+
+                <div class="popover-options-list">
+                  <div class="popover-option" [class.selected]="selectedAreaOption === 'all'" (click)="selectAreaOption('all')">
+                    <span>Tất cả diện tích</span>
+                    @if (selectedAreaOption === 'all') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedAreaOption === 'under20'" (click)="selectAreaOption('under20')">
+                    <span>Dưới 20 m²</span>
+                    @if (selectedAreaOption === 'under20') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedAreaOption === '20to30'" (click)="selectAreaOption('20to30')">
+                    <span>20 - 30 m²</span>
+                    @if (selectedAreaOption === '20to30') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedAreaOption === '30to50'" (click)="selectAreaOption('30to50')">
+                    <span>30 - 50 m²</span>
+                    @if (selectedAreaOption === '30to50') { <span class="check-icon">✓</span> }
+                  </div>
+                  <div class="popover-option" [class.selected]="selectedAreaOption === 'over50'" (click)="selectAreaOption('over50')">
+                    <span>Trên 50 m²</span>
+                    @if (selectedAreaOption === 'over50') { <span class="check-icon">✓</span> }
+                  </div>
+                </div>
+
+                <div class="popover-footer">
+                  <button class="btn-popover-reset rounded-btn" (click)="resetAreaFilter()">Đặt lại</button>
+                  <button class="btn-popover-apply rounded-btn" (click)="applyAreaFilter()">Áp dụng</button>
+                </div>
+              </div>
+            }
+          </div>
+
+          <div class="filter-sep"></div>
+
+          <!-- Verified Checkbox -->
+          <div class="filter-group verified-pill-checkbox">
+            <label class="verified-label-rounded">
+              <input type="checkbox" id="verifiedCheck" [(ngModel)]="verifiedHost" (change)="onFilterChange()" />
+              <span class="custom-check-box"></span>
+              <span class="v-text">Đã xác minh</span>
+            </label>
+          </div>
+
+          <!-- Search & Reset Buttons -->
+          <div class="filter-actions-rounded">
+            <button class="btn-filter-search-rounded" (click)="onFilterChange()">
+              <span>Tìm kiếm</span>
+            </button>
+            <button class="btn-filter-reset-rounded" (click)="resetFilters()" title="Đặt lại toàn bộ lọc">
+              <span>↻</span>
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Amenity Filter Pills (Bo tròn viên thuốc - Rounded Pills) -->
+        <div class="amenity-pills-row">
+          <span class="pills-label">Tiện ích:</span>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === ''" (click)="selectedAmenity = ''; applyAmenityFilter();">Tất cả tiện ích</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Điều hòa'" (click)="toggleAmenityFilter('Điều hòa')">❄️ Điều hòa</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Nóng lạnh'" (click)="toggleAmenityFilter('Nóng lạnh')">🚿 Nóng lạnh</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Khép kín'" (click)="toggleAmenityFilter('Khép kín')">🚪 Khép kín</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Thang máy'" (click)="toggleAmenityFilter('Thang máy')">🛗 Thang máy</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Tủ lạnh'" (click)="toggleAmenityFilter('Tủ lạnh')">🧊 Tủ lạnh</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Ban công'" (click)="toggleAmenityFilter('Ban công')">🌿 Ban công</button>
+        </div>
+
+      </div>
+
+      <!-- Listings Grid (Full List) -->
+      @if (isLoading()) {
+        <div class="loading-state-card">
+          <div class="spinner"></div>
+          <p>Đang tìm kiếm phòng trọ theo yêu cầu của bạn...</p>
+        </div>
+      } @else if (groupedProperties().length === 0) {
+        <div class="empty-state-card">
+          <div class="empty-icon">🔍</div>
+          <h3>Không tìm thấy phòng trọ nào phù hợp</h3>
+          <p>Hãy thử nới lỏng bộ lọc giá, diện tích hoặc đổi quận huyện để có thêm nhiều lựa chọn bạn nhé.</p>
+          <button (click)="resetFilters()" class="btn-primary-pill">Đặt lại toàn bộ bộ lọc</button>
+        </div>
+      } @else {
+        <div class="properties-grid">
+          @for (prop of groupedProperties(); track prop.propertyId) {
+            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop}"></ng-container>
+          }
+        </div>
+      }
+
+    </section>
+  } <!-- END VIEW MODE: PHÒNG TRỌ -->
+
+
+  <!-- ========================================================== -->
+  <!-- REUSABLE PROPERTY CARD TEMPLATE WITH 3-SECOND HOVER SLIDES -->
+  <!-- ========================================================== -->
+  <ng-template #propertyCardTpl let-prop>
+    <div class="interactive-card property-card-rounded"
+         (mouseenter)="startPropertyHoverSlideshow(prop)"
+         (mouseleave)="stopPropertyHoverSlideshow(prop)"
+         (click)="openPropertyDetail(prop)">
+      
+      <!-- Top Badges -->
+      @if (prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
+        <div class="hot-badge-large">
+          <span class="flame-icon">🔥</span>
+          <span>HOT</span>
+        </div>
+      }
+
+      <!-- Property Thumbnail with Hover Slideshow -->
+      <div class="property-thumbnail-wrapper">
+        <img [src]="getImageUrl(prop.imageUrls?.[prop.activeImageIndex || 0])"
+             alt="Ảnh phòng trọ"
+             class="thumbnail-img-fade"
+             loading="lazy"
+             decoding="async"
+             (load)="onImageLoaded($event)"
+             (error)="onImageError($event)" />
+
+        <!-- Overlay Status Badges -->
+        <div class="card-overlay-top">
+          @if (prop.vacantRoomsCount > 0) {
+            <span class="badge-status vacant-badge">
+              <span class="pulse-indicator"></span>
+              CÒN TRỐNG ({{ prop.vacantRoomsCount }})
+            </span>
+          } @else {
+            <span class="badge-status full-badge">HẾT PHÒNG</span>
+          }
+
+          <div class="top-action-icons">
+            <button class="icon-btn-round heart-btn" (click)="toggleFavorite(prop, $event)" title="Lưu yêu thích">
+              {{ prop.isFavorite ? '❤️' : '🤍' }}
+            </button>
+          </div>
+        </div>
+
+        <!-- Overlay Bottom: View count and Hover Multi-image indicators -->
+        <div class="card-overlay-bottom">
+          <span class="view-count-badge">👁️ {{ prop.viewCount || 9 }}</span>
+
+          <!-- Slideshow Dots: Shows image progression on hover -->
+          @if (prop.imageUrls && prop.imageUrls.length > 1) {
+            <div class="hover-slideshow-dots" title="Tự động đổi ảnh mỗi 3 giây khi rê chuột">
+              @for (img of prop.imageUrls; track $index) {
+                <span class="thumb-dot" [class.active]="$index === (prop.activeImageIndex || 0)"></span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <!-- Property Info -->
+      <div class="property-card-body">
+        <h3 class="property-title" [title]="prop.propertyTitle">{{ prop.propertyTitle }}</h3>
+        
+        <p class="property-address">
+          <span class="pin-icon">📍</span>
+          <span>{{ prop.address }}</span>
+        </p>
+
+        <!-- Room Features Chips -->
+        <div class="features-summary-row">
+          @if (prop.totalRooms > 0) {
+            <span class="feat-tag">🏢 {{ prop.totalRooms }} phòng</span>
+          }
+          @if (prop.isVerifiedTick) {
+            <span class="feat-tag verified">✓ Chính chủ</span>
+          }
+        </div>
+
+        <!-- Footer: Price & Rating -->
+        <div class="property-card-footer">
+          <div class="price-col">
+            <span class="price-val">{{ prop.minRoomPrice | number:'1.0-0' }} đ</span>
+            <span class="price-unit">/tháng</span>
+          </div>
+          <div class="rating-col">
+            <span class="star-icon">⭐</span>
+            <span class="rating-num">{{ prop.averageRating ? (prop.averageRating | number:'1.1-1') : '5.0' }}</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </ng-template>
+
+</div>
