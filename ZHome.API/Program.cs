@@ -354,13 +354,35 @@ app.Use(async (context, next) =>
         var relativeFilePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
         var localFilePath = Path.Combine(webRoot, relativeFilePath);
 
+        // 1. Nếu chưa có trên đĩa cứng, kiểm tra xem có trong database PostgreSQL (Supabase) không
         if (!File.Exists(localFilePath))
         {
             try
             {
+                var mediaStorage = context.RequestServices.GetRequiredService<IMediaStorageService>();
+                var parts = path.TrimStart('/').Split('/');
+                if (parts.Length >= 3)
+                {
+                    var folder = parts[1];
+                    var fileName = parts[2];
+                    var dbMedia = await mediaStorage.GetImageAsync(folder, fileName);
+                    if (dbMedia != null)
+                    {
+                        context.Response.ContentType = dbMedia.Value.ContentType;
+                        context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+                        await context.Response.Body.WriteAsync(dbMedia.Value.Data);
+                        return;
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Nếu trong DB không có, thử kéo nhanh từ server remote với timeout 1.5s
+            try
+            {
                 var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
                 var client = httpClientFactory.CreateClient();
-                client.Timeout = TimeSpan.FromSeconds(5);
+                client.Timeout = TimeSpan.FromSeconds(1.5);
                 var remoteUrl = $"https://zhome-be.onrender.com{path}";
                 var response = await client.GetAsync(remoteUrl);
                 if (response.IsSuccessStatusCode)
@@ -375,6 +397,7 @@ app.Use(async (context, next) =>
 
                     var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
                     context.Response.ContentType = contentType;
+                    context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
                     await context.Response.Body.WriteAsync(bytes);
                     return;
                 }
@@ -389,7 +412,14 @@ app.Use(async (context, next) =>
     await next();
 });
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache toàn bộ ảnh/static files trong 30 ngày trên browser, tải lại trang sẽ lấy trực tiếp từ memory/disk cache 0ms
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+    }
+});
 
 app.UseRouting();
 
