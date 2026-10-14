@@ -5,7 +5,7 @@
   <!-- ========================================== -->
   @if (viewMode() === 'home') {
 
-    <!-- 1.1 PROMOTIONAL BANNER CAROUSEL (3 SLIDES LẤY Ý TƯỞNG TỪ ẢNH MẪU) -->
+    <!-- 1.1 PROMOTIONAL BANNER CAROUSEL (3 BLUE SLIDES) -->
     <section class="banner-carousel-section">
       <div class="banner-carousel-container" (mouseenter)="pauseBannerAutoSlide()" (mouseleave)="resumeBannerAutoSlide()">
         
@@ -58,7 +58,6 @@
               <div class="banner-visual">
                 <div class="banner-img-frame">
                   <img src="/assets/images/banners/banner_tim_tro_nhanh.jpg" alt="Tìm trọ nhanh ZHome" class="banner-hero-img" />
-                  <div class="glow-orb"></div>
                 </div>
               </div>
             </div>
@@ -112,7 +111,6 @@
               <div class="banner-visual">
                 <div class="banner-img-frame">
                   <img src="/assets/images/banners/banner_roommate.jpg" alt="Tìm Roommate theo yêu cầu" class="banner-hero-img" />
-                  <div class="glow-orb"></div>
                 </div>
               </div>
             </div>
@@ -165,7 +163,6 @@
               <div class="banner-visual">
                 <div class="banner-img-frame">
                   <img src="/assets/images/banners/banner_quan_ly_tro.jpg" alt="Quản lý trọ dễ dàng" class="banner-hero-img" />
-                  <div class="glow-orb"></div>
                 </div>
               </div>
             </div>
@@ -185,7 +182,7 @@
           </svg>
         </button>
 
-        <!-- Carousel Dots Indicator (Expanded pill active dot like reference image) -->
+        <!-- Carousel Dots Indicator -->
         <div class="carousel-dots">
           @for (b of [0, 1, 2]; track $index) {
             <button class="dot-btn" [class.active]="activeBannerIndex() === $index" (click)="goToBanner($index)" [attr.aria-label]="'Chuyển tới slide ' + ($index + 1)"></button>
@@ -194,43 +191,43 @@
       </div>
     </section>
 
-    <!-- 1.2 SECTION: PHÒNG HOT LÊN ĐẦU (HOT PROPERTIES SECTION) -->
+    <!-- 1.2 SECTION: LỰA CHỌN CHỖ Ở HOT (EXACT MATCH TO USER SCREENSHOT) -->
     <section class="hot-properties-section">
-      <div class="section-title-bar">
-        <div class="section-heading-col">
-          <div class="section-badge-hot">
-            <span class="flame-icon">🔥</span>
-            <span>ƯU TIÊN HÀNG ĐẦU</span>
-          </div>
-          <h2 class="section-main-title">Phòng Trọ HOT Nổi Bật</h2>
-          <p class="section-sub-title">Những lựa chọn phòng trọ cao cấp, vị trí đắc địa và được sinh viên săn đón nhiều nhất</p>
+      <div class="hot-section-header">
+        <h2 class="hot-section-title">Lựa chọn chỗ ở HOT</h2>
+        <p class="hot-section-subtitle">Lựa chọn chỗ ở HOT mà chúng tôi đề xuất cho bạn</p>
+      </div>
+
+      <!-- Quick Location Filter Bar (Pills on Left + View All on Right) -->
+      <div class="hot-filter-row">
+        <div class="hot-location-pills">
+          <button class="loc-pill" [class.active]="hotLocationFilter() === 'all'" (click)="setHotLocationFilter('all')">Tất Cả</button>
+          <button class="loc-pill" [class.active]="hotLocationFilter() === 'Thạch Hoà'" (click)="setHotLocationFilter('Thạch Hoà')">Thạch Hoà</button>
+          <button class="loc-pill" [class.active]="hotLocationFilter() === 'Tân Xã'" (click)="setHotLocationFilter('Tân Xã')">Tân Xã</button>
+          <button class="loc-pill" [class.active]="hotLocationFilter() === 'Bình Yên'" (click)="setHotLocationFilter('Bình Yên')">Bình Yên</button>
+          <button class="loc-pill" [class.active]="hotLocationFilter() === 'Bắc Phú Cát'" (click)="setHotLocationFilter('Bắc Phú Cát')">Bắc Phú Cát</button>
         </div>
-        
-        <!-- View All Button to Switch to Phòng Trọ -->
-        <button class="btn-view-all-pill" (click)="switchToRooms()">
-          <span>Xem tất cả phòng trọ</span>
-          <span class="btn-arrow-circle">→</span>
+
+        <!-- Top Right View All Button -->
+        <button class="btn-top-view-all" (click)="switchToRooms()">
+          <span>View all</span>
+          <span class="arrow-sym">→</span>
         </button>
       </div>
 
-      <!-- Hot Rooms Grid -->
-      @if (isLoading() && hotProperties().length === 0) {
-        <div class="loading-state-card">
-          <div class="spinner"></div>
-          <p>Đang tải danh sách phòng hot...</p>
-        </div>
-      } @else if (hotProperties().length === 0) {
-        <div class="empty-state-card">
-          <p>Hiện chưa có phòng hot nổi bật nào được đăng ký. Bạn có thể xem toàn bộ các phòng trọ có sẵn.</p>
-          <button class="btn-primary-pill" (click)="switchToRooms()">Xem toàn bộ phòng trọ</button>
-        </div>
-      } @else {
-        <div class="properties-grid">
-          @for (prop of hotProperties(); track prop.propertyId) {
-            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop, isHotSection: true}"></ng-container>
-          }
-        </div>
-      }
+      <!-- 4-Column x 2-Row Grid (8 Hot Cards) -->
+      <div class="hot-cards-grid-4col">
+        @for (prop of filteredHotProperties(); track prop.propertyId || prop.roomId) {
+          <ng-container *ngTemplateOutlet="hotCardTemplate; context: {$implicit: prop}"></ng-container>
+        }
+      </div>
+
+      <!-- Bottom Center View All Button (Styled in BLUE) -->
+      <div class="bottom-view-all-wrapper">
+        <button class="btn-view-all-bottom-blue" (click)="switchToRooms()">
+          <span>View all</span>
+        </button>
+      </div>
     </section>
 
     <!-- 1.3 SECTION: GIỚI THIỆU NIỀM TIN (TRUST & REAL NUMBERS SECTION) -->
@@ -313,7 +310,7 @@
       </div>
     </section>
 
-    <!-- 1.4 SECTION: THÔNG TIN LIÊN HỆ CỦA BỌN TÔI (CONTACT INFORMATION SECTION) -->
+    <!-- 1.4 SECTION: THÔNG TIN LIÊN HỆ CỦA BỌN TÔI -->
     <section class="contact-section">
       <div class="contact-box-container">
         
@@ -425,8 +422,9 @@
 
   } <!-- END VIEW MODE: HOME -->
 
+
   <!-- ========================================== -->
-  <!-- 2. VIEW MODE: PHÒNG TRỌ (LISTINGS VIEW)    -->
+  <!-- 2. VIEW MODE: PHÒNG TRỌ (PAGINATED 15/TRANG)-->
   <!-- ========================================== -->
   @if (viewMode() === 'rooms') {
     <section class="rooms-view-section">
@@ -442,27 +440,35 @@
         </div>
 
         <div class="rooms-count-badge">
-          <span>Tìm thấy <strong>{{ groupedProperties().length }}</strong> nhà trọ phù hợp</span>
+          <span>Tìm thấy <strong>{{ filteredRooms().length }}</strong> phòng trọ phù hợp</span>
         </div>
       </div>
 
-      <!-- SMART FILTER BAR: ĐẸP & BO TRÒN TẤT CẢ CÁC GÓC -->
+      <!-- SMART FILTER BAR: ĐẸP & BO TRÒN TẤT CẢ CÁC GÓC (BLACK & WHITE MONOCHROME ICONS) -->
       <div class="smart-filter-box rounded-filter-panel glass-panel">
         
         <!-- Primary Search Pill Row -->
         <div class="filter-main-pill">
           
-          <!-- Search Input -->
+          <!-- Search Input with Monochrome Icon -->
           <div class="filter-group search-box-rounded">
-            <span class="search-icon">🔍</span>
+            <span class="mono-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+            </span>
             <input type="text" [(ngModel)]="searchQuery" (input)="onFilterChange()" placeholder="Tìm theo tên trọ, đường, địa chỉ..." class="input-pill" />
           </div>
 
           <div class="filter-sep"></div>
 
-          <!-- District Select -->
+          <!-- District Select with Monochrome Icon -->
           <div class="filter-group select-box-rounded">
-            <span class="filter-icon">📍</span>
+            <span class="mono-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+              </svg>
+            </span>
             <select [(ngModel)]="selectedDistrict" (change)="onDistrictChange()" class="select-pill">
               <option value="">Tất cả Quận/Huyện</option>
               @if (urbanDistricts().length > 0) {
@@ -484,9 +490,13 @@
 
           <div class="filter-sep"></div>
 
-          <!-- Ward Select -->
+          <!-- Ward Select with Monochrome Icon -->
           <div class="filter-group select-box-rounded">
-            <span class="filter-icon">🏘️</span>
+            <span class="mono-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 21h18M5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16M9 9h1M9 13h1M9 17h1M14 9h1M14 13h1M14 17h1"/>
+              </svg>
+            </span>
             <select [(ngModel)]="selectedWard" (change)="onFilterChange()" [disabled]="!selectedDistrict" class="select-pill">
               <option value="">{{ selectedDistrict ? (getSelectedDistrictType(selectedDistrict) === 'Quận' ? 'Tất cả Phường' : 'Tất cả Xã / Thị trấn') : 'Chọn Quận/Huyện trước' }}</option>
               @for (w of wards(); track w.id) {
@@ -497,10 +507,14 @@
 
           <div class="filter-sep"></div>
 
-          <!-- Price Popover Trigger -->
+          <!-- Price Popover Trigger with Monochrome Icon -->
           <div class="popover-btn-wrapper">
             <button class="pill-popover-trigger rounded-popover-btn" (click)="togglePricePopover($event)">
-              <span class="trigger-icon">💰</span>
+              <span class="mono-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/>
+                </svg>
+              </span>
               <span class="trigger-label">{{ getPriceLabel() }}</span>
               <span class="chevron" [style.transform]="showPricePopover ? 'rotate(180deg)' : 'none'">▼</span>
             </button>
@@ -556,10 +570,14 @@
 
           <div class="filter-sep"></div>
 
-          <!-- Area Popover Trigger -->
+          <!-- Area Popover Trigger with Monochrome Icon -->
           <div class="popover-btn-wrapper">
             <button class="pill-popover-trigger rounded-popover-btn" (click)="toggleAreaPopover($event)">
-              <span class="trigger-icon">📐</span>
+              <span class="mono-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/>
+                </svg>
+              </span>
               <span class="trigger-label">{{ getAreaLabel() }}</span>
               <span class="chevron" [style.transform]="showAreaPopover ? 'rotate(180deg)' : 'none'">▼</span>
             </button>
@@ -615,7 +633,6 @@
           <div class="filter-group verified-pill-checkbox">
             <label class="verified-label-rounded">
               <input type="checkbox" id="verifiedCheck" [(ngModel)]="verifiedHost" (change)="onFilterChange()" />
-              <span class="custom-check-box"></span>
               <span class="v-text">Đã xác minh</span>
             </label>
           </div>
@@ -632,38 +649,85 @@
 
         </div>
 
-        <!-- Amenity Filter Pills (Bo tròn viên thuốc - Rounded Pills) -->
+        <!-- Amenity Filter Pills (Monochrome Simple Icons) -->
         <div class="amenity-pills-row">
           <span class="pills-label">Tiện ích:</span>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === ''" (click)="selectedAmenity = ''; applyAmenityFilter();">Tất cả tiện ích</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Điều hòa'" (click)="toggleAmenityFilter('Điều hòa')">❄️ Điều hòa</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Nóng lạnh'" (click)="toggleAmenityFilter('Nóng lạnh')">🚿 Nóng lạnh</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Khép kín'" (click)="toggleAmenityFilter('Khép kín')">🚪 Khép kín</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Thang máy'" (click)="toggleAmenityFilter('Thang máy')">🛗 Thang máy</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Tủ lạnh'" (click)="toggleAmenityFilter('Tủ lạnh')">🧊 Tủ lạnh</button>
-          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Ban công'" (click)="toggleAmenityFilter('Ban công')">🌿 Ban công</button>
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === ''" (click)="selectedAmenity = ''; onFilterChange();">Tất cả tiện ích</button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Điều hòa'" (click)="toggleAmenityFilter('Điều hòa')">
+            <span class="mono-bullet">❄</span>
+            <span>Điều hòa</span>
+          </button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Nóng lạnh'" (click)="toggleAmenityFilter('Nóng lạnh')">
+            <span class="mono-bullet">♨</span>
+            <span>Nóng lạnh</span>
+          </button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Khép kín'" (click)="toggleAmenityFilter('Khép kín')">
+            <span class="mono-bullet">■</span>
+            <span>Khép kín</span>
+          </button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Thang máy'" (click)="toggleAmenityFilter('Thang máy')">
+            <span class="mono-bullet">▲</span>
+            <span>Thang máy</span>
+          </button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Tủ lạnh'" (click)="toggleAmenityFilter('Tủ lạnh')">
+            <span class="mono-bullet">□</span>
+            <span>Tủ lạnh</span>
+          </button>
+          
+          <button class="cat-pill rounded-full" [class.active]="selectedAmenity === 'Ban công'" (click)="toggleAmenityFilter('Ban công')">
+            <span class="mono-bullet">☀</span>
+            <span>Ban công</span>
+          </button>
         </div>
 
       </div>
 
-      <!-- Listings Grid (Full List) -->
+      <!-- Paginated Rooms Grid (15 Rooms per page) -->
       @if (isLoading()) {
         <div class="loading-state-card">
           <div class="spinner"></div>
           <p>Đang tìm kiếm phòng trọ theo yêu cầu của bạn...</p>
         </div>
-      } @else if (groupedProperties().length === 0) {
+      } @else if (paginatedRooms().length === 0) {
         <div class="empty-state-card">
-          <div class="empty-icon">🔍</div>
+          <div class="empty-icon">✕</div>
           <h3>Không tìm thấy phòng trọ nào phù hợp</h3>
           <p>Hãy thử nới lỏng bộ lọc giá, diện tích hoặc đổi quận huyện để có thêm nhiều lựa chọn bạn nhé.</p>
           <button (click)="resetFilters()" class="btn-primary-pill">Đặt lại toàn bộ bộ lọc</button>
         </div>
       } @else {
-        <div class="properties-grid">
-          @for (prop of groupedProperties(); track prop.propertyId) {
-            <ng-container *ngTemplateOutlet="propertyCardTpl; context: {$implicit: prop}"></ng-container>
+        <div class="hot-cards-grid-4col">
+          @for (prop of paginatedRooms(); track prop.roomId || prop.propertyId) {
+            <ng-container *ngTemplateOutlet="hotCardTemplate; context: {$implicit: prop}"></ng-container>
           }
+        </div>
+
+        <!-- Pagination Controls Bar (15 rooms per page) -->
+        <div class="pagination-bar-wrapper">
+          <div class="pagination-info">
+            Hiển thị <strong>{{ (currentPage() - 1) * pageSize + 1 }} - {{ Math.min(currentPage() * pageSize, filteredRooms().length) }}</strong> trên tổng số <strong>{{ filteredRooms().length }}</strong> phòng
+          </div>
+
+          <div class="pagination-btns">
+            <button class="btn-page-nav" [disabled]="currentPage() === 1" (click)="prevPage()">
+              <span>« Trước</span>
+            </button>
+
+            @for (p of getPageNumbers(); track p) {
+              <button class="btn-page-num" [class.active]="currentPage() === p" (click)="goToPage(p)">
+                {{ p }}
+              </button>
+            }
+
+            <button class="btn-page-nav" [disabled]="currentPage() >= totalPages()" (click)="nextPage()">
+              <span>Sau »</span>
+            </button>
+          </div>
         </div>
       }
 
@@ -672,98 +736,246 @@
 
 
   <!-- ========================================================== -->
-  <!-- REUSABLE PROPERTY CARD TEMPLATE WITH 3-SECOND HOVER SLIDES -->
+  <!-- REUSABLE CARD TEMPLATE (EXACT DESIGN AS SCREENSHOT)       -->
   <!-- ========================================================== -->
-  <ng-template #propertyCardTpl let-prop let-isHotSection="isHotSection">
-    <div class="interactive-card property-card-rounded"
+  <ng-template #hotCardTemplate let-prop>
+    <div class="hot-card-item"
          (mouseenter)="startPropertyHoverSlideshow(prop)"
          (mouseleave)="stopPropertyHoverSlideshow(prop)"
          (click)="openPropertyDetail(prop)">
-      
-      <!-- Top Badges -->
-      @if (isHotSection || prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
-        <div class="hot-badge-large">
-          <span class="flame-icon">🔥</span>
-          <span>HOT</span>
-        </div>
-      }
 
-      <!-- Property Thumbnail with Hover Slideshow -->
-      <div class="property-thumbnail-wrapper">
+      <!-- Image Area -->
+      <div class="hot-card-thumb-wrap">
         <img [src]="getImageUrl(prop.imageUrls?.[prop.activeImageIndex || 0])"
              alt="Ảnh phòng trọ"
-             class="thumbnail-img-fade"
+             class="hot-card-thumb"
              loading="lazy"
              decoding="async"
              (load)="onImageLoaded($event)"
              (error)="onImageError($event)" />
 
-        <!-- Overlay Status Badges -->
-        <div class="card-overlay-top">
-          @if (prop.vacantRoomsCount > 0) {
-            <span class="badge-status vacant-badge">
-              <span class="pulse-indicator"></span>
-              CÒN TRỐNG ({{ prop.vacantRoomsCount }})
-            </span>
+        <!-- Status Badge: Top Left (Còn phòng / Hết phòng) -->
+        <div class="thumb-badge-top-left">
+          @if (prop.vacantRoomsCount > 0 || prop.status === 'Available') {
+            <span class="status-pill green-pill">Còn phòng</span>
           } @else {
-            <span class="badge-status full-badge">HẾT PHÒNG</span>
+            <span class="status-pill pink-pill">Hết phòng</span>
           }
-
-          <div class="top-action-icons">
-            <button class="icon-btn-round heart-btn" (click)="toggleFavorite(prop, $event)" title="Lưu yêu thích">
-              {{ prop.isFavorite ? '❤️' : '🤍' }}
-            </button>
-          </div>
         </div>
 
-        <!-- Overlay Bottom: View count and Hover Multi-image indicators -->
-        <div class="card-overlay-bottom">
-          <span class="view-count-badge">👁️ {{ prop.viewCount || 9 }}</span>
+        <!-- Top Right Actions: Grid Icon + Heart Icon + Compare Button -->
+        <div class="thumb-actions-top-right">
+          <!-- So Sánh Button (Max 3) -->
+          <button class="btn-compare-tag"
+                  [class.active]="isRoomInCompare(prop)"
+                  (click)="toggleCompare(prop, $event)"
+                  title="Thêm vào bảng so sánh (Tối đa 3 phòng)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            <span>{{ isRoomInCompare(prop) ? 'Đang so sánh' : 'So sánh' }}</span>
+          </button>
 
-          <!-- Slideshow Dots: Shows image progression on hover -->
-          @if (prop.imageUrls && prop.imageUrls.length > 1) {
-            <div class="hover-slideshow-dots" title="Tự động đổi ảnh mỗi 3 giây khi rê chuột">
-              @for (img of prop.imageUrls; track $index) {
-                <span class="thumb-dot" [class.active]="$index === (prop.activeImageIndex || 0)"></span>
-              }
-            </div>
-          }
+          <button class="action-circle-btn" title="Xem tổng quan layout">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+            </svg>
+          </button>
+
+          <button class="action-circle-btn" (click)="toggleFavorite(prop, $event)" title="Lưu yêu thích">
+            <svg width="14" height="14" viewBox="0 0 24 24" [attr.fill]="prop.isFavorite ? '#ef4444' : 'none'" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Bottom Left: View count with eye icon -->
+        <div class="thumb-views-bottom-left">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <span>{{ prop.viewCount || 8 }}</span>
+        </div>
+
+        <!-- Bottom Right: Hover Dots -->
+        <div class="thumb-dots-bottom-right">
+          <span class="dot active"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
         </div>
       </div>
 
-      <!-- Property Info -->
-      <div class="property-card-body">
-        <h3 class="property-title" [title]="prop.propertyTitle">{{ prop.propertyTitle }}</h3>
+      <!-- Card Info -->
+      <div class="hot-card-info">
+        <h3 class="hot-card-title">{{ prop.propertyTitle }}</h3>
         
-        <p class="property-address">
-          <span class="pin-icon">📍</span>
+        <p class="hot-card-address">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+          </svg>
           <span>{{ prop.address }}</span>
         </p>
 
-        <!-- Room Features Chips -->
-        <div class="features-summary-row">
-          @if (prop.totalRooms > 0) {
-            <span class="feat-tag">🏢 {{ prop.totalRooms }} phòng</span>
-          }
-          @if (prop.isVerifiedTick) {
-            <span class="feat-tag verified">✓ Chính chủ</span>
-          }
-        </div>
-
-        <!-- Footer: Price & Rating -->
-        <div class="property-card-footer">
-          <div class="price-col">
-            <span class="price-val">{{ prop.minRoomPrice | number:'1.0-0' }} đ</span>
-            <span class="price-unit">/tháng</span>
-          </div>
-          <div class="rating-col">
-            <span class="star-icon">⭐</span>
-            <span class="rating-num">{{ prop.averageRating ? (prop.averageRating | number:'1.1-1') : '5.0' }}</span>
-          </div>
+        <div class="hot-card-price-row">
+          <span class="hot-card-price">{{ (prop.minRoomPrice || prop.price) | number:'1.0-0' }} đ</span>
+          <span class="hot-card-unit">/tháng</span>
         </div>
       </div>
 
     </div>
   </ng-template>
+
+
+  <!-- ========================================================== -->
+  <!-- 3. FLOATING COMPARE DOCK BAR (BOTTOM SCREEN)               -->
+  <!-- ========================================================== -->
+  @if (selectedCompareRooms().length > 0) {
+    <div class="floating-compare-dock animate-slide-up">
+      <div class="dock-container">
+        <div class="dock-left">
+          <div class="dock-badge-title">
+            <span>So sánh phòng trọ</span>
+            <span class="dock-counter">({{ selectedCompareRooms().length }}/3)</span>
+          </div>
+
+          <div class="dock-chips-list">
+            @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+              <div class="dock-chip">
+                <img [src]="getImageUrl(r.imageUrls?.[0])" alt="thumb" class="dock-chip-thumb" />
+                <span class="dock-chip-name">{{ r.propertyTitle }}</span>
+                <span class="dock-chip-price">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }}đ</span>
+                <button class="dock-chip-remove" (click)="removeFromCompare(r.roomId || r.propertyId)">✕</button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <div class="dock-right">
+          <button class="btn-dock-clear" (click)="clearCompare()">Xóa tất cả</button>
+          <button class="btn-dock-launch" (click)="openCompareModal()">
+            <span>So sánh chi tiết ({{ selectedCompareRooms().length }})</span>
+            <span class="arrow-sym">→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+
+  <!-- ========================================================== -->
+  <!-- 4. INTERACTIVE ROOM COMPARISON MODAL (MAX 3 ROOMS)         -->
+  <!-- ========================================================== -->
+  @if (showCompareModal()) {
+    <div class="compare-modal-backdrop animate-fade-in" (click)="closeCompareModal()">
+      <div class="compare-modal-box glass-panel" (click)="$event.stopPropagation()">
+        
+        <div class="compare-modal-head">
+          <div>
+            <h2 class="c-modal-title">Bảng Đối Chiếu So Sánh Phòng Trọ</h2>
+            <p class="c-modal-sub">So sánh chi tiết các tiêu chí để bạn dễ dàng lựa chọn phòng phù hợp nhất</p>
+          </div>
+          <button class="c-modal-close-btn" (click)="closeCompareModal()">✕</button>
+        </div>
+
+        <div class="compare-table-wrapper">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="col-criteria-head">Tiêu chí</th>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <th class="col-room-head">
+                    <div class="compare-room-summary">
+                      <img [src]="getImageUrl(r.imageUrls?.[0])" alt="Room" class="compare-room-thumb" />
+                      <h4 class="compare-room-name">{{ r.propertyTitle }}</h4>
+                      <div class="compare-room-cost">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }} đ/tháng</div>
+                      <button class="btn-remove-from-table" (click)="removeFromCompare(r.roomId || r.propertyId)">Bỏ so sánh</button>
+                    </div>
+                  </th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="col-criteria">📍 Địa chỉ & Vị trí</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>{{ r.address }}</td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">💰 Giá thuê niêm yết</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td><strong class="highlight-price">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }} đ/tháng</strong></td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">📐 Diện tích</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td><strong>{{ r.area || 25 }} m²</strong></td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">🚪 Tình trạng phòng</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>
+                    @if (r.vacantRoomsCount > 0 || r.status === 'Available') {
+                      <span class="status-pill green-pill">Còn phòng</span>
+                    } @else {
+                      <span class="status-pill pink-pill">Hết phòng</span>
+                    }
+                  </td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">⭐ Đánh giá & Lượt xem</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>{{ r.averageRating || 5.0 }} ⭐ ({{ r.viewCount || 100 }} lượt xem)</td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">✨ Tiện ích nổi bật</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>
+                    <div class="compare-tags-wrap">
+                      @if (r.amenities && r.amenities.length > 0) {
+                        @for (a of r.amenities; track a) {
+                          <span class="amenity-chip-tag">{{ a }}</span>
+                        }
+                      } @else {
+                        <span class="amenity-chip-tag">Điều hòa</span>
+                        <span class="amenity-chip-tag">Nóng lạnh</span>
+                        <span class="amenity-chip-tag">Khép kín</span>
+                      }
+                    </div>
+                  </td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria">📞 Chủ trọ liên hệ</td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>
+                    <div><strong>{{ r.landlordName || 'Chủ trọ ZHome' }}</strong></div>
+                    <div class="phone-highlight">{{ r.landlordPhone || '0888 196 666' }}</div>
+                  </td>
+                }
+              </tr>
+              <tr>
+                <td class="col-criteria"></td>
+                @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
+                  <td>
+                    <button class="btn-compare-action-detail" (click)="openPropertyDetail(r)">
+                      Xem chi tiết phòng →
+                    </button>
+                  </td>
+                }
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  }
 
 </div>

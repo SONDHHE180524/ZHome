@@ -17,12 +17,13 @@ import { environment } from '../../../environments/environment';
   styleUrl: './landing.css'
 })
 export class LandingComponent implements OnInit, OnDestroy {
+  public readonly Math = Math;
   public readonly propertyService = inject(PropertyService);
   public readonly toastService = inject(ToastService);
   public readonly authService = inject(AuthService);
   private readonly router = inject(Router);
 
-  // View Mode: 'home' for Home page with Banners & Hot Rooms & Trust, 'rooms' for Full Listings & Rounded Filters
+  // View Mode: 'home' for Home page, 'rooms' for Full Listings & Rounded Filters
   viewMode = signal<'home' | 'rooms'>('home');
 
   // Carousel State
@@ -33,6 +34,17 @@ export class LandingComponent implements OnInit, OnDestroy {
   private hoverTimers = new Map<number, any>();
   private routerSubscription?: Subscription;
 
+  // Compare Rooms State (Max 3 rooms)
+  selectedCompareRooms = signal<any[]>([]);
+  showCompareModal = signal<boolean>(false);
+
+  // Hot Section Location Filter
+  hotLocationFilter = signal<string>('all');
+
+  // Pagination for Phòng trọ (15 rooms per page)
+  pageSize = 15;
+  currentPage = signal<number>(1);
+
   // Contact Form Model
   contactForm = {
     fullName: '',
@@ -41,8 +53,9 @@ export class LandingComponent implements OnInit, OnDestroy {
     message: ''
   };
 
-  // States
+  // Raw listings & rooms
   listings = signal<any[]>([]);
+  allRooms = signal<any[]>([]);
   isLoading = signal(true);
   districts = signal<any[]>([]);
   wards = signal<any[]>([]);
@@ -59,9 +72,15 @@ export class LandingComponent implements OnInit, OnDestroy {
   hotProperties = signal<any[]>([]);
   normalProperties = signal<any[]>([]);
   
-  selectedProperty = signal<any | null>(null);
+  // Filtered Hot Properties based on location pills
+  filteredHotProperties = computed(() => {
+    const list = this.hotProperties();
+    const loc = this.hotLocationFilter();
+    if (loc === 'all') return list;
+    return list.filter(p => p.address && p.address.toLowerCase().includes(loc.toLowerCase()));
+  });
 
-  // Filter Models
+  // Filter Models for Phòng trọ
   searchQuery = '';
   selectedDistrict = '';
   selectedWard = '';
@@ -73,7 +92,7 @@ export class LandingComponent implements OnInit, OnDestroy {
   showAreaPopover = false;
 
   // Price filter states
-  selectedPriceOption = 'all'; // 'all', 'under1m', '1to10m', '10to30m', '30to50m', 'custom'
+  selectedPriceOption = 'all';
   minPrice?: number;
   maxPrice?: number;
   minPriceInput: number | null = 0;
@@ -81,11 +100,74 @@ export class LandingComponent implements OnInit, OnDestroy {
   sliderValue = 50;
 
   // Area filter states
-  selectedAreaOption = 'all'; // 'all', 'under20', '20to30', '30to50', 'over50', 'custom'
+  selectedAreaOption = 'all';
   minArea?: number;
   maxArea?: number;
   minAreaInput: number | null = 0;
   maxAreaInput: number | null = 100;
+
+  // Filtered Rooms for full Phòng Trọ view
+  filteredRooms = computed(() => {
+    let list = this.allRooms();
+    if (list.length === 0) {
+      list = this.getFeaturedSampleProperties();
+    }
+
+    if (this.searchQuery) {
+      const q = this.searchQuery.toLowerCase();
+      list = list.filter(r => 
+        (r.propertyTitle && r.propertyTitle.toLowerCase().includes(q)) ||
+        (r.address && r.address.toLowerCase().includes(q)) ||
+        (r.roomNumber && r.roomNumber.toLowerCase().includes(q))
+      );
+    }
+
+    if (this.selectedDistrict) {
+      list = list.filter(r => r.address && r.address.toLowerCase().includes(this.selectedDistrict.toLowerCase()));
+    }
+
+    if (this.selectedWard) {
+      list = list.filter(r => r.address && r.address.toLowerCase().includes(this.selectedWard.toLowerCase()));
+    }
+
+    if (this.minPrice !== undefined && this.minPrice !== null) {
+      list = list.filter(r => r.price >= this.minPrice!);
+    }
+
+    if (this.maxPrice !== undefined && this.maxPrice !== null) {
+      list = list.filter(r => r.price <= this.maxPrice!);
+    }
+
+    if (this.minArea !== undefined && this.minArea !== null) {
+      list = list.filter(r => r.area >= this.minArea!);
+    }
+
+    if (this.maxArea !== undefined && this.maxArea !== null) {
+      list = list.filter(r => r.area <= this.maxArea!);
+    }
+
+    if (this.verifiedHost) {
+      list = list.filter(r => r.isVerifiedTick);
+    }
+
+    if (this.selectedAmenity) {
+      const a = this.selectedAmenity.toLowerCase();
+      list = list.filter(r => r.amenities && r.amenities.some((x: string) => x.toLowerCase().includes(a)));
+    }
+
+    return list;
+  });
+
+  // Total pages
+  totalPages = computed(() => Math.max(1, Math.ceil(this.filteredRooms().length / this.pageSize)));
+
+  // Paginated Rooms list (15 per page)
+  paginatedRooms = computed(() => {
+    const list = this.filteredRooms();
+    const page = Math.min(this.currentPage(), this.totalPages());
+    const start = (page - 1) * this.pageSize;
+    return list.slice(start, start + this.pageSize);
+  });
 
   @HostListener('document:click', ['$event'])
   onDocumentClick(event: MouseEvent): void {
@@ -110,10 +192,11 @@ export class LandingComponent implements OnInit, OnDestroy {
     // 3. Start auto banner carousel
     this.startBannerAutoSlide();
 
-    // 4. Initialize with featured hot properties immediately so page is never empty
-    const initialProps = this.getFeaturedSampleProperties();
-    this.groupedProperties.set(initialProps);
-    this.applySorting();
+    // 4. Initialize with 8 hot properties right away
+    const samples = this.getFeaturedSampleProperties();
+    this.hotProperties.set(samples);
+    this.allRooms.set(samples);
+    this.groupedProperties.set(samples);
 
     // 5. Fetch locations & real listings from backend
     this.fetchDistricts();
@@ -153,6 +236,104 @@ export class LandingComponent implements OnInit, OnDestroy {
     this.viewMode.set('home');
     this.router.navigate(['/']);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ==========================================
+  // HOT SECTION LOCATION FILTER
+  // ==========================================
+  setHotLocationFilter(loc: string): void {
+    this.hotLocationFilter.set(loc);
+  }
+
+  // ==========================================
+  // ROOM COMPARISON (MAX 3 ROOMS)
+  // ==========================================
+  toggleCompare(item: any, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+
+    const current = this.selectedCompareRooms();
+    const id = item.roomId || item.propertyId;
+    const exists = current.some(r => (r.roomId || r.propertyId) === id);
+
+    if (exists) {
+      this.selectedCompareRooms.set(current.filter(r => (r.roomId || r.propertyId) !== id));
+      this.toastService.show('Đã bỏ phòng khỏi danh sách so sánh.', 'info');
+    } else {
+      if (current.length >= 3) {
+        this.toastService.show('Bạn chỉ có thể so sánh tối đa 3 phòng cùng lúc.', 'error');
+        return;
+      }
+      this.selectedCompareRooms.set([...current, item]);
+      this.toastService.show(`Đã thêm "${item.propertyTitle}" vào so sánh (${current.length + 1}/3).`, 'success');
+    }
+  }
+
+  isRoomInCompare(item: any): boolean {
+    const id = item.roomId || item.propertyId;
+    return this.selectedCompareRooms().some(r => (r.roomId || r.propertyId) === id);
+  }
+
+  removeFromCompare(id: number): void {
+    this.selectedCompareRooms.set(this.selectedCompareRooms().filter(r => (r.roomId || r.propertyId) !== id));
+    if (this.selectedCompareRooms().length === 0) {
+      this.showCompareModal.set(false);
+    }
+  }
+
+  clearCompare(): void {
+    this.selectedCompareRooms.set([]);
+    this.showCompareModal.set(false);
+  }
+
+  openCompareModal(): void {
+    if (this.selectedCompareRooms().length < 2) {
+      this.toastService.show('Vui lòng chọn ít nhất 2 phòng để so sánh đối chiếu.', 'info');
+      return;
+    }
+    this.showCompareModal.set(true);
+  }
+
+  closeCompareModal(): void {
+    this.showCompareModal.set(false);
+  }
+
+  // ==========================================
+  // PAGINATION CONTROLS (15 ROOMS PER PAGE)
+  // ==========================================
+  goToPage(page: number): void {
+    if (page >= 1 && page <= this.totalPages()) {
+      this.currentPage.set(page);
+      const el = document.querySelector('.rooms-header-bar') || document.querySelector('.smart-filter-box');
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  }
+
+  nextPage(): void {
+    if (this.currentPage() < this.totalPages()) {
+      this.goToPage(this.currentPage() + 1);
+    }
+  }
+
+  prevPage(): void {
+    if (this.currentPage() > 1) {
+      this.goToPage(this.currentPage() - 1);
+    }
+  }
+
+  getPageNumbers(): number[] {
+    const total = this.totalPages();
+    const curr = this.currentPage();
+    const delta = 2;
+    const range: number[] = [];
+
+    for (let i = Math.max(1, curr - delta); i <= Math.min(total, curr + delta); i++) {
+      range.push(i);
+    }
+    return range;
   }
 
   // ==========================================
@@ -204,15 +385,17 @@ export class LandingComponent implements OnInit, OnDestroy {
       prop.activeImageIndex = ((prop.activeImageIndex || 0) + 1) % prop.imageUrls.length;
     }, 3000);
 
-    this.hoverTimers.set(prop.propertyId, timer);
+    const id = prop.roomId || prop.propertyId;
+    this.hoverTimers.set(id, timer);
   }
 
   stopPropertyHoverSlideshow(prop: any): void {
     if (!prop) return;
-    const timer = this.hoverTimers.get(prop.propertyId);
+    const id = prop.roomId || prop.propertyId;
+    const timer = this.hoverTimers.get(id);
     if (timer) {
       clearInterval(timer);
-      this.hoverTimers.delete(prop.propertyId);
+      this.hoverTimers.delete(id);
     }
   }
 
@@ -230,7 +413,6 @@ export class LandingComponent implements OnInit, OnDestroy {
       'success'
     );
 
-    // Reset form
     this.contactForm = {
       fullName: '',
       phone: '',
@@ -328,12 +510,14 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   applyPriceFilter(): void {
     this.showPricePopover = false;
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
   resetPriceFilter(): void {
     this.selectPriceOption('all');
     this.showPricePopover = false;
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
@@ -384,12 +568,14 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   applyAreaFilter(): void {
     this.showAreaPopover = false;
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
   resetAreaFilter(): void {
     this.selectAreaOption('all');
     this.showAreaPopover = false;
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
@@ -408,21 +594,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     } else {
       this.selectedAmenity = amenity;
     }
-    this.applyAmenityFilter();
-  }
-
-  applyAmenityFilter(): void {
-    const rawList = this.listings();
-    if (!this.selectedAmenity) {
-      this.groupProperties(rawList);
-      return;
-    }
-
-    const filtered = rawList.filter(item => {
-      if (!item.amenities || item.amenities.length === 0) return false;
-      return item.amenities.some((a: string) => a.toLowerCase().includes(this.selectedAmenity.toLowerCase()));
-    });
-    this.groupProperties(filtered);
+    this.currentPage.set(1);
   }
 
   // ==========================================
@@ -454,12 +626,25 @@ export class LandingComponent implements OnInit, OnDestroy {
       next: (data) => {
         if (data && data.length > 0) {
           this.listings.set(data);
+          
+          // Map to rooms list for pagination
+          const rooms = data.map(item => ({
+            ...item,
+            activeImageIndex: 0,
+            isHot: item.subscriptionId === 2 || item.subscriptionId === 3 || (item.viewCount && item.viewCount > 10),
+            price: item.price,
+            minRoomPrice: item.price,
+            imageUrls: (item.imageUrls && item.imageUrls.length > 0) ? item.imageUrls : [this.defaultPropertyImage]
+          }));
+          this.allRooms.set(rooms);
+
+          // Group by property
           this.groupProperties(data);
         } else {
-          // If search has no results, keep or filter sample properties
           if (!this.searchQuery && !this.selectedDistrict && !this.selectedWard) {
             this.groupProperties([]);
           } else {
+            this.allRooms.set([]);
             this.groupedProperties.set([]);
             this.hotProperties.set([]);
           }
@@ -468,9 +653,10 @@ export class LandingComponent implements OnInit, OnDestroy {
       },
       error: () => {
         this.isLoading.set(false);
-        // On API error, fallback to featured properties
         if (this.groupedProperties().length === 0) {
-          this.groupedProperties.set(this.getFeaturedSampleProperties());
+          const samples = this.getFeaturedSampleProperties();
+          this.allRooms.set(samples);
+          this.groupedProperties.set(samples);
           this.applySorting();
         }
       }
@@ -479,7 +665,6 @@ export class LandingComponent implements OnInit, OnDestroy {
 
   groupProperties(list: any[]): void {
     if (!list || list.length === 0) {
-      // Fallback to featured properties if list is empty
       const sample = this.getFeaturedSampleProperties();
       this.groupedProperties.set(sample);
       this.applySorting();
@@ -576,7 +761,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     currentList.sort((a, b) => {
        const subA = a.subscriptionId || 1;
        const subB = b.subscriptionId || 1;
-       if (subB !== subA) return subB - subA; // 3 -> 2 -> 1
+       if (subB !== subA) return subB - subA;
        
        if (a.isFavorite && !b.isFavorite) return -1;
        if (!a.isFavorite && b.isFavorite) return 1;
@@ -587,8 +772,8 @@ export class LandingComponent implements OnInit, OnDestroy {
 
     this.groupedProperties.set(currentList);
 
-    // Pick top 6 properties to feature in Hot Section and ensure isHot is true
-    const hotCount = Math.min(6, currentList.length);
+    // Pick 8 properties for the 4-column x 2-row HOT grid (exact match to user screenshot)
+    const hotCount = Math.min(8, currentList.length);
     const hotList = currentList.slice(0, hotCount).map(p => {
       p.isHot = true;
       return p;
@@ -600,155 +785,184 @@ export class LandingComponent implements OnInit, OnDestroy {
     this.normalProperties.set(freeProps);
   }
 
-  private getFeaturedSampleProperties(): any[] {
+  // Exact 8 properties from user screenshot
+  getFeaturedSampleProperties(): any[] {
     return [
       {
-        propertyId: 1001,
-        propertyTitle: 'ZHome EcoStay - Căn Hộ Mini Cao Cấp Ngay Cổng ĐH FPT',
-        address: 'Ngõ 8 Tân Xã, Thạch Thất, Hà Nội (Cách ĐH FPT 300m)',
+        propertyId: 2001,
+        propertyTitle: 'Trung Đức Home',
+        address: 'Chợ Hoà Lạc',
         isVerifiedTick: true,
         landlordId: 1,
-        landlordName: 'Nguyễn Thành Tùng',
-        landlordPhone: '0888196666',
-        description: 'Tòa nhà mới xây 7 tầng thang máy, ban công thoáng mát, full nội thất: điều hòa, nóng lạnh, giường tủ, máy giặt riêng, an ninh vân tay 24/7.',
-        totalRooms: 12,
-        viewCount: 158,
-        vacantRoomsCount: 4,
+        landlordName: 'Trung Đức',
+        landlordPhone: '0981234567',
+        description: 'Phòng trọ tiện nghi, sạch sẽ thoáng mát gần chợ Hoà Lạc, đi lại thuận tiện.',
+        totalRooms: 10,
+        viewCount: 8,
+        vacantRoomsCount: 3,
+        status: 'Available',
         isHot: true,
-        subscriptionId: 3,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/0919919919_639275077481748600.jpg',
-          '/media/properties/0919919919_639275077484150808.jpg',
-          '/media/properties/0919919919_639275077486040420.jpg',
-          '/assets/default-room.jpg'
-        ],
+        imageUrls: ['/media/properties/property_0358356866_639274973312204706.jpg'],
+        minRoomPrice: 2000000,
+        price: 2000000,
+        area: 25,
         averageRating: 5.0,
-        reviewCount: 28,
-        minRoomPrice: 2400000,
-        rooms: []
+        amenities: ['Điều hòa', 'Nóng lạnh', 'Khép kín']
       },
       {
-        propertyId: 1002,
-        propertyTitle: 'Chung Cư Mini Sunshine Home - Thạch Hòa',
-        address: 'Thôn 3 Thạch Hòa, Thạch Thất, Hà Nội (Gần ĐHQGHN)',
+        propertyId: 2002,
+        propertyTitle: 'Biệt Thự Ngay Cổng ĐHQG',
+        address: 'Cổng phụ Đại học QGHN cơ sở Hoà Lạc',
         isVerifiedTick: true,
         landlordId: 2,
-        landlordName: 'Đặng Hoàng Sơn',
+        landlordName: 'Nguyễn Văn Minh',
         landlordPhone: '0912345678',
-        description: 'Phòng khép kín rộng 26m², cửa sổ trời ngập ánh sáng tự nhiên. Trang bị sẵn điều hòa Inverter, bình nóng lạnh, bàn học sinh viên.',
-        totalRooms: 10,
-        viewCount: 132,
+        description: 'Biệt thự sang trọng view thoáng, đầy đủ tiện ích cao cấp dành cho sinh viên và giảng viên.',
+        totalRooms: 14,
+        viewCount: 197,
         vacantRoomsCount: 2,
+        status: 'Available',
         isHot: true,
-        subscriptionId: 3,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/0919919919_639275826163087052.jpg',
-          '/media/properties/0919919919_639275077487615912.jpg',
-          '/media/properties/0919919919_639275077489171944.jpg'
-        ],
-        averageRating: 4.9,
-        reviewCount: 19,
-        minRoomPrice: 1900000,
-        rooms: []
+        imageUrls: ['/media/properties/0919919919_639275077481748600.jpg'],
+        minRoomPrice: 3500000,
+        price: 3500000,
+        area: 35,
+        averageRating: 5.0,
+        amenities: ['Điều hòa', 'Nóng lạnh', 'Ban công', 'Thang máy']
       },
       {
-        propertyId: 1003,
-        propertyTitle: 'Tòa Nhà Căn Hộ Ruby House - Bình Yên',
-        address: 'Đường Tỉnh Lộ 420, Bình Yên, Thạch Thất, Hà Nội',
+        propertyId: 2003,
+        propertyTitle: 'C Home 6',
+        address: 'Hạ Bằng',
         isVerifiedTick: true,
         landlordId: 3,
-        landlordName: 'Bùi Thị Mai',
-        landlordPhone: '0987654321',
-        description: 'Phòng trọ cao cấp tiêu chuẩn khách sạn, bếp nấu riêng biệt chống mùi, khóa cửa thông minh, giờ giấc tự do không chung chủ.',
-        totalRooms: 15,
-        viewCount: 184,
-        vacantRoomsCount: 5,
+        landlordName: 'Hạ Bằng ZHome',
+        landlordPhone: '0977889911',
+        description: 'Dãy trọ sinh viên giá rẻ, khép kín, an ninh đảm bảo tại Hạ Bằng.',
+        totalRooms: 8,
+        viewCount: 175,
+        vacantRoomsCount: 4,
+        status: 'Available',
         isHot: true,
-        subscriptionId: 2,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/property_0886459398_639275003924210085.jpg',
-          '/media/properties/property_0358356866_639274973312204706.jpg',
-          '/assets/default-room.jpg'
-        ],
-        averageRating: 5.0,
-        reviewCount: 34,
-        minRoomPrice: 2800000,
-        rooms: []
+        imageUrls: ['/media/properties/0919919919_639275826163087052.jpg'],
+        minRoomPrice: 1600000,
+        price: 1600000,
+        area: 20,
+        averageRating: 4.8,
+        amenities: ['Nóng lạnh', 'Khép kín', 'Wifi']
       },
       {
-        propertyId: 1004,
-        propertyTitle: 'Khu Trọ Sinh Viên Xanh GreenStay - Tân Xã',
-        address: 'Hồ Tân Xã, Thạch Thất, TP. Hà Nội',
+        propertyId: 2004,
+        propertyTitle: "C Home's 5",
+        address: 'Cây xăng 39',
         isVerifiedTick: true,
         landlordId: 4,
-        landlordName: 'Lê Văn Hùng',
-        landlordPhone: '0933221100',
-        description: 'View nhìn thẳng ra hồ Tân Xã cực chill, không gian yên tĩnh học tập, wifi cáp quang riêng từng tầng, camera an ninh 24/7.',
-        totalRooms: 8,
-        viewCount: 95,
-        vacantRoomsCount: 3,
+        landlordName: 'C Home',
+        landlordPhone: '0966554433',
+        description: 'Vị trí gần cây xăng 39, thuận lợi giao thông, phòng rộng có gác xép.',
+        totalRooms: 12,
+        viewCount: 151,
+        vacantRoomsCount: 1,
+        status: 'Available',
         isHot: true,
-        subscriptionId: 2,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/property_0898765433_639250812545623697.jpg',
-          '/media/properties/0919919919_639275077708213358.jpg'
-        ],
-        averageRating: 4.8,
-        reviewCount: 15,
-        minRoomPrice: 1700000,
-        rooms: []
+        imageUrls: ['/media/properties/property_0886459398_639275003924210085.jpg'],
+        minRoomPrice: 2000000,
+        price: 2000000,
+        area: 22,
+        averageRating: 4.9,
+        amenities: ['Điều hòa', 'Nóng lạnh']
       },
       {
-        propertyId: 1005,
-        propertyTitle: 'Căn Hộ Dịch Vụ Golden Palm - Cầu Giấy',
-        address: 'Số 18 Ngõ 165 Cầu Giấy, Quận Cầu Giấy, Hà Nội',
+        propertyId: 2005,
+        propertyTitle: 'LuxHome - URHome',
+        address: 'Vận Lôi',
         isVerifiedTick: true,
         landlordId: 5,
-        landlordName: 'Trần Minh Đức',
+        landlordName: 'LuxHome',
         landlordPhone: '0904346979',
-        description: 'Vị trí trung tâm sầm uất, gần ĐH Sư Phạm, ĐHQG, Báo Chí. Tòa nhà 8 tầng thang máy, hầm để xe rộng rãi, bảo vệ trực ngày đêm.',
+        description: 'Tòa nhà căn hộ mini Vận Lôi, thiết kế sang trọng, hiện đại.',
         totalRooms: 16,
-        viewCount: 240,
-        vacantRoomsCount: 2,
+        viewCount: 100,
+        vacantRoomsCount: 0,
+        status: 'Occupied',
         isHot: true,
-        subscriptionId: 3,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/property_0904346979_639275031813602676.png',
-          '/media/properties/0919919919_639275826168512219.jpg'
-        ],
+        imageUrls: ['/media/properties/property_0898765433_639250812545623697.jpg'],
+        minRoomPrice: 2200000,
+        price: 2200000,
+        area: 26,
         averageRating: 5.0,
-        reviewCount: 42,
-        minRoomPrice: 3500000,
-        rooms: []
+        amenities: ['Điều hòa', 'Nóng lạnh', 'Khép kín', 'Tủ lạnh']
       },
       {
-        propertyId: 1006,
-        propertyTitle: 'Nhà Trọ Cao Cấp SmartHome - Nam Từ Liêm',
-        address: 'Phố Mễ Trì Hạ, Phường Mễ Trì, Quận Nam Từ Liêm, Hà Nội',
+        propertyId: 2006,
+        propertyTitle: 'Trọ Bắc Phú Cát',
+        address: 'Khu Tái Định Cư Bắc Phú Cát',
         isVerifiedTick: true,
         landlordId: 6,
-        landlordName: 'Vũ Quốc Anh',
-        landlordPhone: '0977889900',
-        description: 'Phòng đầy đủ tiện nghi, giường nệm, điều hòa tủ lạnh, ban công riêng phơi đồ. Gần bến xe buýt, trung tâm thương mại The Garden.',
-        totalRooms: 14,
-        viewCount: 168,
+        landlordName: 'Nguyễn Thành Tùng',
+        landlordPhone: '0888196666',
+        description: 'Nhà trọ Bắc Phú Cát đường rộng thoáng, ô tô vào tận cửa, an ninh tuyệt đối.',
+        totalRooms: 15,
+        viewCount: 318,
         vacantRoomsCount: 3,
+        status: 'Available',
         isHot: true,
-        subscriptionId: 2,
         activeImageIndex: 0,
-        imageUrls: [
-          '/media/properties/property_0919919919_639274991567935199.png',
-          '/media/properties/0919919919_639275077706401067.jpg'
-        ],
+        imageUrls: ['/media/properties/property_0919919919_639274991567935199.png'],
+        minRoomPrice: 2900000,
+        price: 2900000,
+        area: 28,
         averageRating: 4.9,
-        reviewCount: 23,
-        minRoomPrice: 2700000,
-        rooms: []
+        amenities: ['Điều hòa', 'Nóng lạnh', 'Ban công']
+      },
+      {
+        propertyId: 2007,
+        propertyTitle: 'YoungHouse 2 - Phòng Studio 2...',
+        address: '64 Phú Hữu',
+        isVerifiedTick: true,
+        landlordId: 7,
+        landlordName: 'YoungHouse',
+        landlordPhone: '0919919919',
+        description: 'Studio dành cho bạn trẻ năng động tại Phú Hữu, không gian mở sáng tạo.',
+        totalRooms: 18,
+        viewCount: 913,
+        vacantRoomsCount: 0,
+        status: 'Occupied',
+        isHot: true,
+        activeImageIndex: 0,
+        imageUrls: ['/media/properties/0919919919_639275077484150808.jpg'],
+        minRoomPrice: 2800000,
+        price: 2800000,
+        area: 30,
+        averageRating: 5.0,
+        amenities: ['Điều hòa', 'Nóng lạnh', 'Thang máy', 'Ban công']
+      },
+      {
+        propertyId: 2008,
+        propertyTitle: 'C Home 7',
+        address: 'Thôn 3',
+        isVerifiedTick: true,
+        landlordId: 8,
+        landlordName: 'C Home',
+        landlordPhone: '0988776655',
+        description: 'Phòng gác lửng cao ráo, rộng rãi, khu dân cư an ninh tại Thôn 3.',
+        totalRooms: 9,
+        viewCount: 95,
+        vacantRoomsCount: 0,
+        status: 'Occupied',
+        isHot: true,
+        activeImageIndex: 0,
+        imageUrls: ['/media/properties/0919919919_639275077486040420.jpg'],
+        minRoomPrice: 2500000,
+        price: 2500000,
+        area: 24,
+        averageRating: 4.8,
+        amenities: ['Gác lửng', 'Nóng lạnh', 'Khép kín']
       }
     ];
   }
@@ -761,7 +975,7 @@ export class LandingComponent implements OnInit, OnDestroy {
       return;
     }
     
-    const roomId = prop.rooms[0]?.roomId;
+    const roomId = prop.roomId || prop.rooms?.[0]?.roomId;
     if (!roomId) return;
     
     this.propertyService.toggleFavorite(roomId).subscribe({
@@ -779,12 +993,14 @@ export class LandingComponent implements OnInit, OnDestroy {
   }
 
   onFilterChange(): void {
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
   onDistrictChange(): void {
     this.selectedWard = '';
     this.wards.set([]);
+    this.currentPage.set(1);
     this.onFilterChange();
     if (this.selectedDistrict) {
       const districtObj = this.districts().find(d => d.name === this.selectedDistrict);
@@ -806,12 +1022,14 @@ export class LandingComponent implements OnInit, OnDestroy {
     this.selectPriceOption('all');
     this.selectAreaOption('all');
     this.wards.set([]);
+    this.currentPage.set(1);
     this.fetchListings();
   }
 
   openPropertyDetail(property: any): void {
-    if (property?.propertyId) {
-      this.router.navigate(['/phong-tro-detail', property.propertyId]);
+    const id = property?.propertyId || property?.id;
+    if (id) {
+      this.router.navigate(['/phong-tro-detail', id]);
     }
   }
 
