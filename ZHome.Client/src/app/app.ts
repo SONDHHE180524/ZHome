@@ -3,11 +3,13 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { AuthService } from './services/auth.service';
 import { ToastService } from './services/toast.service';
 import { NotificationService, NotificationItem } from './services/notification.service';
+import { PrivacyService } from './services/privacy.service';
+import { PrivacyModalComponent } from './components/privacy-modal/privacy-modal';
 import { environment } from '../environments/environment';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, PrivacyModalComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -15,6 +17,7 @@ export class App implements OnInit, OnDestroy {
   public readonly authService = inject(AuthService);
   public readonly toastService = inject(ToastService);
   public readonly notificationService = inject(NotificationService);
+  public readonly privacyService = inject(PrivacyService);
   private readonly router = inject(Router);
   private readonly ngZone = inject(NgZone);
 

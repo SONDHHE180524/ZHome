@@ -20,6 +20,7 @@ import { AdminUsersComponent } from './views/admin/users';
 import { AdminPropertiesComponent } from './views/admin/properties';
 import { AdminVerificationsComponent } from './views/admin/verifications';
 import { AdminTransactionsComponent } from './views/admin/transactions';
+import { AdminActivityLogsComponent } from './views/admin/activity-logs';
 import { ProfileComponent } from './views/auth/profile';
 import { LandlordReportsComponent } from './views/landlord/reports';
 import { LandlordIncidentsComponent } from './views/landlord/incidents';
@@ -52,6 +53,7 @@ export const routes: Routes = [
       { path: 'properties', component: AdminPropertiesComponent },
       { path: 'verifications', component: AdminVerificationsComponent },
       { path: 'transactions', component: AdminTransactionsComponent },
+      { path: 'activity-logs', component: AdminActivityLogsComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

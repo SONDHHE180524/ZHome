@@ -39,6 +39,14 @@ export class PropertyService {
     return this.http.post<any>(`${this.apiUrl}/${propertyId}/room`, roomData);
   }
 
+  addRoomsBatch(propertyId: number, rooms: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${propertyId}/rooms/batch`, { rooms });
+  }
+
+  syncFloors(propertyId: number, floors: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${propertyId}/sync-floors`, { floors });
+  }
+
   getLandlordRoomDetail(roomId: number): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/room/${roomId}`);
   }

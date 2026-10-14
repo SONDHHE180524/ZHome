@@ -310,13 +310,16 @@
         © 2026 ZHome - Hệ Thống Quản Lý & Kết Nối Nhà Trọ Thông Minh. Bản quyền thuộc về ZHome Vietnam.
       </div>
       <div class="footer-bottom-links">
-        <a href="javascript:void(0)">Điều khoản sử dụng</a>
-        <a href="javascript:void(0)">Chính sách bảo mật</a>
-        <a href="javascript:void(0)">Quy chế hoạt động</a>
+        <a href="javascript:void(0)" (click)="privacyService.openModal('rights')">Điều khoản sử dụng</a>
+        <a href="javascript:void(0)" (click)="privacyService.openModal('tenant')">Chính sách bảo mật</a>
+        <a href="javascript:void(0)" (click)="privacyService.openModal('landlord')">Quy chế hoạt động</a>
       </div>
     </div>
   </div>
 </footer>
+
+<!-- Global Privacy Policy Notice Banner & Interactive Modal -->
+<app-privacy-modal></app-privacy-modal>
 
 <!-- Global Toast Container -->
 <div class="toast-container">

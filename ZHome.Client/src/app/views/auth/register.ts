@@ -3,6 +3,7 @@ import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
+import { PrivacyService } from '../../services/privacy.service';
 
 @Component({
   selector: 'app-register',
@@ -209,6 +210,13 @@ import { ToastService } from '../../services/toast.service';
           @if (errorMessage()) {
             <div class="alert-error">{{ errorMessage() }}</div>
           }
+
+          <div class="terms-policy-note" style="margin: 4px 0 10px 0; font-size: 0.8rem; color: #94a3b8; text-align: center; line-height: 1.4;">
+            Bằng việc nhấn Đăng ký, bạn đồng ý với 
+            <a href="javascript:void(0)" (click)="privacyService.openModal(roleName === 'Landlord' ? 'landlord' : 'tenant')" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">
+              Điều khoản bảo mật & dữ liệu
+            </a> của ZHome.
+          </div>
 
           <button type="submit" [disabled]="registerForm.invalid || password !== confirmPassword || (roleName === 'Landlord' && (!cccdFrontBase64() || !cccdBackBase64())) || isLoading()" class="btn btn-primary btn-block">
             @if (isLoading()) {
@@ -432,6 +440,7 @@ import { ToastService } from '../../services/toast.service';
 export class RegisterComponent {
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
+  public readonly privacyService = inject(PrivacyService);
   private readonly router = inject(Router);
 
   fullName = '';

@@ -82,6 +82,12 @@ namespace ZHome.API.Models.Entities
         [Column("subscription_end_date")]
         public DateTime? SubscriptionEndDate { get; set; }
 
+        [Column("last_active_at")]
+        public DateTime? LastActiveAt { get; set; }
+
+        [Column("last_login_at")]
+        public DateTime? LastLoginAt { get; set; }
+
         [ForeignKey("RoleId")]
         public Role? Role { get; set; }
 

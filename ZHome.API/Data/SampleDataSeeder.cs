@@ -30,6 +30,74 @@ namespace ZHome.API.Data
                     await context.SaveChangesAsync();
                 }
 
+                // Tự động chuyển đổi tất cả ảnh AI / ảnh mẫu Unsplash cũ sang ảnh thực tế lưu trong Supabase (/media/properties/)
+                var realPropImages = new[]
+                {
+                    "/media/properties/0919919919_639275077481748600.jpg",
+                    "/media/properties/0919919919_639275077484150808.jpg",
+                    "/media/properties/0919919919_639275077486040420.jpg",
+                    "/media/properties/0919919919_639275077487615912.jpg",
+                    "/media/properties/0919919919_639275077698502464.jpg",
+                    "/media/properties/0919919919_639275826163087052.jpg",
+                    "/media/properties/0919919919_639275826168512219.jpg",
+                    "/media/properties/0919919919_639275827460584744.jpg",
+                    "/media/properties/property_0886459398_639275003924210085.jpg",
+                    "/media/properties/property_0904346979_639275031813602676.png",
+                    "/media/properties/property_0898765433_639250812545623697.jpg",
+                    "/media/properties/property_0898765433_639250846890238077.jpg",
+                    "/media/properties/property_0898765433_639251163494841613.jpg"
+                };
+
+                var realRoomImages = new[]
+                {
+                    "/media/properties/0919919919_639275077703545932.jpg",
+                    "/media/properties/0919919919_639275077705432946.jpg",
+                    "/media/properties/0919919919_639275077706401067.jpg",
+                    "/media/properties/0919919919_639275077708213358.jpg",
+                    "/media/properties/room_199_639275004036198565.jpg",
+                    "/media/properties/room_199_639275004047218096.jpg",
+                    "/media/properties/room_199_639275004048221723.jpg",
+                    "/media/properties/room_199_639275004051186363.jpg",
+                    "/media/properties/room_239_639275015580178570.png",
+                    "/media/properties/room_239_639275015581180886.png",
+                    "/media/properties/room_239_639275015581202647.png",
+                    "/media/properties/room_239_639275015582193174.png"
+                };
+
+                try
+                {
+                    var aiProperties = await context.Properties
+                        .Where(p => string.IsNullOrEmpty(p.ImageUrl) || p.ImageUrl.Contains("unsplash") || p.ImageUrl.Contains("placeholder"))
+                        .ToListAsync();
+
+                    if (aiProperties.Any())
+                    {
+                        int pIdx = 0;
+                        foreach (var p in aiProperties)
+                        {
+                            p.ImageUrl = realPropImages[pIdx % realPropImages.Length];
+                            pIdx++;
+                        }
+                        await context.SaveChangesAsync();
+                    }
+
+                    var aiRoomImages = await context.RoomImages
+                        .Where(r => string.IsNullOrEmpty(r.MediaUrl) || r.MediaUrl.Contains("unsplash") || r.MediaUrl.Contains("placeholder"))
+                        .ToListAsync();
+
+                    if (aiRoomImages.Any())
+                    {
+                        int rIdx = 0;
+                        foreach (var r in aiRoomImages)
+                        {
+                            r.MediaUrl = realRoomImages[rIdx % realRoomImages.Length];
+                            rIdx++;
+                        }
+                        await context.SaveChangesAsync();
+                    }
+                }
+                catch { }
+
                 // 2. Kiểm tra nếu chưa có Properties thì tự động seed dữ liệu mẫu
                 if (!await context.Properties.AnyAsync())
                 {
@@ -72,7 +140,7 @@ namespace ZHome.API.Data
                             Address = "Số 18, Ngõ 165 Cầu Giấy, Phường Dịch Vọng, Quận Cầu Giấy, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 125,
-                            ImageUrl = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[0],
                             CreatedAt = DateTime.UtcNow.AddDays(-10)
                         },
                         new Property
@@ -83,7 +151,7 @@ namespace ZHome.API.Data
                             Address = "Số 25, Ngõ 39 Đình Thôn, Phường Mỹ Đình 1, Quận Nam Từ Liêm, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 98,
-                            ImageUrl = "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[1],
                             CreatedAt = DateTime.UtcNow.AddDays(-8)
                         },
                         new Property
@@ -94,7 +162,7 @@ namespace ZHome.API.Data
                             Address = "Thôn 2, Xã Thạch Hòa, Huyện Thạch Thất, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 310,
-                            ImageUrl = "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[2],
                             CreatedAt = DateTime.UtcNow.AddDays(-5)
                         },
                         new Property
@@ -105,7 +173,7 @@ namespace ZHome.API.Data
                             Address = "Thôn Mục Uyên, Xã Tân Xã, Huyện Thạch Thất, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 142,
-                            ImageUrl = "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[3],
                             CreatedAt = DateTime.UtcNow.AddDays(-3)
                         },
                         new Property
@@ -116,7 +184,7 @@ namespace ZHome.API.Data
                             Address = "Số 42, Ngõ 10 Tôn Thất Tùng, Phường Khương Thượng, Quận Đống Đa, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 215,
-                            ImageUrl = "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[4],
                             CreatedAt = DateTime.UtcNow.AddDays(-2)
                         },
                         new Property
@@ -127,7 +195,7 @@ namespace ZHome.API.Data
                             Address = "Số 88, Ngõ 336 Nguyễn Trãi, Phường Thanh Xuân Trung, Quận Thanh Xuân, Hà Nội",
                             IsVerifiedTick = true,
                             ViewCount = 180,
-                            ImageUrl = "https://images.unsplash.com/photo-1540518614846-7ede433c4550?auto=format&fit=crop&w=800&q=80",
+                            ImageUrl = realPropImages[5],
                             CreatedAt = DateTime.UtcNow.AddDays(-1)
                         }
                     };
@@ -137,13 +205,7 @@ namespace ZHome.API.Data
 
                     // Seed Rooms cho từng Property
                     var sampleAmenities = new[] { "Điều hòa", "Nóng lạnh", "Khép kín", "Thang máy", "Tủ lạnh", "Máy giặt", "Ban công", "Giường nệm", "Tủ quần áo", "Kệ bếp" };
-                    var sampleImages = new[]
-                    {
-                        "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=800&q=80",
-                        "https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=800&q=80",
-                        "https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?auto=format&fit=crop&w=800&q=80",
-                        "https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=800&q=80"
-                    };
+                    var sampleImages = realRoomImages;
 
                     int roomCounter = 1;
                     foreach (var prop in properties)

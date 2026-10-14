@@ -18,11 +18,16 @@ namespace ZHome.API.Controllers
     {
         private readonly ZHomeDbContext _context;
         private readonly Services.INotificationService _notificationService;
+        private readonly Services.IMediaStorageService _mediaStorage;
 
-        public AdminController(ZHomeDbContext context, Services.INotificationService notificationService)
+        public AdminController(
+            ZHomeDbContext context, 
+            Services.INotificationService notificationService,
+            Services.IMediaStorageService mediaStorage)
         {
             _context = context;
             _notificationService = notificationService;
+            _mediaStorage = mediaStorage;
         }
 
         // Tạo tài khoản Quản trị viên mới (CHỈ ADMIN ĐANG ĐĂNG NHẬP MỚI CÓ QUYỀN GỌI)
@@ -194,6 +199,57 @@ namespace ZHome.API.Controllers
             return Ok(new { message = "Đã từ chối xét duyệt chủ trọ." });
         }
 
+        // Cập nhật/thay thế ảnh CCCD của chủ trọ trực tiếp bởi Admin
+        [HttpPut("verifications/{userId}/cccd")]
+        public async Task<IActionResult> UpdateLandlordCccd(long userId, [FromBody] UpdateLandlordCccdRequest request)
+        {
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return NotFound("Người dùng không tồn tại.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(request.CccdNumber))
+            {
+                user.CccdNumber = request.CccdNumber;
+            }
+
+            if (!string.IsNullOrEmpty(request.CccdFrontBase64) && request.CccdFrontBase64.StartsWith("data:image"))
+            {
+                try
+                {
+                    user.CccdFrontUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdFrontBase64, "cards", "cccd_front", user.Phone);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Không thể lưu ảnh mặt trước CCCD: " + ex.Message);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.CccdBackBase64) && request.CccdBackBase64.StartsWith("data:image"))
+            {
+                try
+                {
+                    user.CccdBackUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdBackBase64, "cards", "cccd_back", user.Phone);
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Không thể lưu ảnh mặt sau CCCD: " + ex.Message);
+                }
+            }
+
+            user.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Đã cập nhật ảnh CCCD thành công!",
+                cccdNumber = user.CccdNumber,
+                cccdFrontUrl = user.CccdFrontUrl,
+                cccdBackUrl = user.CccdBackUrl
+            });
+        }
+
         // Get admin dashboard stats
         [HttpGet("dashboard-stats")]
         public async Task<IActionResult> GetDashboardStats()
@@ -227,6 +283,7 @@ namespace ZHome.API.Controllers
             var query = _context.Properties
                 .Include(p => p.Landlord)
                 .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
                 .AsQueryable();
 
             if (landlordId.HasValue && landlordId.Value > 0)
@@ -242,7 +299,9 @@ namespace ZHome.API.Controllers
                     Title = p.Title,
                     Address = p.Address,
                     Description = p.Description,
-                    ImageUrl = p.ImageUrl,
+                    ImageUrl = !string.IsNullOrEmpty(p.ImageUrl)
+                        ? p.ImageUrl
+                        : (p.Rooms.SelectMany(r => r.Images).Select(i => i.MediaUrl).FirstOrDefault() ?? ""),
                     IsVerifiedTick = p.IsVerifiedTick,
                     CreatedAt = p.CreatedAt,
                     LandlordId = p.LandlordId,
@@ -371,7 +430,10 @@ namespace ZHome.API.Controllers
                     SubscriptionName = u.SubscriptionPackage != null ? u.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
                     u.SubscriptionEndDate,
                     u.CreatedAt,
-                    u.UpdatedAt
+                    u.UpdatedAt,
+                    LastActiveAt = u.LastActiveAt ?? u.UpdatedAt,
+                    LastLoginAt = u.LastLoginAt ?? u.CreatedAt,
+                    TotalActivities = _context.ActivityLogs.Count(al => al.UserId == u.Id)
                 })
                 .ToListAsync();
 
@@ -409,8 +471,246 @@ namespace ZHome.API.Controllers
                 SubscriptionName = user.SubscriptionPackage != null ? user.SubscriptionPackage.Name : "Gói Tiêu Chuẩn",
                 user.SubscriptionEndDate,
                 user.CreatedAt,
-                user.UpdatedAt
+                user.UpdatedAt,
+                LastActiveAt = user.LastActiveAt ?? user.UpdatedAt,
+                LastLoginAt = user.LastLoginAt ?? user.CreatedAt,
+                TotalActivities = await _context.ActivityLogs.CountAsync(al => al.UserId == user.Id)
             });
+        }
+
+        // Lấy danh sách nhật ký hoạt động toàn hệ thống (Audit Logs)
+        [HttpGet("activity-logs")]
+        public async Task<IActionResult> GetActivityLogs(
+            [FromQuery] long? userId,
+            [FromQuery] string? role,
+            [FromQuery] string? action,
+            [FromQuery] string? keyword,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            await EnsureInitialActivityLogsSeededAsync();
+
+            var query = _context.ActivityLogs.AsNoTracking().AsQueryable();
+
+            if (userId.HasValue && userId.Value > 0)
+            {
+                query = query.Where(a => a.UserId == userId.Value);
+            }
+
+            if (!string.IsNullOrWhiteSpace(role) && !role.Equals("All", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(a => a.UserRole.ToLower() == role.ToLower());
+            }
+
+            if (!string.IsNullOrWhiteSpace(action) && !action.Equals("All", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(a => a.Action.ToLower() == action.ToLower());
+            }
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim().ToLower();
+                query = query.Where(a => (a.UserName != null && a.UserName.ToLower().Contains(kw)) ||
+                                         (a.Action != null && a.Action.ToLower().Contains(kw)) ||
+                                         (a.Description != null && a.Description.ToLower().Contains(kw)) ||
+                                         (a.IpAddress != null && a.IpAddress.Contains(kw)));
+            }
+
+            var totalItems = await query.CountAsync();
+            if (page < 1) page = 1;
+            if (pageSize < 5) pageSize = 5;
+            if (pageSize > 100) pageSize = 100;
+
+            var items = await query
+                .OrderByDescending(a => a.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.UserId,
+                    a.UserName,
+                    a.UserRole,
+                    a.Action,
+                    a.Description,
+                    a.IpAddress,
+                    a.UserAgent,
+                    a.CreatedAt
+                })
+                .ToListAsync();
+
+            // Statistics for header dashboard
+            var today = DateTime.UtcNow.Date;
+            var todayActivities = await _context.ActivityLogs.CountAsync(a => a.CreatedAt >= today);
+            var activeUsersToday = await _context.ActivityLogs
+                .Where(a => a.CreatedAt >= today && a.UserId != null)
+                .Select(a => a.UserId)
+                .Distinct()
+                .CountAsync();
+            var totalLogins = await _context.ActivityLogs.CountAsync(a => a.Action == "Đăng nhập");
+
+            return Ok(new
+            {
+                items,
+                totalItems,
+                page,
+                pageSize,
+                totalPages = (int)Math.Ceiling((double)totalItems / pageSize),
+                stats = new
+                {
+                    totalActivities = await _context.ActivityLogs.CountAsync(),
+                    todayActivities,
+                    activeUsersToday,
+                    totalLogins
+                }
+            });
+        }
+
+        // Lấy lịch sử thời gian hoạt động chi tiết của một tài khoản cụ thể
+        [HttpGet("users/{id}/activity-logs")]
+        public async Task<IActionResult> GetUserActivityLogs(long id)
+        {
+            await EnsureInitialActivityLogsSeededAsync();
+
+            var user = await _context.Users
+                .Include(u => u.Role)
+                .FirstOrDefaultAsync(u => u.Id == id);
+
+            if (user == null)
+            {
+                return NotFound("Không tìm thấy tài khoản người dùng.");
+            }
+
+            var logs = await _context.ActivityLogs
+                .AsNoTracking()
+                .Where(a => a.UserId == id)
+                .OrderByDescending(a => a.CreatedAt)
+                .Take(100)
+                .Select(a => new
+                {
+                    a.Id,
+                    a.UserId,
+                    a.UserName,
+                    a.UserRole,
+                    a.Action,
+                    a.Description,
+                    a.IpAddress,
+                    a.UserAgent,
+                    a.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(new
+            {
+                user = new
+                {
+                    user.Id,
+                    user.FullName,
+                    user.Phone,
+                    user.Email,
+                    RoleName = user.Role != null ? user.Role.RoleName : "N/A",
+                    user.CreatedAt,
+                    user.UpdatedAt,
+                    LastActiveAt = user.LastActiveAt ?? user.UpdatedAt,
+                    LastLoginAt = user.LastLoginAt ?? user.CreatedAt,
+                    TotalActivities = logs.Count
+                },
+                logs
+            });
+        }
+
+        private async Task EnsureInitialActivityLogsSeededAsync()
+        {
+            if (await _context.ActivityLogs.AnyAsync()) return;
+
+            try
+            {
+                var users = await _context.Users.Include(u => u.Role).ToListAsync();
+                var logs = new List<ActivityLog>();
+
+                foreach (var u in users)
+                {
+                    var roleName = u.Role?.RoleName ?? "Tenant";
+                    var regTime = u.CreatedAt;
+                    var lastAct = u.LastActiveAt ?? u.UpdatedAt;
+
+                    // Log đăng ký tài khoản
+                    logs.Add(new ActivityLog
+                    {
+                        UserId = u.Id,
+                        UserName = u.FullName,
+                        UserRole = roleName,
+                        Action = "Đăng ký tài khoản",
+                        Description = $"Đăng ký tài khoản thành công với vai trò {roleName}",
+                        IpAddress = "127.0.0.1",
+                        UserAgent = "Chrome / Windows 11",
+                        CreatedAt = regTime
+                    });
+
+                    // Log đăng nhập
+                    logs.Add(new ActivityLog
+                    {
+                        UserId = u.Id,
+                        UserName = u.FullName,
+                        UserRole = roleName,
+                        Action = "Đăng nhập",
+                        Description = $"Đăng nhập thành công vào hệ thống ZHome",
+                        IpAddress = "127.0.0.1",
+                        UserAgent = "Chrome / Windows 11",
+                        CreatedAt = lastAct.AddMinutes(-15)
+                    });
+
+                    if (roleName == "Landlord")
+                    {
+                        logs.Add(new ActivityLog
+                        {
+                            UserId = u.Id,
+                            UserName = u.FullName,
+                            UserRole = roleName,
+                            Action = "Quản lý nhà trọ",
+                            Description = $"Truy cập quản lý danh sách nhà trọ và cấu hình tầng phòng",
+                            IpAddress = "127.0.0.1",
+                            UserAgent = "Chrome / Windows 11",
+                            CreatedAt = lastAct
+                        });
+                    }
+                    else if (roleName == "Administrator")
+                    {
+                        logs.Add(new ActivityLog
+                        {
+                            UserId = u.Id,
+                            UserName = u.FullName,
+                            UserRole = roleName,
+                            Action = "Quản trị hệ thống",
+                            Description = $"Kiểm tra quản trị hệ thống, dữ liệu tài khoản và nhà trọ",
+                            IpAddress = "127.0.0.1",
+                            UserAgent = "Chrome / Windows 11",
+                            CreatedAt = lastAct
+                        });
+                    }
+                    else
+                    {
+                        logs.Add(new ActivityLog
+                        {
+                            UserId = u.Id,
+                            UserName = u.FullName,
+                            UserRole = roleName,
+                            Action = "Tìm kiếm phòng",
+                            Description = $"Tìm kiếm và xem thông tin chi tiết phòng trọ",
+                            IpAddress = "127.0.0.1",
+                            UserAgent = "Chrome / Windows 11",
+                            CreatedAt = lastAct
+                        });
+                    }
+                }
+
+                _context.ActivityLogs.AddRange(logs);
+                await _context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Seed Activity Logs Warning] {ex.Message}");
+            }
         }
 
         // Tạo tài khoản mới bởi Quản trị viên
@@ -619,5 +919,12 @@ namespace ZHome.API.Controllers
     public class RejectRequest
     {
         public string? Reason { get; set; }
+    }
+
+    public class UpdateLandlordCccdRequest
+    {
+        public string? CccdNumber { get; set; }
+        public string? CccdFrontBase64 { get; set; }
+        public string? CccdBackBase64 { get; set; }
     }
 }
