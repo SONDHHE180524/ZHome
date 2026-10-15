@@ -125,6 +125,10 @@ export const routes: Routes = [
         loadComponent: () => import('./views/landlord/tenants').then(m => m.LandlordTenantsComponent) 
       },
       { 
+        path: 'appointments', 
+        loadComponent: () => import('./views/landlord/appointments').then(m => m.LandlordAppointmentsComponent) 
+      },
+      { 
         path: 'bills', 
         loadComponent: () => import('./views/landlord/bills').then(m => m.LandlordBillsComponent) 
       },

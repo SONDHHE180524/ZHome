@@ -81,9 +81,14 @@ export class NotificationService {
         this.notifications.set(items);
 
         if (this.isInitialFetch) {
-          // Record existing IDs without popping up
           items.forEach(item => this.knownNotificationIds.add(item.id));
           this.isInitialFetch = false;
+          // Hiển thị ngay thông báo chưa đọc mới nhất bên ngoài khi đăng nhập vào
+          const unreadItems = items.filter(item => !item.isRead);
+          if (unreadItems.length > 0) {
+            this.showToastPopup(unreadItems[0]);
+            this.playNotificationSound();
+          }
         } else {
           // Check if there are newly arrived unread notifications
           const newUnreadItems = items.filter(item => !this.knownNotificationIds.has(item.id) && !item.isRead);

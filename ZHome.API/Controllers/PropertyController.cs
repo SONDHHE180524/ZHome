@@ -20,15 +20,18 @@ namespace ZHome.API.Controllers
         private readonly ZHomeDbContext _context;
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _environment;
         private readonly IMediaStorageService _mediaStorage;
+        private readonly INotificationService _notificationService;
 
         public PropertyController(
             ZHomeDbContext context, 
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment,
-            IMediaStorageService mediaStorage)
+            IMediaStorageService mediaStorage,
+            INotificationService notificationService)
         {
             _context = context;
             _environment = environment;
             _mediaStorage = mediaStorage;
+            _notificationService = notificationService;
         }
 
         // Get landlord properties
@@ -138,6 +141,195 @@ namespace ZHome.API.Controllers
                 ImageUrls = allImages,
                 Rooms = roomsDto
             });
+        }
+
+        // Book a room viewing appointment (Public & Tenant)
+        [AllowAnonymous]
+        [HttpPost("{id}/book-viewing")]
+        public async Task<IActionResult> BookViewing(long id, [FromBody] BookViewingDto request)
+        {
+            var property = await _context.Properties
+                .Include(p => p.Landlord)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (property == null)
+            {
+                return NotFound("Không tìm thấy khu trọ.");
+            }
+
+            string tenantName = !string.IsNullOrWhiteSpace(request.TenantName) 
+                ? request.TenantName 
+                : (User.Identity?.IsAuthenticated == true ? (User.FindFirst(ClaimTypes.Name)?.Value ?? "Khách thuê") : "Khách thuê");
+            
+            string tenantPhone = !string.IsNullOrWhiteSpace(request.TenantPhone) 
+                ? request.TenantPhone 
+                : (User.FindFirst(ClaimTypes.MobilePhone)?.Value ?? "Chưa cung cấp SĐT");
+
+            string dateStr = !string.IsNullOrWhiteSpace(request.ViewingDate) ? request.ViewingDate : DateTime.Today.AddDays(1).ToString("dd/MM/yyyy");
+            string timeStr = !string.IsNullOrWhiteSpace(request.ViewingTime) ? $" lúc {request.ViewingTime}" : "";
+            string peopleStr = request.NumberOfPeople > 1 ? $"{request.NumberOfPeople} người" : "1 người";
+            string noteText = !string.IsNullOrWhiteSpace(request.Note) ? $" (Ghi chú: {request.Note})" : "";
+
+            string metaPrefix = $"{tenantName}|{tenantPhone}|{dateStr}|{request.ViewingTime ?? ""}|{request.NumberOfPeople}|{request.Note ?? ""}|||";
+            string title = $"📅 Lịch hẹn xem phòng: {property.Title}";
+            string message = $"{metaPrefix}Khách thuê {tenantName} (SĐT: {tenantPhone}) vừa đặt lịch xem phòng vào ngày {dateStr}{timeStr} cho {peopleStr}{noteText}.";
+
+            await _notificationService.CreateNotificationAsync(
+                property.LandlordId,
+                title,
+                message,
+                "ViewingSchedule",
+                $"/phong-tro-detail/{property.Id}?status=pending",
+                property.Id
+            );
+
+            return Ok(new { success = true, message = "Đặt lịch xem phòng thành công! Chủ trọ đã nhận được thông báo của bạn." });
+        }
+
+        // Get viewing appointments for Landlord
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpGet("viewing-appointments")]
+        public async Task<IActionResult> GetViewingAppointments([FromQuery] long? propertyId = null)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var query = _context.Notifications
+                .Where(n => n.UserId == landlordId && n.Type == "ViewingSchedule");
+
+            if (propertyId.HasValue && propertyId.Value > 0)
+            {
+                query = query.Where(n => n.ReferenceId == propertyId.Value);
+            }
+
+            var notifications = await query
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+
+            var propIds = notifications.Where(n => n.ReferenceId.HasValue).Select(n => n.ReferenceId!.Value).Distinct().ToList();
+            var properties = await _context.Properties
+                .Include(p => p.Rooms).ThenInclude(r => r.Images)
+                .Where(p => propIds.Contains(p.Id))
+                .ToDictionaryAsync(p => p.Id, p => p);
+
+            var list = notifications.Select(n =>
+            {
+                properties.TryGetValue(n.ReferenceId ?? 0, out var prop);
+
+                string customerName = "Khách thuê";
+                string customerPhone = "";
+                string viewingDate = "";
+                string viewingTime = "";
+                int numberOfPeople = 1;
+                string note = "";
+                string displayMsg = n.Message;
+
+                if (n.Message.Contains("|||"))
+                {
+                    var parts = n.Message.Split(new[] { "|||" }, StringSplitOptions.None);
+                    var meta = parts[0].Split('|');
+                    if (meta.Length >= 5)
+                    {
+                        customerName = meta[0];
+                        customerPhone = meta[1];
+                        viewingDate = meta[2];
+                        viewingTime = meta[3];
+                        int.TryParse(meta[4], out numberOfPeople);
+                        if (meta.Length > 5) note = meta[5];
+                    }
+                    displayMsg = parts.Length > 1 ? parts[1] : n.Message;
+                }
+                else
+                {
+                    var phoneMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"\(SĐT:\s*([^)]+)\)");
+                    if (phoneMatch.Success) customerPhone = phoneMatch.Groups[1].Value.Trim();
+
+                    var nameMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"Khách thuê\s+(.+?)\s+\(SĐT:");
+                    if (nameMatch.Success) customerName = nameMatch.Groups[1].Value.Trim();
+
+                    var dateMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"vào ngày\s+([0-9\/\-]+)");
+                    if (dateMatch.Success) viewingDate = dateMatch.Groups[1].Value.Trim();
+
+                    var timeMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"lúc\s+([0-9\:\sAPMapm]+)");
+                    if (timeMatch.Success) viewingTime = timeMatch.Groups[1].Value.Trim();
+
+                    var peopleMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"cho\s+(\d+)\s+người");
+                    if (peopleMatch.Success) int.TryParse(peopleMatch.Groups[1].Value, out numberOfPeople);
+
+                    var noteMatch = System.Text.RegularExpressions.Regex.Match(n.Message, @"Ghi chú:\s*([^)]+)");
+                    if (noteMatch.Success) note = noteMatch.Groups[1].Value.Trim();
+                }
+
+                // Extract status from TargetUrl query string (?status=...)
+                string status = "pending";
+                if (!string.IsNullOrEmpty(n.TargetUrl) && n.TargetUrl.Contains("status="))
+                {
+                    var statusMatch = System.Text.RegularExpressions.Regex.Match(n.TargetUrl, @"status=([a-zA-Z0-9_-]+)");
+                    if (statusMatch.Success)
+                    {
+                        status = statusMatch.Groups[1].Value.ToLower();
+                    }
+                }
+
+                var firstRoomImg = prop?.Rooms?.SelectMany(r => r.Images).FirstOrDefault()?.MediaUrl;
+
+                return new
+                {
+                    id = n.Id,
+                    propertyId = n.ReferenceId,
+                    propertyTitle = prop?.Title ?? "Khu trọ",
+                    propertyAddress = prop?.Address ?? "",
+                    propertyImage = firstRoomImg ?? "/assets/images/default-room.jpg",
+                    title = n.Title,
+                    message = displayMsg,
+                    customerName = customerName,
+                    customerPhone = customerPhone,
+                    viewingDate = viewingDate,
+                    viewingTime = viewingTime,
+                    numberOfPeople = numberOfPeople > 0 ? numberOfPeople : 1,
+                    note = note,
+                    status = status,
+                    isRead = n.IsRead,
+                    createdAt = n.CreatedAt
+                };
+            }).ToList();
+
+            return Ok(list);
+        }
+
+        // Update viewing appointment status
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPut("viewing-appointments/{id}/status")]
+        public async Task<IActionResult> UpdateViewingAppointmentStatus(long id, [FromBody] UpdateAppointmentStatusDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.Id == id && n.UserId == landlordId && n.Type == "ViewingSchedule");
+
+            if (notification == null)
+            {
+                return NotFound("Không tìm thấy lịch hẹn.");
+            }
+
+            string baseTargetUrl = !string.IsNullOrEmpty(notification.TargetUrl)
+                ? notification.TargetUrl.Split('?')[0]
+                : $"/phong-tro-detail/{notification.ReferenceId}";
+
+            string newStatus = !string.IsNullOrWhiteSpace(request?.Status) ? request.Status.ToLower().Trim() : "pending";
+            notification.TargetUrl = $"{baseTargetUrl}?status={newStatus}";
+            notification.IsRead = true;
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new { success = true, status = newStatus, message = "Cập nhật trạng thái lịch hẹn thành công." });
         }
 
         // Get single property details for Landlord/Admin edit
