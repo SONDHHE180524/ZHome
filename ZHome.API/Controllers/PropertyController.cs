@@ -110,7 +110,9 @@ namespace ZHome.API.Controllers
                 MaxOccupants = r.MaxOccupants,
                 Status = r.Status,
                 Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
-                ImageUrls = r.Images.Select(i => i.MediaUrl).ToList()
+                ImageUrls = (r.Images != null && r.Images.Any()) 
+                    ? r.Images.Select(i => i.MediaUrl).ToList() 
+                    : (!string.IsNullOrWhiteSpace(property.ImageUrl) ? new List<string> { property.ImageUrl } : new List<string>())
             }).OrderBy(r => r.RoomNumber).ToList();
 
             var totalRooms = property.Rooms.Count;
@@ -1066,10 +1068,17 @@ namespace ZHome.API.Controllers
             var favoriteRoomIds = new List<long>();
             if (loggedInUserId.HasValue)
             {
-                favoriteRoomIds = await _context.Favorites
-                    .Where(f => f.UserId == loggedInUserId.Value)
-                    .Select(f => f.RoomId)
-                    .ToListAsync();
+                try
+                {
+                    favoriteRoomIds = await _context.Favorites
+                        .Where(f => f.UserId == loggedInUserId.Value)
+                        .Select(f => f.RoomId)
+                        .ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[Favorites Load Warning] {ex.Message}");
+                }
             }
 
             var query = _context.Rooms
@@ -1186,7 +1195,9 @@ namespace ZHome.API.Controllers
                 Status = r.Status,
                 Description = r.Property?.Description,
                 Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
-                ImageUrls = r.Images.Select(i => i.MediaUrl).ToList(),
+                ImageUrls = r.Images != null && r.Images.Any() 
+                    ? r.Images.Select(i => i.MediaUrl).ToList() 
+                    : (!string.IsNullOrWhiteSpace(r.Property?.ImageUrl) ? new List<string> { r.Property.ImageUrl } : new List<string>()),
                 AverageRating = propertyRatings.ContainsKey(r.PropertyId) ? Math.Round(propertyRatings[r.PropertyId].AverageRating, 1) : 5.0,
                 ReviewCount = propertyRatings.ContainsKey(r.PropertyId) ? propertyRatings[r.PropertyId].ReviewCount : 0,
                 ViewCount = r.Property?.ViewCount ?? 0,
@@ -1283,7 +1294,9 @@ namespace ZHome.API.Controllers
                 ActiveTenantsCount = activeCount,
                 Status = r.Status,
                 Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
-                ImageUrls = r.Images.Select(i => i.MediaUrl).ToList()
+                ImageUrls = (r.Images != null && r.Images.Any())
+                    ? r.Images.Select(i => i.MediaUrl).ToList()
+                    : (!string.IsNullOrWhiteSpace(r.Property?.ImageUrl) ? new List<string> { r.Property.ImageUrl } : new List<string>())
             };
         }
     }

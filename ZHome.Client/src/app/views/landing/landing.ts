@@ -1049,7 +1049,7 @@ export class LandingComponent implements OnInit, OnDestroy {
     return parts.slice(-2).join(', ');
   }
 
-  defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
+  defaultPropertyImage = '/images/default-property.jpg';
 
   onImageLoaded(event: Event): void {
     const target = event.target as HTMLElement;
@@ -1077,6 +1077,16 @@ export class LandingComponent implements OnInit, OnDestroy {
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
       return url;
     }
+    if (url.startsWith('/media/') || url.startsWith('media/')) {
+      return url.startsWith('/') ? url : `/${url}`;
+    }
     return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  scrollToSearch(): void {
+    const el = document.querySelector('.search-pill-container') || document.querySelector('.smart-filter-box');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 }

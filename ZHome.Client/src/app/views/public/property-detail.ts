@@ -1511,7 +1511,7 @@ export class PropertyDetailComponent implements OnInit {
     return list.length - 5;
   }
 
-  defaultPropertyImage = '/media/properties/0919919919_639275077481748600.jpg';
+  defaultPropertyImage = '/images/default-property.jpg';
 
   getImageUrl(url?: string): string {
     if (!url) return this.defaultPropertyImage;
@@ -1519,6 +1519,9 @@ export class PropertyDetailComponent implements OnInit {
       url = url.split(',')[0].trim();
     }
     if (url.startsWith('http') || url.startsWith('data:')) return url;
+    if (url.startsWith('/media/') || url.startsWith('media/')) {
+      return url.startsWith('/') ? url : `/${url}`;
+    }
     return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
@@ -1536,7 +1539,7 @@ export class PropertyDetailComponent implements OnInit {
         (lightboxWrapper as HTMLElement).style.display = 'none';
         return;
       }
-      (target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" fill="%23f1f5f9"><rect width="100%" height="100%"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%2394a3b8" font-size="20" font-family="sans-serif">Hình ảnh đang cập nhật</text></svg>';
+      (target as HTMLImageElement).src = '/images/default-property.jpg';
     }
   }
 

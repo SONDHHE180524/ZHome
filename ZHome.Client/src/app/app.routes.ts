@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
 
+
 export const routes: Routes = [
   // Public Landing Page (Lazy-loaded)
   { 
@@ -55,6 +56,10 @@ export const routes: Routes = [
       { 
         path: 'dashboard', 
         loadComponent: () => import('./views/admin/dashboard').then(m => m.AdminDashboardComponent) 
+      },
+      { 
+        path: 'traffic-analytics', 
+        loadComponent: () => import('./views/admin/traffic-analytics').then(m => m.AdminTrafficAnalyticsComponent) 
       },
       { 
         path: 'users', 
