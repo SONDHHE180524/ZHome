@@ -599,6 +599,6 @@ export class AdminPropertiesComponent implements OnInit {
   }
 
   onImgError(event: Event): void {
-    (event.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=600&q=80';
+    (event.target as HTMLImageElement).src = '/images/default-property.jpg';
   }
 }

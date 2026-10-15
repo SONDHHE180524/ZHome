@@ -3,6 +3,7 @@ import { RouterOutlet, RouterLink, RouterLinkActive, Router } from '@angular/rou
 import { AuthService } from './services/auth.service';
 import { ToastService } from './services/toast.service';
 import { NotificationService, NotificationItem } from './services/notification.service';
+import { AnalyticsService } from './services/analytics.service';
 import { environment } from '../environments/environment';
 
 @Component({
@@ -15,6 +16,7 @@ export class App implements OnInit, OnDestroy {
   public readonly authService = inject(AuthService);
   public readonly toastService = inject(ToastService);
   public readonly notificationService = inject(NotificationService);
+  public readonly analyticsService = inject(AnalyticsService);
   private readonly router = inject(Router);
   private readonly ngZone = inject(NgZone);
 
@@ -79,6 +81,7 @@ export class App implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.setupInactivityListener();
+    this.analyticsService.initTracking();
   }
 
   ngOnDestroy(): void {

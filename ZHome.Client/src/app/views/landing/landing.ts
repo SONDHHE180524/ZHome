@@ -304,10 +304,10 @@ import { environment } from '../../../environments/environment';
             }
 
             <div class="property-thumbnail">
-              @if (prop.imageUrls && prop.imageUrls.length > 0) {
-                <img [src]="getImageUrl(prop.imageUrls[0])" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
+              @if ((prop.imageUrls && prop.imageUrls.length > 0) || prop.propertyImageUrl) {
+                <img [src]="getImageUrl(prop.imageUrls?.[0] || prop.propertyImageUrl)" alt="Property Image" class="thumbnail-img" (error)="onImageError($event)" />
               } @else {
-                <div class="placeholder-img" [style.background]="getRandomGradient(prop.propertyId)"></div>
+                <img src="/images/default-property.jpg" alt="Property Image" class="thumbnail-img" />
               }
               
               <div class="card-overlay-top">
@@ -1706,7 +1706,20 @@ export class LandingComponent implements OnInit {
           viewCount: item.viewCount || 0,
           vacantRoomsCount: 0,
           rooms: [],
-          imageUrls: item.propertyImageUrl ? [item.propertyImageUrl] : (item.imageUrls || []),
+          imageUrls: (() => {
+            const list: string[] = [];
+            if (item.imageUrls && Array.isArray(item.imageUrls)) {
+              list.push(...item.imageUrls.filter((u: string) => !!u));
+            }
+            if (item.propertyImageUrl && !list.includes(item.propertyImageUrl)) {
+              list.push(item.propertyImageUrl);
+            }
+            if (list.length === 0) {
+              list.push('/images/default-property.jpg');
+            }
+            return list;
+          })(),
+          propertyImageUrl: item.propertyImageUrl,
           averageRating: item.averageRating,
           reviewCount: item.reviewCount,
           subscriptionId: item.subscriptionId,
@@ -1730,8 +1743,16 @@ export class LandingComponent implements OnInit {
       if (prop.totalRooms < prop.rooms.length) {
         prop.totalRooms = prop.rooms.length;
       }
-      if (prop.imageUrls.length === 0 && item.imageUrls && item.imageUrls.length > 0) {
-        prop.imageUrls = item.imageUrls;
+      
+      if (item.imageUrls && Array.isArray(item.imageUrls)) {
+        for (const u of item.imageUrls) {
+          if (u && !prop.imageUrls.includes(u)) {
+            prop.imageUrls.push(u);
+          }
+        }
+      }
+      if (!prop.propertyImageUrl && item.propertyImageUrl) {
+        prop.propertyImageUrl = item.propertyImageUrl;
       }
     }
     
@@ -1838,12 +1859,16 @@ export class LandingComponent implements OnInit {
   }
 
   onImageError(event: any): void {
-    event.target.style.display = 'none';
+    event.target.src = '/images/default-property.jpg';
   }
 
   getImageUrl(url: string): string {
-    if (!url) return '';
-    return url.startsWith('/') ? `${environment.baseUrl}${url}` : url;
+    if (!url) return '/images/default-property.jpg';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) return url;
+    if (url.startsWith('/media/') || url.startsWith('media/')) {
+      return url.startsWith('/') ? url : `/${url}`;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   getRandomGradient(id: number): string {

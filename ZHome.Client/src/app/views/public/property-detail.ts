@@ -932,13 +932,16 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   getImageUrl(url: string): string {
-    if (!url) return '';
+    if (!url) return '/images/default-property.jpg';
     if (url.startsWith('http') || url.startsWith('data:')) return url;
-    return `${environment.baseUrl}${url}`;
+    if (url.startsWith('/media/') || url.startsWith('media/')) {
+      return url.startsWith('/') ? url : `/${url}`;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 
   onImageError(event: any) {
-    event.target.src = 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop';
+    event.target.src = '/images/default-property.jpg';
   }
 
   getMinPrice(prop: any): number {

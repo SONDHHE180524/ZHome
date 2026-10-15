@@ -28,6 +28,8 @@ namespace ZHome.API.Data
         public DbSet<Report> Reports { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserSession> UserSessions { get; set; }
+        public DbSet<PageViewLog> PageViewLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
