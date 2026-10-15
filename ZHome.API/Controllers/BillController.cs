@@ -25,6 +25,7 @@ namespace ZHome.API.Controllers
         private readonly Services.PaymentOrderStore _orderStore;
         private readonly Services.INotificationService _notificationService;
         private readonly Services.IBillService _billService;
+        private readonly Services.IMediaStorageService _mediaStorage;
 
         public BillController(
             ZHomeDbContext context,
@@ -32,7 +33,8 @@ namespace ZHome.API.Controllers
             Services.ISePayService sePayService,
             Services.PaymentOrderStore orderStore,
             Services.INotificationService notificationService,
-            Services.IBillService billService)
+            Services.IBillService billService,
+            Services.IMediaStorageService mediaStorage)
         {
             _context = context;
             _emailService = emailService;
@@ -40,6 +42,7 @@ namespace ZHome.API.Controllers
             _orderStore = orderStore;
             _notificationService = notificationService;
             _billService = billService;
+            _mediaStorage = mediaStorage;
         }
 
         // Get landlord bills
@@ -267,6 +270,15 @@ namespace ZHome.API.Controllers
                 return Unauthorized();
             }
 
+            var landlord = await _context.Users.FindAsync(landlordId);
+            if (landlord == null || string.IsNullOrWhiteSpace(landlord.BankName) || string.IsNullOrWhiteSpace(landlord.BankAccountNumber))
+            {
+                return BadRequest(new { 
+                    requiresBankConfig = true,
+                    message = "Bạn chưa cập nhật số tài khoản ngân hàng. Vui lòng thiết lập thông tin ngân hàng thụ hưởng trước khi tạo hóa đơn." 
+                });
+            }
+
             var room = await _context.Rooms.Include(r => r.Property).FirstOrDefaultAsync(r => r.Id == request.RoomId);
             if (room == null || room.Property?.LandlordId != landlordId)
             {
@@ -293,6 +305,114 @@ namespace ZHome.API.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Tạo hóa đơn bổ sung thành công!" });
+        }
+
+        public class LandlordBankInfoDto
+        {
+            [Required(ErrorMessage = "Vui lòng chọn ngân hàng thụ hưởng.")]
+            public string BankName { get; set; } = string.Empty;
+
+            [Required(ErrorMessage = "Vui lòng nhập số tài khoản ngân hàng.")]
+            public string BankAccountNumber { get; set; } = string.Empty;
+
+            public string? BankAccountName { get; set; }
+            public string? BankQrBase64 { get; set; }
+            public bool ClearBankQr { get; set; }
+        }
+
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpGet("landlord-bank-info")]
+        public async Task<IActionResult> GetLandlordBankInfo()
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var landlord = await _context.Users.FindAsync(landlordId);
+            if (landlord == null) return NotFound("Người dùng không tồn tại.");
+
+            bool isConfigured = !string.IsNullOrWhiteSpace(landlord.BankName) && !string.IsNullOrWhiteSpace(landlord.BankAccountNumber);
+            string fullQrUrl = "";
+            if (!string.IsNullOrEmpty(landlord.BankQrUrl))
+            {
+                fullQrUrl = landlord.BankQrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                    ? landlord.BankQrUrl
+                    : $"{Request.Scheme}://{Request.Host}{(landlord.BankQrUrl.StartsWith('/') ? "" : "/")}{landlord.BankQrUrl}";
+            }
+
+            return Ok(new
+            {
+                isConfigured,
+                bankName = landlord.BankName ?? "",
+                bankAccountNumber = landlord.BankAccountNumber ?? "",
+                bankAccountName = landlord.BankAccountName ?? landlord.FullName ?? "",
+                bankQrUrl = fullQrUrl
+            });
+        }
+
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("landlord-bank-info")]
+        public async Task<IActionResult> UpdateLandlordBankInfo([FromBody] LandlordBankInfoDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var landlord = await _context.Users.FindAsync(landlordId);
+            if (landlord == null) return NotFound("Người dùng không tồn tại.");
+
+            if (string.IsNullOrWhiteSpace(request.BankName) || string.IsNullOrWhiteSpace(request.BankAccountNumber))
+            {
+                return BadRequest(new { message = "Vui lòng chọn ngân hàng và nhập số tài khoản ngân hàng." });
+            }
+
+            landlord.BankName = request.BankName.Trim();
+            landlord.BankAccountNumber = request.BankAccountNumber.Trim();
+            landlord.BankAccountName = !string.IsNullOrWhiteSpace(request.BankAccountName)
+                ? request.BankAccountName.Trim().ToUpperInvariant()
+                : (landlord.FullName ?? "CHỦ TRỌ");
+
+            if (!string.IsNullOrEmpty(request.BankQrBase64))
+            {
+                if (request.BankQrBase64.StartsWith("data:image"))
+                {
+                    var qrUrl = await _mediaStorage.SaveBase64ImageAsync(request.BankQrBase64, "cards", "bank_qr", landlord.Phone);
+                    landlord.BankQrUrl = qrUrl;
+                }
+                else
+                {
+                    landlord.BankQrUrl = request.BankQrBase64;
+                }
+            }
+            else if (request.ClearBankQr)
+            {
+                landlord.BankQrUrl = null;
+            }
+
+            landlord.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            string fullQrUrl = "";
+            if (!string.IsNullOrEmpty(landlord.BankQrUrl))
+            {
+                fullQrUrl = landlord.BankQrUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                    ? landlord.BankQrUrl
+                    : $"{Request.Scheme}://{Request.Host}{(landlord.BankQrUrl.StartsWith('/') ? "" : "/")}{landlord.BankQrUrl}";
+            }
+
+            return Ok(new
+            {
+                message = "Cập nhật thông tin ngân hàng thành công!",
+                isConfigured = true,
+                bankName = landlord.BankName,
+                bankAccountNumber = landlord.BankAccountNumber,
+                bankAccountName = landlord.BankAccountName,
+                bankQrUrl = fullQrUrl
+            });
         }
 
         // Pay a bill
@@ -859,9 +979,18 @@ namespace ZHome.API.Controllers
             string accountName = !string.IsNullOrEmpty(landlord?.BankAccountName) ? landlord.BankAccountName : (landlord?.FullName ?? "CHỦ TRỌ");
             string? customQr = landlord?.BankQrUrl;
 
-            string qrUrl = !string.IsNullOrEmpty(customQr)
-                ? customQr
-                : $"https://img.vietqr.io/image/{Uri.EscapeDataString(bankName)}-{Uri.EscapeDataString(accountNo)}-compact2.png?amount={amountToPay}&addInfo={Uri.EscapeDataString(description)}&accountName={Uri.EscapeDataString(accountName)}";
+            string fullCustomQr = string.Empty;
+            if (!string.IsNullOrEmpty(customQr))
+            {
+                fullCustomQr = (customQr.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || customQr.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    ? customQr
+                    : $"{Request.Scheme}://{Request.Host}{(customQr.StartsWith('/') ? "" : "/")}{customQr}";
+            }
+
+            long intAmount = (long)Math.Round(amountToPay, MidpointRounding.AwayFromZero);
+            string vietQrUrl = $"https://img.vietqr.io/image/{Uri.EscapeDataString(bankName)}-{Uri.EscapeDataString(accountNo)}-compact2.png?amount={intAmount}&addInfo={Uri.EscapeDataString(description)}&accountName={Uri.EscapeDataString(accountName)}";
+
+            string primaryQrUrl = !string.IsNullOrEmpty(fullCustomQr) ? fullCustomQr : vietQrUrl;
 
             var paymentResult = new
             {
@@ -874,11 +1003,14 @@ namespace ZHome.API.Controllers
                 currency = "VND",
                 paymentLinkId = orderCode.ToString(),
                 status = "PENDING",
-                qrCode = qrUrl,
-                qrCodeUrl = qrUrl,
+                qrCode = primaryQrUrl,
+                qrCodeUrl = primaryQrUrl,
+                vietQrUrl = vietQrUrl,
+                customQrUrl = fullCustomQr,
+                hasCustomQr = !string.IsNullOrEmpty(fullCustomQr),
                 bankName = bankName,
                 accountNo = accountNo,
-                checkoutUrl = qrUrl
+                checkoutUrl = vietQrUrl
             };
 
             _orderStore.AddOrder(new PendingPaymentOrder

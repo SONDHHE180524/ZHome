@@ -15,6 +15,14 @@ export class BillService {
     return this.http.get<any[]>(`${this.apiUrl}/utility-grid/${propertyId}?month=${month}&year=${year}`);
   }
 
+  getLandlordBankInfo(): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/landlord-bank-info`);
+  }
+
+  saveLandlordBankInfo(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/landlord-bank-info`, data);
+  }
+
   createSupplementaryBill(data: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/supplementary`, data);
   }
