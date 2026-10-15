@@ -1,4 +1,4 @@
-import { Component, inject, OnInit, signal, computed, HostListener } from '@angular/core';
+import { Component, inject, OnInit, signal, computed, HostListener, effect } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -520,14 +520,42 @@ import { environment } from '../../../environments/environment';
                 <span class="fee-free">Miễn phí</span>
               </div>
 
-              <!-- Primary CTA Button (Screenshot 2 terracotta color) -->
-              <button class="btn-book-tour" (click)="submitBooking()" [disabled]="isSubmittingBooking()">
-                @if (isSubmittingBooking()) {
-                  <span>Đang gửi thông báo cho chủ trọ...</span>
-                } @else {
-                  <span>Đặt lịch xem phòng</span>
-                }
-              </button>
+              <!-- Primary CTA or Login Prompt -->
+              @if (!authService.isLoggedIn()) {
+                <div class="booking-auth-required-box">
+                  <div class="auth-icon-wrap">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                    </svg>
+                  </div>
+                  <div class="auth-text-wrap">
+                    <div class="auth-box-title">Cần đăng nhập để đặt lịch</div>
+                    <div class="auth-box-desc">Đăng nhập tài khoản ZHome để gửi yêu cầu xem phòng và nhận liên hệ từ chủ trọ.</div>
+                  </div>
+                </div>
+
+                <button type="button" class="btn-book-tour btn-login-required" (click)="redirectToLogin()">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="btn-icon-lock">
+                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                    <polyline points="10 17 15 12 10 7"/>
+                    <line x1="15" y1="12" x2="3" y2="12"/>
+                  </svg>
+                  <span>Đăng nhập để đặt lịch xem phòng</span>
+                </button>
+              } @else if (isPropertyOwner()) {
+                <button type="button" class="btn-book-tour btn-disabled-owner" disabled>
+                  <span>Bạn là chủ khu trọ này</span>
+                </button>
+              } @else {
+                <button type="button" class="btn-book-tour" (click)="submitBooking()" [disabled]="isSubmittingBooking()">
+                  @if (isSubmittingBooking()) {
+                    <span>Đang gửi thông báo cho chủ trọ...</span>
+                  } @else {
+                    <span>Đặt lịch xem phòng</span>
+                  }
+                </button>
+              }
             </div>
 
           </div>
@@ -1294,6 +1322,54 @@ import { environment } from '../../../environments/environment';
       opacity: 0.65;
       cursor: not-allowed;
     }
+    .booking-auth-required-box {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      background: #fff8f1;
+      border: 1px dashed #f97316;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+    .auth-icon-wrap {
+      color: #ea580c;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .auth-box-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: #9a3412;
+      margin-bottom: 2px;
+    }
+    .auth-box-desc {
+      font-size: 0.8rem;
+      color: #7c2d12;
+      line-height: 1.35;
+      margin: 0;
+    }
+    .btn-login-required {
+      background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-login-required:hover {
+      background: linear-gradient(135deg, #c2410c 0%, #9a3412 100%);
+    }
+    .btn-icon-lock {
+      width: 18px;
+      height: 18px;
+      display: inline-block;
+      vertical-align: -2px;
+    }
+    .btn-disabled-owner {
+      background: #94a3b8;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
 
     /* Lightbox Modal (Click each photo to view details) */
     .lightbox-backdrop {
@@ -1748,6 +1824,33 @@ export class PropertyDetailComponent implements OnInit {
   bookingNote = signal<string>('');
   isSubmittingBooking = signal<boolean>(false);
 
+  constructor() {
+    effect(() => {
+      const session = this.authService.session();
+      if (session) {
+        if (session.fullName && !this.tenantName()) this.tenantName.set(session.fullName);
+        if (session.phone && !this.tenantPhone()) this.tenantPhone.set(session.phone);
+      }
+    });
+  }
+
+  isPropertyOwner = computed(() => {
+    const prop = this.property();
+    const session = this.authService.session();
+    if (!prop || !session) return false;
+    const landlordId = prop.landlordId ?? prop.LandlordId;
+    return landlordId && Number(session.userId) === Number(landlordId);
+  });
+
+  redirectToLogin(): void {
+    const prop = this.property();
+    const propId = prop?.id || prop?.propertyId || prop?.PropertyId;
+    this.toastService.show('Vui lòng đăng nhập để đặt lịch xem phòng', 'info');
+    this.router.navigate(['/login'], {
+      queryParams: propId ? { returnUrl: `/phong-tro-detail/${propId}` } : {}
+    });
+  }
+
   // Amenities computed
   allAmenities = computed<string[]>(() => {
     const prop = this.property();
@@ -1984,6 +2087,17 @@ export class PropertyDetailComponent implements OnInit {
     const prop = this.property();
     if (!prop) return;
 
+    if (!this.authService.isLoggedIn()) {
+      this.toastService.show('Vui lòng đăng nhập để đặt lịch xem phòng', 'info');
+      this.redirectToLogin();
+      return;
+    }
+
+    if (this.isPropertyOwner()) {
+      this.toastService.show('Bạn là chủ khu trọ này, không thể tự đặt lịch xem phòng.', 'error');
+      return;
+    }
+
     if (!this.bookingDate()) {
       this.toastService.show('Vui lòng chọn ngày bạn muốn đi xem phòng', 'error');
       return;
@@ -2013,6 +2127,11 @@ export class PropertyDetailComponent implements OnInit {
       },
       error: (err: any) => {
         this.isSubmittingBooking.set(false);
+        if (err.status === 401) {
+          this.toastService.show('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'error');
+          this.redirectToLogin();
+          return;
+        }
         const msg = err.error?.message || err.error || 'Có lỗi khi đặt lịch xem phòng. Vui lòng thử lại sau.';
         this.toastService.show(msg, 'error');
       }

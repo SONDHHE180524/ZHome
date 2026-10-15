@@ -143,8 +143,8 @@ namespace ZHome.API.Controllers
             });
         }
 
-        // Book a room viewing appointment (Public & Tenant)
-        [AllowAnonymous]
+        // Book a room viewing appointment (Requires Authentication)
+        [Authorize]
         [HttpPost("{id}/book-viewing")]
         public async Task<IActionResult> BookViewing(long id, [FromBody] BookViewingDto request)
         {
@@ -155,6 +155,12 @@ namespace ZHome.API.Controllers
             if (property == null)
             {
                 return NotFound("Không tìm thấy khu trọ.");
+            }
+
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (long.TryParse(userIdStr, out long currentUserId) && property.LandlordId == currentUserId)
+            {
+                return BadRequest("Bạn là chủ trọ của bài đăng này nên không thể tự đặt lịch xem phòng.");
             }
 
             string tenantName = !string.IsNullOrWhiteSpace(request.TenantName) 
