@@ -159,31 +159,32 @@ namespace ZHome.API.Controllers
                 return BadRequest("Hợp đồng này đã kết thúc trước đó.");
             }
 
-            await using var tx = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Update contract status
-                contract.Status = "Terminated";
-
-                var roomId = contract.RoomId;
-                var remainingContracts = await _context.Contracts
-                    .Where(c => c.RoomId == roomId && c.Id != contract.Id && c.Status == "Active")
-                    .ToListAsync();
-
-                if (remainingContracts.Count == 0 && contract.Room != null)
+                var strategy = _context.Database.CreateExecutionStrategy();
+                return await strategy.ExecuteAsync(async () =>
                 {
-                    // Reset room status to Available if no tenants remain
-                    contract.Room.Status = "Available";
-                }
+                    // Update contract status
+                    contract.Status = "Terminated";
 
-                await _context.SaveChangesAsync();
-                await tx.CommitAsync();
+                    var roomId = contract.RoomId;
+                    var remainingContracts = await _context.Contracts
+                        .Where(c => c.RoomId == roomId && c.Id != contract.Id && c.Status == "Active")
+                        .ToListAsync();
 
-                return Ok(new { message = "Làm thủ tục trả phòng thành công!" });
+                    if (remainingContracts.Count == 0 && contract.Room != null)
+                    {
+                        // Reset room status to Available if no tenants remain
+                        contract.Room.Status = "Available";
+                    }
+
+                    await _context.SaveChangesAsync();
+
+                    return (IActionResult)Ok(new { message = "Làm thủ tục trả phòng thành công!" });
+                });
             }
             catch (Exception ex)
             {
-                await tx.RollbackAsync();
                 return StatusCode(500, new { message = "Lỗi xảy ra trong quá trình trả phòng: " + ex.Message });
             }
         }
