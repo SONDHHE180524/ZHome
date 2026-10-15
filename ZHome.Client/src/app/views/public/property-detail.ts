@@ -530,8 +530,8 @@ import { environment } from '../../../environments/environment';
                     </svg>
                   </div>
                   <div class="auth-text-wrap">
-                    <div class="auth-box-title">Cần đăng nhập để đặt lịch</div>
-                    <div class="auth-box-desc">Đăng nhập tài khoản ZHome để gửi yêu cầu xem phòng và nhận liên hệ từ chủ trọ.</div>
+                    <div class="auth-box-title">Bạn phải đăng nhập mới có thể đặt lịch xem được</div>
+                    <div class="auth-box-desc">Vui lòng đăng nhập tài khoản ZHome để gửi yêu cầu xem phòng và nhận liên hệ từ chủ trọ.</div>
                   </div>
                 </div>
 
@@ -1845,7 +1845,7 @@ export class PropertyDetailComponent implements OnInit {
   redirectToLogin(): void {
     const prop = this.property();
     const propId = prop?.id || prop?.propertyId || prop?.PropertyId;
-    this.toastService.show('Vui lòng đăng nhập để đặt lịch xem phòng', 'info');
+    this.toastService.show('Bạn phải đăng nhập mới có thể đặt lịch xem được', 'info');
     this.router.navigate(['/login'], {
       queryParams: propId ? { returnUrl: `/phong-tro-detail/${propId}` } : {}
     });
@@ -2088,7 +2088,7 @@ export class PropertyDetailComponent implements OnInit {
     if (!prop) return;
 
     if (!this.authService.isLoggedIn()) {
-      this.toastService.show('Vui lòng đăng nhập để đặt lịch xem phòng', 'info');
+      this.toastService.show('Bạn phải đăng nhập mới có thể đặt lịch xem được', 'info');
       this.redirectToLogin();
       return;
     }
@@ -2128,7 +2128,7 @@ export class PropertyDetailComponent implements OnInit {
       error: (err: any) => {
         this.isSubmittingBooking.set(false);
         if (err.status === 401) {
-          this.toastService.show('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 'error');
+          this.toastService.show('Bạn phải đăng nhập mới có thể đặt lịch xem được', 'error');
           this.redirectToLogin();
           return;
         }
