@@ -105,6 +105,19 @@ export interface RoommateNeed {
             <span>Tìm Bạn Ở Ghép (Ghép Trọ)</span>
             <span class="tab-count-pill pill-roommate-badge">Mới</span>
           </button>
+
+          <a 
+            routerLink="/landlord/appointments" 
+            class="tenant-tab-btn tab-appointment-link">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
+            </svg>
+            <span>Lịch Hẹn Xem Phòng</span>
+            <span class="tab-count-pill pill-appointment-badge">Khách hẹn</span>
+          </a>
         </div>
       </div>
 
@@ -1934,6 +1947,20 @@ export interface RoommateNeed {
 
     @keyframes spin {
       to { transform: rotate(360deg); }
+    }
+
+    .tab-appointment-link {
+      text-decoration: none;
+      color: #334155;
+    }
+    .tab-appointment-link:hover {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    .pill-appointment-badge {
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
     }
 
     @media print {

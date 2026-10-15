@@ -95,10 +95,21 @@ import { ToastService } from '../../services/toast.service';
         <div class="metric-box">
           <div class="metric-top">
             <span class="metric-label">TIN HOT</span>
-            <span class="metric-icon-badge badge-orange"></span>
+            <span class="metric-icon-badge badge-orange">🔥</span>
           </div>
           <div class="metric-val text-orange">{{ summary()?.hotPostsCount || 0 }}</div>
         </div>
+
+        <a routerLink="/landlord/appointments" class="metric-box metric-link-box" title="Xem danh sách lịch hẹn của khách hàng">
+          <div class="metric-top">
+            <span class="metric-label">LỊCH HẸN XEM PHÒNG</span>
+            <span class="metric-icon-badge badge-blue">📅</span>
+          </div>
+          <div class="metric-val text-blue metric-val-link">
+            <span>Khách hẹn xem phòng</span>
+            <span class="arrow-svg">→</span>
+          </div>
+        </a>
       </div>
 
       <!-- SINGLE FULL-WIDTH REVENUE CHART PANEL -->
@@ -312,18 +323,52 @@ import { ToastService } from '../../services/toast.service';
       pointer-events: none;
     }
 
-    /* REFINED 3 METRICS GRID */
+    /* REFINED METRICS GRID */
     .metrics-grid-3 {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(4, 1fr);
       gap: 16px;
       margin-bottom: 24px;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
+      .metrics-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 600px) {
       .metrics-grid-3 {
         grid-template-columns: 1fr;
       }
+    }
+
+    .metric-link-box {
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: block;
+    }
+
+    .metric-link-box:hover {
+      border-color: #2563eb;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.12);
+    }
+
+    .metric-val-link {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 1.1rem !important;
+    }
+
+    .arrow-svg {
+      transition: transform 0.2s ease;
+    }
+
+    .metric-link-box:hover .arrow-svg {
+      transform: translateX(4px);
     }
 
     .metric-box {
