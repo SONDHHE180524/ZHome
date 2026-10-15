@@ -1,15 +1,18 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { PropertyService } from '../../services/property.service';
 import { ToastService } from '../../services/toast.service';
+import { AuthService } from '../../services/auth.service';
+import { ReportService } from '../../services/report.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-property-detail',
   standalone: true,
-  imports: [CommonModule, RouterLink, DatePipe],
+  imports: [CommonModule, RouterLink, DatePipe, FormsModule],
   template: `
     <div class="detail-page-container animate-fade-in" *ngIf="property() as prop">
       <!-- Breadcrumb Navigation -->
@@ -26,7 +29,7 @@ import { environment } from '../../../environments/environment';
         <div class="gallery-grid-container mb-4" [class.single-image]="getImageList(prop).length === 1">
           <div class="gallery-main" (click)="openAllPhotosModal()">
             @if (getImageList(prop)[0]) {
-              <img [src]="getImageUrl(getImageList(prop)[0])" alt="Ảnh đại diện khu trọ" class="gallery-img" (error)="onImageError($event)" />
+              <img [src]="getImageUrl(getImageList(prop)[0])" alt="Ảnh đại diện khu trọ" class="gallery-img" decoding="async" (load)="$event.target.classList.add('loaded')" (error)="onImageError($event)" />
             }
             <div class="gallery-badge-top">
               @if (prop.subscriptionId === 2 || prop.subscriptionId === 3 || prop.isHot) {
@@ -55,7 +58,7 @@ import { environment } from '../../../environments/environment';
             <div class="gallery-side-grid">
               @for (imgUrl of getSideImages(prop); track $index) {
                 <div class="gallery-sub-item" (click)="openAllPhotosModal()">
-                  <img [src]="getImageUrl(imgUrl)" alt="Ảnh bổ sung" class="gallery-img" (error)="onImageError($event)" />
+                  <img [src]="getImageUrl(imgUrl)" alt="Ảnh bổ sung" class="gallery-img" loading="lazy" decoding="async" (load)="$event.target.classList.add('loaded')" (error)="onImageError($event)" />
                   
                   <!-- +N overlay on the 4th thumbnail if total images > 5 -->
                   @if ($index === 3 && getRemainingCount(prop) > 0) {
@@ -208,37 +211,137 @@ import { environment } from '../../../environments/environment';
         </div>
       </div>
 
-      <!-- 6. Feedback & Reviews Section -->
-      <div class="glass-panel mb-4">
-        <h3 class="section-title mb-3"><i class="fas fa-star text-warning me-2"></i>Feedback & Đánh giá từ khách thuê</h3>
-        
+      <!-- 6. Feedback & Reviews Section (Review System) -->
+      <div class="glass-panel review-section-container mb-4">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+          <div>
+            <h3 class="section-title m-0"><i class="fas fa-star text-warning me-2"></i>Đánh giá & Phản hồi từ khách thuê</h3>
+            <p class="text-muted text-sm m-0 mt-1">Đánh giá khách quan từ các cư dân đã và đang sinh sống tại khu trọ này.</p>
+          </div>
+          <button class="btn-write-review" (click)="openReviewModal()">
+            <i class="fas fa-pen-nib me-2"></i>Viết đánh giá
+          </button>
+        </div>
+
+        <!-- Rating Summary Dashboard Card -->
+        <div class="rating-overview-card mb-4">
+          <!-- Left: Big Score & Stars -->
+          <div class="rating-score-block">
+            <div class="score-number">{{ reviewSummary().averageRating }}</div>
+            <div class="score-stars">
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <span class="star-icon" [class.active-star]="i <= Math.round(reviewSummary().averageRating)">★</span>
+              }
+            </div>
+            <div class="score-total-count">{{ reviewSummary().totalReviews }} lượt đánh giá</div>
+          </div>
+
+          <!-- Middle: Progress Bars Distribution -->
+          <div class="rating-bars-block">
+            <div class="rating-bar-row">
+              <span class="bar-label">5 <span class="text-warning">★</span></span>
+              <div class="progress-track">
+                <div class="progress-fill fill-5" [style.width.%]="getRatingPercent(reviewSummary()?.ratingBreakdown?.five || 0)"></div>
+              </div>
+              <span class="bar-count">{{ reviewSummary()?.ratingBreakdown?.five || 0 }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">4 <span class="text-warning">★</span></span>
+              <div class="progress-track">
+                <div class="progress-fill fill-4" [style.width.%]="getRatingPercent(reviewSummary()?.ratingBreakdown?.four || 0)"></div>
+              </div>
+              <span class="bar-count">{{ reviewSummary()?.ratingBreakdown?.four || 0 }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">3 <span class="text-warning">★</span></span>
+              <div class="progress-track">
+                <div class="progress-fill fill-3" [style.width.%]="getRatingPercent(reviewSummary()?.ratingBreakdown?.three || 0)"></div>
+              </div>
+              <span class="bar-count">{{ reviewSummary()?.ratingBreakdown?.three || 0 }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">2 <span class="text-warning">★</span></span>
+              <div class="progress-track">
+                <div class="progress-fill fill-2" [style.width.%]="getRatingPercent(reviewSummary()?.ratingBreakdown?.two || 0)"></div>
+              </div>
+              <span class="bar-count">{{ reviewSummary()?.ratingBreakdown?.two || 0 }}</span>
+            </div>
+            <div class="rating-bar-row">
+              <span class="bar-label">1 <span class="text-warning">★</span></span>
+              <div class="progress-track">
+                <div class="progress-fill fill-1" [style.width.%]="getRatingPercent(reviewSummary()?.ratingBreakdown?.one || 0)"></div>
+              </div>
+              <span class="bar-count">{{ reviewSummary()?.ratingBreakdown?.one || 0 }}</span>
+            </div>
+          </div>
+
+          <!-- Right: Trust Badge -->
+          <div class="rating-trust-badge">
+            <div class="trust-icon"><i class="fas fa-shield-alt"></i></div>
+            <div class="trust-title">Xác thực 100%</div>
+            <div class="trust-desc">Chỉ những khách thuê có hợp đồng tại khu trọ mới được phép gửi đánh giá.</div>
+          </div>
+        </div>
+
         @if (isLoadingReports()) {
-          <div class="text-muted p-3 text-center">Đang tải phản hồi...</div>
+          <div class="text-center py-5 text-muted">
+            <div class="spinner mb-2"></div>
+            <p>Đang tải danh sách đánh giá...</p>
+          </div>
         } @else if (reports().length === 0) {
-          <div class="text-muted p-3 text-center bg-light rounded-3">Chưa có đánh giá nào cho khu trọ này.</div>
+          <div class="empty-reviews-state text-center py-5">
+            <div class="empty-review-icon mb-3"><i class="fas fa-comment-dots"></i></div>
+            <h4 class="mb-2">Chưa có đánh giá nào cho khu trọ này</h4>
+            <p class="text-muted text-sm mb-3">Bạn đã từng hoặc đang thuê trọ tại đây? Hãy chia sẻ cảm nhận và đánh giá giúp những bạn sinh viên khác nhé!</p>
+            <button class="btn-write-review-hero" (click)="openReviewModal()">
+              <i class="fas fa-pen-nib me-2"></i>Hãy là người đầu tiên đánh giá
+            </button>
+          </div>
         } @else {
-          <div class="reports-list">
+          <div class="reviews-list-grid">
             @for (report of reports(); track report.id) {
-              <div class="report-item-card mb-3">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                  <div>
-                    <strong>{{ report.tenantName }}</strong> 
-                    <span class="text-muted text-sm ms-2">(Phòng {{ report.roomNumber }})</span>
+              <div class="review-card-item">
+                <div class="review-header">
+                  <div class="reviewer-info">
+                    <div class="reviewer-avatar">
+                      {{ (report.tenantName || 'K').charAt(0).toUpperCase() }}
+                    </div>
+                    <div>
+                      <div class="reviewer-name-line">
+                        <strong class="reviewer-name">{{ report.tenantName }}</strong>
+                        <span class="verified-tenant-badge">
+                          <i class="fas fa-check-circle"></i> Đã thuê trọ
+                        </span>
+                      </div>
+                      <span class="reviewer-room text-muted text-xs">
+                        <i class="fas fa-door-open me-1"></i>Phòng {{ report.roomNumber || 'N/A' }}
+                      </span>
+                    </div>
                   </div>
-                  <div class="rating-stars">
-                    @for (i of [1, 2, 3, 4, 5]; track i) {
-                      <span class="star" [class.filled]="i <= (report.rating || 5)"> </span>
-                    }
+                  <div class="review-meta text-end">
+                    <div class="star-rating-display">
+                      @for (s of [1, 2, 3, 4, 5]; track s) {
+                        <span class="star-mini" [class.star-filled]="s <= (report.rating || 5)">★</span>
+                      }
+                    </div>
+                    <span class="review-date text-muted text-xs">{{ report.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
                   </div>
                 </div>
-                <h5 class="report-title m-0 mb-1">{{ report.title }}</h5>
-                <p class="report-text mb-1">{{ report.content }}</p>
-                <span class="report-time text-xs text-muted">{{ report.createdAt | date:'dd/MM/yyyy HH:mm' }}</span>
+
+                <div class="review-body">
+                  <h4 class="review-item-title">{{ report.title }}</h4>
+                  <p class="review-item-content">{{ report.content }}</p>
+                </div>
 
                 @if (report.landlordReply) {
-                  <div class="landlord-reply-box mt-2">
-                    <strong class="text-primary"><i class="fas fa-reply me-1"></i>Phản hồi từ Chủ trọ:</strong>
-                    <p class="reply-text mb-0 mt-1">{{ report.landlordReply }}</p>
+                  <div class="landlord-reply-card">
+                    <div class="reply-header">
+                      <span class="reply-badge"><i class="fas fa-reply me-1"></i>Phản hồi từ Chủ trọ</span>
+                      @if (report.repliedAt) {
+                        <span class="reply-time text-muted text-xs">{{ report.repliedAt | date:'dd/MM/yyyy' }}</span>
+                      }
+                    </div>
+                    <p class="reply-content mb-0">{{ report.landlordReply }}</p>
                   </div>
                 }
               </div>
@@ -286,6 +389,65 @@ import { environment } from '../../../environments/environment';
                   <img [src]="getImageUrl(img)" alt="Photo" class="lightbox-img" (error)="onImageError($event)" />
                 </div>
               }
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Review Submission Modal -->
+      @if (showReviewModal()) {
+        <div class="modal-backdrop animate-fade-in" (click)="closeReviewModal()">
+          <div class="glass-panel modal-card review-modal-card" (click)="$event.stopPropagation()">
+            <button class="modal-close-btn" (click)="closeReviewModal()">&times;</button>
+            <div class="modal-header-block mb-3">
+              <h3 class="m-0"><i class="fas fa-star text-warning me-2"></i>Đánh giá khu trọ</h3>
+              <p class="text-muted text-sm m-0 mt-1">{{ prop.propertyTitle }}</p>
+            </div>
+
+            <div class="modal-body-block">
+              <!-- Star Selector -->
+              <div class="star-input-group mb-4 text-center">
+                <label class="form-label d-block mb-2 font-semibold">Bạn đánh giá khu trọ này mấy sao?</label>
+                <div class="stars-interactive-picker">
+                  @for (s of [1, 2, 3, 4, 5]; track s) {
+                    <button type="button" class="btn-star-pick" [class.picked]="s <= newReviewRating()" (click)="setReviewRating(s)">
+                      ★
+                    </button>
+                  }
+                </div>
+                <div class="star-rating-hint text-sm font-semibold mt-1">
+                  @if (newReviewRating() === 5) { <span class="text-success">Rất tuyệt vời (5/5 sao)</span> }
+                  @else if (newReviewRating() === 4) { <span class="text-primary">Tốt & hài lòng (4/5 sao)</span> }
+                  @else if (newReviewRating() === 3) { <span class="text-warning">Bình thường (3/5 sao)</span> }
+                  @else if (newReviewRating() === 2) { <span class="text-danger">Kém, cần cải thiện (2/5 sao)</span> }
+                  @else { <span class="text-danger">Rất tệ (1/5 sao)</span> }
+                </div>
+              </div>
+
+              <!-- Title -->
+              <div class="form-group mb-3">
+                <label class="form-label font-semibold">Tiêu đề đánh giá <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" [ngModel]="newReviewTitle()" (ngModelChange)="newReviewTitle.set($event)" placeholder="Ví dụ: Phòng sạch sẽ, an ninh tốt, chủ trọ thân thiện..." />
+              </div>
+
+              <!-- Content -->
+              <div class="form-group mb-4">
+                <label class="form-label font-semibold">Chi tiết cảm nhận / góp ý <span class="text-danger">*</span></label>
+                <textarea class="form-control" rows="4" [ngModel]="newReviewContent()" (ngModelChange)="newReviewContent.set($event)" placeholder="Chia sẻ chi tiết về tiện ích, an ninh, điện nước, thái độ quản lý... để cộng đồng sinh viên có góc nhìn thực tế nhất"></textarea>
+              </div>
+
+              <div class="d-flex justify-content-end gap-2">
+                <button type="button" class="btn btn-secondary px-4" (click)="closeReviewModal()" [disabled]="isSubmittingReview()">
+                  Hủy bỏ
+                </button>
+                <button type="button" class="btn btn-primary-submit px-4" (click)="submitReview()" [disabled]="isSubmittingReview()">
+                  @if (isSubmittingReview()) {
+                    <i class="fas fa-spinner fa-spin me-2"></i>Đang gửi...
+                  } @else {
+                    <i class="fas fa-paper-plane me-2"></i>Gửi đánh giá
+                  }
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -347,12 +509,25 @@ import { environment } from '../../../environments/environment';
       height: 100%;
       overflow: hidden;
       cursor: pointer;
+      background: #f1f5f9;
+    }
+    .gallery-sub-item {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: pointer;
+      background: #f1f5f9;
     }
     .gallery-img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      transition: transform 0.4s ease;
+      opacity: 0;
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s ease;
+    }
+    .gallery-img.loaded {
+      opacity: 1;
     }
     .gallery-main:hover .gallery-img, .gallery-sub-item:hover .gallery-img {
       transform: scale(1.03);
@@ -814,17 +989,310 @@ import { environment } from '../../../environments/environment';
       max-width: 800px;
       position: relative;
     }
-    .modal-close-btn {
-      position: absolute;
-      top: 16px;
-      right: 16px;
+    /* Review System Styles */
+    .review-section-container {
+      padding: 24px;
+    }
+    .btn-write-review {
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
       border: none;
-      background: #f1f5f9;
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      font-size: 1.4rem;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 0.92rem;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+      transition: all 0.2s ease;
+    }
+    .btn-write-review:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35);
+    }
+    .btn-write-review-hero {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 28px;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      transition: background 0.2s;
+    }
+    .btn-write-review-hero:hover {
+      background: #1d4ed8;
+    }
+    .rating-overview-card {
+      display: grid;
+      grid-template-columns: 220px 1fr 240px;
+      gap: 24px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 24px;
+      align-items: center;
+    }
+    @media (max-width: 860px) {
+      .rating-overview-card {
+        grid-template-columns: 1fr;
+      }
+    }
+    .rating-score-block {
+      text-align: center;
+      border-right: 1px solid #e2e8f0;
+      padding-right: 20px;
+    }
+    @media (max-width: 860px) {
+      .rating-score-block {
+        border-right: none;
+        padding-right: 0;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 16px;
+      }
+    }
+    .score-number {
+      font-size: 3.4rem;
+      font-weight: 900;
+      color: #0f172a;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .score-stars {
+      display: flex;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 6px;
+      font-size: 1.25rem;
+    }
+    .star-icon {
+      color: #cbd5e1;
+    }
+    .star-icon.active-star {
+      color: #f59e0b;
+    }
+    .score-total-count {
+      font-size: 0.85rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+    .rating-bars-block {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .rating-bar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.85rem;
+    }
+    .bar-label {
+      width: 32px;
+      color: #475569;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .progress-track {
+      flex: 1;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.4s ease;
+    }
+    .fill-5 { background: #10b981; }
+    .fill-4 { background: #3b82f6; }
+    .fill-3 { background: #f59e0b; }
+    .fill-2 { background: #f97316; }
+    .fill-1 { background: #ef4444; }
+    .bar-count {
+      width: 24px;
+      text-align: right;
+      color: #64748b;
+      font-weight: 600;
+      font-size: 0.8rem;
+    }
+    .rating-trust-badge {
+      background: #ffffff;
+      border: 1px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+    }
+    .trust-icon {
+      font-size: 1.6rem;
+      color: #10b981;
+      margin-bottom: 6px;
+    }
+    .trust-title {
+      font-weight: 700;
+      font-size: 0.92rem;
+      color: #0f172a;
+      margin-bottom: 4px;
+    }
+    .trust-desc {
+      font-size: 0.78rem;
+      color: #64748b;
+      line-height: 1.4;
+    }
+    .reviews-list-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .review-card-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      transition: box-shadow 0.2s;
+    }
+    .review-card-item:hover {
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+    }
+    .review-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    .reviewer-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .reviewer-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: white;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+    }
+    .reviewer-name-line {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .reviewer-name {
+      color: #0f172a;
+      font-size: 0.98rem;
+    }
+    .verified-tenant-badge {
+      font-size: 0.72rem;
+      background: #ecfdf5;
+      color: #059669;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 99px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .reviewer-room {
+      margin-top: 2px;
+    }
+    .star-rating-display {
+      font-size: 1rem;
+      margin-bottom: 3px;
+    }
+    .star-mini {
+      color: #e2e8f0;
+      margin-left: 2px;
+    }
+    .star-mini.star-filled {
+      color: #f59e0b;
+    }
+    .review-item-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #0f172a;
+      margin: 0 0 6px;
+    }
+    .review-item-content {
+      color: #334155;
+      font-size: 0.93rem;
+      line-height: 1.6;
+      margin: 0;
+    }
+    .landlord-reply-card {
+      margin-top: 14px;
+      background: #f1f5f9;
+      border-left: 4px solid #2563eb;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+    .reply-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+    .reply-badge {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #1e40af;
+    }
+    .reply-content {
+      font-size: 0.9rem;
+      color: #334155;
+      line-height: 1.5;
+    }
+    .empty-review-icon {
+      font-size: 3rem;
+      color: #cbd5e1;
+    }
+    .review-modal-card {
+      max-width: 560px;
+    }
+    .stars-interactive-picker {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      margin: 10px 0;
+    }
+    .btn-star-pick {
+      background: none;
+      border: none;
+      font-size: 2.2rem;
+      color: #cbd5e1;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      padding: 0 4px;
+      line-height: 1;
+    }
+    .btn-star-pick:hover,
+    .btn-star-pick.picked {
+      color: #f59e0b;
+      transform: scale(1.15);
+    }
+    .btn-primary-submit {
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 20px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-primary-submit:hover {
+      background: #1d4ed8;
     }
   `]
 })
@@ -835,8 +1303,23 @@ export class PropertyDetailComponent implements OnInit {
   private readonly toastService = inject(ToastService);
   private readonly sanitizer = inject(DomSanitizer);
 
+  private readonly authService = inject(AuthService);
+  private readonly reportService = inject(ReportService);
+
+  readonly Math = Math;
+
   property = signal<any | null>(null);
   reports = signal<any[]>([]);
+  reviewSummary = signal<any>({
+    averageRating: 5.0,
+    totalReviews: 0,
+    ratingBreakdown: { five: 0, four: 0, three: 0, two: 0, one: 0 }
+  });
+  showReviewModal = signal(false);
+  newReviewRating = signal(5);
+  newReviewTitle = signal('Đánh giá trải nghiệm tại khu trọ');
+  newReviewContent = signal('');
+  isSubmittingReview = signal(false);
   otherProperties = signal<any[]>([]);
   isLoadingReports = signal(false);
   showPhotosModal = signal(false);
@@ -871,13 +1354,88 @@ export class PropertyDetailComponent implements OnInit {
     this.isLoadingReports.set(true);
     this.propertyService.getPropertyReports(id).subscribe({
       next: (data) => {
-        this.reports.set(data);
+        if (Array.isArray(data)) {
+          this.reports.set(data);
+          const total = data.length;
+          const avg = total > 0 ? data.reduce((acc, r) => acc + (r.rating || 5), 0) / total : 5.0;
+          this.reviewSummary.set({
+            averageRating: Math.round(avg * 10) / 10,
+            totalReviews: total,
+            ratingBreakdown: {
+              five: data.filter(r => r.rating === 5).length,
+              four: data.filter(r => r.rating === 4).length,
+              three: data.filter(r => r.rating === 3).length,
+              two: data.filter(r => r.rating === 2).length,
+              one: data.filter(r => r.rating === 1).length
+            }
+          });
+        } else if (data && data.reviews) {
+          this.reports.set(data.reviews);
+          this.reviewSummary.set(data);
+        }
         this.isLoadingReports.set(false);
       },
       error: () => {
         this.isLoadingReports.set(false);
       }
     });
+  }
+
+  openReviewModal() {
+    if (!this.authService.isLoggedIn()) {
+      this.toastService.show('Vui lòng đăng nhập để viết đánh giá khu trọ', 'info');
+      this.router.navigate(['/login']);
+      return;
+    }
+    this.newReviewRating.set(5);
+    this.newReviewTitle.set('Đánh giá trải nghiệm tại khu trọ');
+    this.newReviewContent.set('');
+    this.showReviewModal.set(true);
+  }
+
+  closeReviewModal() {
+    this.showReviewModal.set(false);
+  }
+
+  setReviewRating(stars: number) {
+    this.newReviewRating.set(stars);
+  }
+
+  submitReview() {
+    const prop = this.property();
+    if (!prop) return;
+
+    if (!this.newReviewTitle().trim() || !this.newReviewContent().trim()) {
+      this.toastService.show('Vui lòng nhập đầy đủ tiêu đề và nội dung đánh giá', 'info');
+      return;
+    }
+
+    this.isSubmittingReview.set(true);
+    const propId = prop.id || prop.propertyId;
+    this.reportService.createReport({
+      propertyId: propId,
+      rating: this.newReviewRating(),
+      title: this.newReviewTitle(),
+      content: this.newReviewContent()
+    }).subscribe({
+      next: (res: any) => {
+        this.isSubmittingReview.set(false);
+        this.toastService.show(res?.message || 'Đánh giá đã được gửi thành công!', 'success');
+        this.closeReviewModal();
+        this.fetchReports(propId);
+      },
+      error: (err: any) => {
+        this.isSubmittingReview.set(false);
+        const msg = err.error?.message || err.error || 'Có lỗi xảy ra khi gửi đánh giá. Vui lòng kiểm tra lại.';
+        this.toastService.show(msg, 'error');
+      }
+    });
+  }
+
+  getRatingPercent(count: number): number {
+    const total = this.reviewSummary()?.totalReviews || 0;
+    if (total === 0) return 0;
+    return Math.round((count / total) * 100);
   }
 
   fetchOtherProperties(currentId: number) {
@@ -910,13 +1468,35 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   getImageList(prop: any): string[] {
+    const rawList: string[] = [];
     if (prop?.imageUrls && prop.imageUrls.length > 0) {
-      return prop.imageUrls;
+      for (const u of prop.imageUrls) {
+        if (typeof u === 'string' && u.includes(',')) {
+          rawList.push(...u.split(',').map((s: string) => s.trim()).filter(Boolean));
+        } else if (u) {
+          rawList.push(u);
+        }
+      }
     }
     if (prop?.propertyImageUrl) {
-      return [prop.propertyImageUrl];
+      if (typeof prop.propertyImageUrl === 'string' && prop.propertyImageUrl.includes(',')) {
+        rawList.push(...prop.propertyImageUrl.split(',').map((s: string) => s.trim()).filter(Boolean));
+      } else {
+        rawList.push(prop.propertyImageUrl);
+      }
     }
-    return [];
+
+    const unique = Array.from(new Set(rawList.filter(Boolean)));
+    const hasCustomImages = unique.some(u => u.includes('/media/') || u.startsWith('data:'));
+    if (hasCustomImages) {
+      // If custom uploaded images exist, exclude stock Unsplash mock images
+      const filtered = unique.filter(u => !u.includes('images.unsplash.com'));
+      if (filtered.length > 0) return filtered;
+    }
+    if (unique.length === 0) {
+      return [this.defaultPropertyImage];
+    }
+    return unique;
   }
 
   getSideImages(prop: any): string[] {
@@ -931,8 +1511,13 @@ export class PropertyDetailComponent implements OnInit {
     return list.length - 5;
   }
 
-  getImageUrl(url: string): string {
-    if (!url) return '/images/default-property.jpg';
+  defaultPropertyImage = '/images/default-property.jpg';
+
+  getImageUrl(url?: string): string {
+    if (!url) return this.defaultPropertyImage;
+    if (url.includes(',')) {
+      url = url.split(',')[0].trim();
+    }
     if (url.startsWith('http') || url.startsWith('data:')) return url;
     if (url.startsWith('/media/') || url.startsWith('media/')) {
       return url.startsWith('/') ? url : `/${url}`;
@@ -941,7 +1526,21 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   onImageError(event: any) {
-    event.target.src = '/images/default-property.jpg';
+    const target = event.target as HTMLElement;
+    if (target) {
+      target.classList.add('loaded');
+      const subItem = target.closest('.gallery-sub-item');
+      if (subItem) {
+        (subItem as HTMLElement).style.display = 'none';
+        return;
+      }
+      const lightboxWrapper = target.closest('.lightbox-img-wrapper');
+      if (lightboxWrapper) {
+        (lightboxWrapper as HTMLElement).style.display = 'none';
+        return;
+      }
+      (target as HTMLImageElement).src = '/images/default-property.jpg';
+    }
   }
 
   getMinPrice(prop: any): number {

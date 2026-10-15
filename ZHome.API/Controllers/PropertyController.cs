@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using ZHome.API.Data;
 using ZHome.API.Models.DTOs;
 using ZHome.API.Models.Entities;
+using ZHome.API.Services;
 
 namespace ZHome.API.Controllers
 {
@@ -18,11 +19,16 @@ namespace ZHome.API.Controllers
     {
         private readonly ZHomeDbContext _context;
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _environment;
+        private readonly IMediaStorageService _mediaStorage;
 
-        public PropertyController(ZHomeDbContext context, Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment)
+        public PropertyController(
+            ZHomeDbContext context, 
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment,
+            IMediaStorageService mediaStorage)
         {
             _context = context;
             _environment = environment;
+            _mediaStorage = mediaStorage;
         }
 
         // Get landlord properties
@@ -73,8 +79,16 @@ namespace ZHome.API.Controllers
             var allImages = new List<string>();
             if (!string.IsNullOrEmpty(property.ImageUrl))
             {
-                allImages.Add(property.ImageUrl);
+                var splitUrls = property.ImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                foreach (var u in splitUrls)
+                {
+                    if (!allImages.Contains(u))
+                    {
+                        allImages.Add(u);
+                    }
+                }
             }
+
             foreach (var room in property.Rooms)
             {
                 foreach (var img in room.Images)
@@ -103,6 +117,7 @@ namespace ZHome.API.Controllers
 
             var totalRooms = property.Rooms.Count;
             var vacantRoomsCount = property.Rooms.Count(r => r.Status == "Available");
+            var primaryImageUrl = property.ImageUrl?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? property.ImageUrl;
 
             return Ok(new
             {
@@ -114,7 +129,7 @@ namespace ZHome.API.Controllers
                 Longitude = property.Longitude,
                 IsVerifiedTick = property.IsVerifiedTick,
                 ViewCount = property.ViewCount,
-                PropertyImageUrl = property.ImageUrl,
+                PropertyImageUrl = primaryImageUrl,
                 LandlordId = property.LandlordId,
                 LandlordName = property.Landlord?.FullName ?? "Chủ trọ ZHome",
                 LandlordPhone = property.Landlord?.Phone ?? "1900 6868",
@@ -177,18 +192,53 @@ namespace ZHome.API.Controllers
                 }
             }
 
-            string? propertyImageUrl = null;
-            if (!string.IsNullOrEmpty(request.ImageBase64))
+            var savedUrls = new List<string>();
+            if (request.ImageBase64s != null && request.ImageBase64s.Any())
             {
-                try
+                foreach (var b64 in request.ImageBase64s)
                 {
-                    propertyImageUrl = SaveBase64Image(request.ImageBase64, "property", landlord?.Phone ?? landlordId.ToString());
-                }
-                catch (Exception ex)
-                {
-                    return BadRequest("Không thể lưu ảnh nhà trọ: " + ex.Message);
+                    if (!string.IsNullOrEmpty(b64))
+                    {
+                        if (b64.StartsWith("data:image"))
+                        {
+                            try
+                            {
+                                var u = await _mediaStorage.SaveBase64ImageAsync(b64, "properties", landlord?.Phone ?? landlordId.ToString());
+                                savedUrls.Add(u);
+                            }
+                            catch (Exception ex)
+                            {
+                                return BadRequest("Không thể lưu ảnh nhà trọ: " + ex.Message);
+                            }
+                        }
+                        else
+                        {
+                            savedUrls.Add(b64);
+                        }
+                    }
                 }
             }
+            else if (!string.IsNullOrEmpty(request.ImageBase64))
+            {
+                if (request.ImageBase64.StartsWith("data:image"))
+                {
+                    try
+                    {
+                        var u = await _mediaStorage.SaveBase64ImageAsync(request.ImageBase64, "properties", landlord?.Phone ?? landlordId.ToString());
+                        savedUrls.Add(u);
+                    }
+                    catch (Exception ex)
+                    {
+                        return BadRequest("Không thể lưu ảnh nhà trọ: " + ex.Message);
+                    }
+                }
+                else
+                {
+                    savedUrls.Add(request.ImageBase64);
+                }
+            }
+
+            string? propertyImageUrl = savedUrls.Any() ? string.Join(",", savedUrls) : null;
 
             var property = new Property
             {
@@ -238,12 +288,42 @@ namespace ZHome.API.Controllers
             if (request.Latitude.HasValue) property.Latitude = request.Latitude;
             if (request.Longitude.HasValue) property.Longitude = request.Longitude;
 
-            if (!string.IsNullOrEmpty(request.ImageBase64) && request.ImageBase64.StartsWith("data:image"))
+            if (request.IsVerifiedTick.HasValue && User.IsInRole("Administrator"))
+            {
+                property.IsVerifiedTick = request.IsVerifiedTick.Value;
+            }
+
+            var updatedUrls = new List<string>();
+            if (request.ExistingImageUrls != null)
+            {
+                updatedUrls.AddRange(request.ExistingImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)));
+            }
+
+            var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == property.LandlordId);
+            if (request.ImageBase64s != null && request.ImageBase64s.Any())
+            {
+                foreach (var b64 in request.ImageBase64s)
+                {
+                    if (!string.IsNullOrEmpty(b64) && b64.StartsWith("data:image"))
+                    {
+                        try
+                        {
+                            var u = await _mediaStorage.SaveBase64ImageAsync(b64, "properties", landlord?.Phone ?? property.LandlordId.ToString());
+                            updatedUrls.Add(u);
+                        }
+                        catch (Exception ex)
+                        {
+                            return BadRequest("Không thể lưu ảnh nhà trọ: " + ex.Message);
+                        }
+                    }
+                }
+            }
+            else if (!string.IsNullOrEmpty(request.ImageBase64) && request.ImageBase64.StartsWith("data:image"))
             {
                 try
                 {
-                    var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == property.LandlordId);
-                    property.ImageUrl = SaveBase64Image(request.ImageBase64, "property", landlord?.Phone ?? property.LandlordId.ToString());
+                    var u = await _mediaStorage.SaveBase64ImageAsync(request.ImageBase64, "properties", landlord?.Phone ?? property.LandlordId.ToString());
+                    updatedUrls.Add(u);
                 }
                 catch (Exception ex)
                 {
@@ -251,8 +331,69 @@ namespace ZHome.API.Controllers
                 }
             }
 
+            if (updatedUrls.Any())
+            {
+                property.ImageUrl = string.Join(",", updatedUrls);
+            }
+
             await _context.SaveChangesAsync();
             return Ok(MapPropertyToDto(property));
+        }
+
+        // Delete property (Checks if any room is occupied before deleting)
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteProperty(long id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(userIdStr, out long userId))
+            {
+                return Unauthorized();
+            }
+
+            var property = await _context.Properties
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Amenities)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            if (property == null)
+            {
+                return NotFound(new { message = "Không tìm thấy nhà trọ." });
+            }
+
+            if (property.LandlordId != userId && !User.IsInRole("Administrator"))
+            {
+                return StatusCode(403, new { message = "Bạn không có quyền xóa nhà trọ này." });
+            }
+
+            // Kiểm tra xem có phòng nào đang có người ở hoặc có hợp đồng active không
+            var roomIds = property.Rooms.Select(r => r.Id).ToList();
+            var hasActiveContracts = await _context.Contracts
+                .AnyAsync(c => roomIds.Contains(c.RoomId) && c.Status == "Active");
+
+            var occupiedRooms = property.Rooms.Where(r => r.Status == "Occupied" || r.Status == "Rented").ToList();
+
+            if (hasActiveContracts || occupiedRooms.Any())
+            {
+                var roomNumbers = occupiedRooms.Select(r => r.RoomNumber).Distinct().ToList();
+                string details = roomNumbers.Any() ? $" (Phòng: {string.Join(", ", roomNumbers)})" : "";
+                return BadRequest(new { message = $"Không thể xóa nhà trọ vì đang có phòng có khách thuê{details}. Vui lòng làm thủ tục trả phòng/kết thúc hợp đồng trước khi xóa!" });
+            }
+
+            // Xóa cascade an toàn
+            foreach (var r in property.Rooms)
+            {
+                _context.RoomAmenities.RemoveRange(r.Amenities);
+                _context.RoomImages.RemoveRange(r.Images);
+            }
+            _context.Rooms.RemoveRange(property.Rooms);
+
+            _context.Properties.Remove(property);
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Đã xóa nhà trọ và các phòng liên quan thành công." });
         }
 
         // Update property image
@@ -272,18 +413,39 @@ namespace ZHome.API.Controllers
                 return NotFound("Không tìm thấy khu trọ hoặc bạn không có quyền.");
             }
 
-            if (string.IsNullOrEmpty(request.ImageBase64))
-            {
-                return BadRequest("Không có dữ liệu ảnh.");
-            }
-
             try
             {
                 var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == landlordId);
-                string propertyImageUrl = SaveBase64Image(request.ImageBase64, "property", landlord?.Phone ?? landlordId.ToString());
+                var savedUrls = new List<string>();
+                if (request.ExistingImageUrls != null)
+                {
+                    savedUrls.AddRange(request.ExistingImageUrls.Where(u => !string.IsNullOrWhiteSpace(u)));
+                }
+
+                if (request.ImageBase64s != null && request.ImageBase64s.Any())
+                {
+                    foreach (var b64 in request.ImageBase64s)
+                    {
+                        if (!string.IsNullOrEmpty(b64) && b64.StartsWith("data:image"))
+                        {
+                            var u = await _mediaStorage.SaveBase64ImageAsync(b64, "properties", landlord?.Phone ?? landlordId.ToString());
+                            savedUrls.Add(u);
+                        }
+                    }
+                }
+                else if (!string.IsNullOrEmpty(request.ImageBase64) && request.ImageBase64.StartsWith("data:image"))
+                {
+                    var u = await _mediaStorage.SaveBase64ImageAsync(request.ImageBase64, "properties", landlord?.Phone ?? landlordId.ToString());
+                    savedUrls.Add(u);
+                }
+
+                string propertyImageUrl = savedUrls.Any() ? string.Join(",", savedUrls) : (property.ImageUrl ?? string.Empty);
                 property.ImageUrl = propertyImageUrl;
                 await _context.SaveChangesAsync();
-                return Ok(new { ImageUrl = propertyImageUrl });
+                return Ok(new { 
+                    ImageUrl = propertyImageUrl.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).FirstOrDefault() ?? propertyImageUrl,
+                    ImageUrls = savedUrls
+                });
             }
             catch (Exception ex)
             {
@@ -323,10 +485,11 @@ namespace ZHome.API.Controllers
             if (currentPackageId == 2) maxRooms = 70; // Basic
             else if (currentPackageId == 3) maxRooms = 150; // Advanced
             else if (currentPackageId > 3) maxRooms = 999999; // Fallback for unexpected higher tiers
+            if (User.IsInRole("Administrator")) maxRooms = 999999;
 
             if (totalRooms >= maxRooms)
             {
-                return StatusCode(403, new { message = $"Gói cước hiện tại chỉ cho phép quản lý tối đa {maxRooms} phòng. Vui lòng nâng cấp gói cước." });
+                return StatusCode(403, new { message = $"Gói cước hiện tại chỉ cho phép quản lý tối đa {maxRooms} phòng. Đang có {totalRooms} phòng. Vui lòng nâng cấp gói cước." });
             }
 
             var room = new Room
@@ -364,11 +527,11 @@ namespace ZHome.API.Controllers
             {
                 foreach (var base64 in request.ImageBase64s)
                 {
-                    if (!string.IsNullOrEmpty(base64))
+                    if (!string.IsNullOrEmpty(base64) && base64.StartsWith("data:image"))
                     {
                         try
                         {
-                            var imgUrl = SaveBase64Image(base64, "room", room.Id.ToString());
+                            var imgUrl = await _mediaStorage.SaveBase64ImageAsync(base64, "rooms", room.Id.ToString());
                             _context.RoomImages.Add(new RoomImage { RoomId = room.Id, MediaUrl = imgUrl, MediaType = "Image" });
                         }
                         catch { }
@@ -385,6 +548,285 @@ namespace ZHome.API.Controllers
                 .FirstAsync(r => r.Id == room.Id);
 
             return Ok(MapRoomToDto(createdRoom));
+        }
+
+        // Add multiple rooms in batch (e.g. auto-generated by floor)
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("{propertyId}/rooms/batch")]
+        public async Task<IActionResult> AddRoomsBatch(long propertyId, [FromBody] BatchCreateRoomsDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var property = await _context.Properties.FirstOrDefaultAsync(p => p.Id == propertyId && (p.LandlordId == landlordId || User.IsInRole("Administrator")));
+            if (property == null)
+            {
+                return NotFound("Không tìm thấy khu trọ hoặc bạn không có quyền.");
+            }
+
+            if (request.Rooms == null || !request.Rooms.Any())
+            {
+                return BadRequest("Danh sách phòng không được để trống.");
+            }
+
+            // Check room limits
+            var landlord = await _context.Users.FirstOrDefaultAsync(u => u.Id == property.LandlordId);
+            var currentPackageId = landlord?.SubscriptionId ?? 1;
+            var currentTotalRooms = await _context.Rooms.CountAsync(r => r.Property != null && r.Property.LandlordId == property.LandlordId);
+
+            int maxRooms = 10;
+            if (currentPackageId == 2) maxRooms = 70;
+            else if (currentPackageId == 3) maxRooms = 150;
+            else if (currentPackageId > 3) maxRooms = 999999;
+            if (User.IsInRole("Administrator")) maxRooms = 999999;
+
+            if (currentTotalRooms + request.Rooms.Count > maxRooms)
+            {
+                return StatusCode(403, new { message = $"Gói cước hiện tại chỉ cho phép quản lý tối đa {maxRooms} phòng. Đang có {currentTotalRooms} phòng, không thể tạo thêm {request.Rooms.Count} phòng. Vui lòng nâng cấp gói cước." });
+            }
+
+            // Check existing room numbers
+            var existingRoomNumbers = await _context.Rooms
+                .Where(r => r.PropertyId == propertyId)
+                .Select(r => r.RoomNumber.ToLower())
+                .ToListAsync();
+
+            var newRooms = new List<Room>();
+            foreach (var rDto in request.Rooms)
+            {
+                if (string.IsNullOrWhiteSpace(rDto.RoomNumber)) continue;
+                if (existingRoomNumbers.Contains(rDto.RoomNumber.Trim().ToLower()))
+                {
+                    continue; // Skip duplicate room numbers
+                }
+                existingRoomNumbers.Add(rDto.RoomNumber.Trim().ToLower());
+
+                var room = new Room
+                {
+                    PropertyId = propertyId,
+                    RoomNumber = rDto.RoomNumber.Trim(),
+                    Price = rDto.Price,
+                    Area = rDto.Area > 0 ? rDto.Area : 25,
+                    MaxOccupants = rDto.MaxOccupants > 0 ? rDto.MaxOccupants : 2,
+                    Status = "Available"
+                };
+
+                newRooms.Add(room);
+            }
+
+            if (!newRooms.Any())
+            {
+                return BadRequest("Không có phòng hợp lệ hoặc tất cả số phòng đều đã tồn tại trong khu trọ.");
+            }
+
+            await _context.Rooms.AddRangeAsync(newRooms);
+            await _context.SaveChangesAsync();
+
+            // Add amenities for each room if specified
+            var allAmenities = new List<RoomAmenity>();
+            for (int i = 0; i < newRooms.Count; i++)
+            {
+                var rDto = request.Rooms.FirstOrDefault(x => x.RoomNumber == newRooms[i].RoomNumber);
+                if (rDto?.Amenities != null && rDto.Amenities.Any())
+                {
+                    foreach (var amName in rDto.Amenities)
+                    {
+                        allAmenities.Add(new RoomAmenity { RoomId = newRooms[i].Id, AmenityName = amName });
+                    }
+                }
+            }
+            if (allAmenities.Any())
+            {
+                await _context.RoomAmenities.AddRangeAsync(allAmenities);
+                await _context.SaveChangesAsync();
+            }
+
+            return Ok(new
+            {
+                message = $"Đã tạo thành công {newRooms.Count} phòng cho khu trọ.",
+                createdCount = newRooms.Count,
+                rooms = newRooms.Select(r => new { r.Id, r.RoomNumber, r.Price, r.Area, r.Status })
+            });
+        }
+
+        // Sync rooms to match floor configurations for property
+        [Authorize(Roles = "Landlord,Administrator")]
+        [HttpPost("{propertyId}/sync-floors")]
+        public async Task<IActionResult> SyncPropertyFloors(long propertyId, [FromBody] SyncPropertyFloorsDto request)
+        {
+            var landlordIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!long.TryParse(landlordIdStr, out long landlordId))
+            {
+                return Unauthorized();
+            }
+
+            var property = await _context.Properties
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Contracts)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Amenities)
+                .Include(p => p.Rooms)
+                    .ThenInclude(r => r.Images)
+                .FirstOrDefaultAsync(p => p.Id == propertyId && (p.LandlordId == landlordId || User.IsInRole("Administrator")));
+
+            if (property == null)
+            {
+                return NotFound("Không tìm thấy khu trọ hoặc bạn không có quyền.");
+            }
+
+            if (request.Floors == null || !request.Floors.Any())
+            {
+                return BadRequest("Danh sách tầng không được để trống.");
+            }
+
+            // Build list of target rooms from floor configuration
+            var targetRooms = new List<RoomCreateDto>();
+            foreach (var f in request.Floors)
+            {
+                var startStr = (f.StartRoom ?? string.Empty).Trim();
+                var endStr = (f.EndRoom ?? string.Empty).Trim();
+                if (string.IsNullOrEmpty(startStr) || string.IsNullOrEmpty(endStr)) continue;
+
+                var startMatch = System.Text.RegularExpressions.Regex.Match(startStr, @"^(.*?)(\d+)$");
+                var endMatch = System.Text.RegularExpressions.Regex.Match(endStr, @"^(.*?)(\d+)$");
+
+                if (startMatch.Success && endMatch.Success && startMatch.Groups[1].Value == endMatch.Groups[1].Value)
+                {
+                    string prefix = startMatch.Groups[1].Value;
+                    int startNum = int.Parse(startMatch.Groups[2].Value);
+                    int endNum = int.Parse(endMatch.Groups[2].Value);
+                    if (endNum < startNum) continue;
+
+                    bool hasLeadingZero = startMatch.Groups[2].Value.StartsWith("0") || 
+                        (startMatch.Groups[2].Value.Length == endMatch.Groups[2].Value.Length && startMatch.Groups[2].Value.Length > 1 && startNum < 100);
+                    int padLen = hasLeadingZero ? Math.Max(startMatch.Groups[2].Value.Length, endMatch.Groups[2].Value.Length) : 0;
+                    int safeMax = Math.Min(endNum, startNum + 99);
+
+                    for (int i = startNum; i <= safeMax; i++)
+                    {
+                        string numStr = padLen > 0 ? i.ToString().PadLeft(padLen, '0') : i.ToString();
+                        targetRooms.Add(new RoomCreateDto
+                        {
+                            RoomNumber = prefix + numStr,
+                            Price = f.Price > 0 ? f.Price : 2000000,
+                            Area = f.Area > 0 ? f.Area : 25,
+                            MaxOccupants = f.MaxOccupants > 0 ? f.MaxOccupants : 2
+                        });
+                    }
+                }
+                else
+                {
+                    targetRooms.Add(new RoomCreateDto
+                    {
+                        RoomNumber = startStr,
+                        Price = f.Price > 0 ? f.Price : 2000000,
+                        Area = f.Area > 0 ? f.Area : 25,
+                        MaxOccupants = f.MaxOccupants > 0 ? f.MaxOccupants : 2
+                    });
+                    if (endStr != startStr)
+                    {
+                        targetRooms.Add(new RoomCreateDto
+                        {
+                            RoomNumber = endStr,
+                            Price = f.Price > 0 ? f.Price : 2000000,
+                            Area = f.Area > 0 ? f.Area : 25,
+                            MaxOccupants = f.MaxOccupants > 0 ? f.MaxOccupants : 2
+                        });
+                    }
+                }
+            }
+
+            if (!targetRooms.Any())
+            {
+                return BadRequest("Không có phòng hợp lệ nào từ cấu hình số tầng.");
+            }
+
+            var existingRooms = property.Rooms.OrderBy(r => r.Id).ToList();
+
+            // Contracted rooms must be preserved
+            var contractedRoomNumbers = existingRooms
+                .Where(r => r.Contracts != null && r.Contracts.Any(c => c.Status == "Active"))
+                .Select(r => r.RoomNumber.Trim().ToLower())
+                .ToHashSet();
+
+            // Pool of uncontracted/available rooms ready to be updated or renamed
+            var availablePool = existingRooms
+                .Where(r => !contractedRoomNumbers.Contains(r.RoomNumber.Trim().ToLower()))
+                .ToList();
+
+            var matchedRoomIds = new HashSet<long>();
+
+            // Phase 1: Update existing rooms that already match target room numbers exactly
+            foreach (var target in targetRooms)
+            {
+                var existingExact = existingRooms.FirstOrDefault(r => 
+                    r.RoomNumber.Trim().Equals(target.RoomNumber.Trim(), StringComparison.OrdinalIgnoreCase) && 
+                    !matchedRoomIds.Contains(r.Id));
+
+                if (existingExact != null)
+                {
+                    existingExact.Price = target.Price;
+                    existingExact.Area = target.Area;
+                    existingExact.MaxOccupants = target.MaxOccupants;
+                    matchedRoomIds.Add(existingExact.Id);
+                    availablePool.Remove(existingExact);
+                }
+            }
+
+            // Phase 2: For remaining target rooms, rename available rooms from availablePool
+            var remainingTargets = targetRooms.Where(t => 
+                !property.Rooms.Any(r => matchedRoomIds.Contains(r.Id) && r.RoomNumber.Trim().Equals(t.RoomNumber.Trim(), StringComparison.OrdinalIgnoreCase))
+            ).ToList();
+
+            foreach (var target in remainingTargets)
+            {
+                if (availablePool.Any())
+                {
+                    var roomToRename = availablePool[0];
+                    availablePool.RemoveAt(0);
+
+                    roomToRename.RoomNumber = target.RoomNumber.Trim();
+                    roomToRename.Price = target.Price;
+                    roomToRename.Area = target.Area;
+                    roomToRename.MaxOccupants = target.MaxOccupants;
+                    roomToRename.Status = "Available";
+                    matchedRoomIds.Add(roomToRename.Id);
+                }
+                else
+                {
+                    // Create new room if pool exhausted
+                    var newRoom = new Room
+                    {
+                        PropertyId = propertyId,
+                        RoomNumber = target.RoomNumber.Trim(),
+                        Price = target.Price,
+                        Area = target.Area > 0 ? target.Area : 25,
+                        MaxOccupants = target.MaxOccupants > 0 ? target.MaxOccupants : 2,
+                        Status = "Available"
+                    };
+                    _context.Rooms.Add(newRoom);
+                }
+            }
+
+            // Phase 3: Any leftover empty uncontracted rooms that don't belong to any floor
+            // are safely removed so duplicate/dummy rooms are cleaned up!
+            foreach (var leftover in availablePool)
+            {
+                _context.RoomAmenities.RemoveRange(leftover.Amenities);
+                _context.RoomImages.RemoveRange(leftover.Images);
+                _context.Rooms.Remove(leftover);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = $"Đã cập nhật đồng bộ {targetRooms.Count} phòng theo cấu hình tầng thành công!",
+                totalRooms = targetRooms.Count
+            });
         }
 
         // Get single room detail for Landlord
@@ -473,8 +915,8 @@ namespace ZHome.API.Controllers
             return Ok(dto);
         }
 
-        // Update room details for Landlord
-        [Authorize(Roles = "Landlord")]
+        // Update room details for Landlord and Administrator
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpPut("room/{roomId}")]
         public async Task<IActionResult> UpdateRoom(long roomId, [FromBody] RoomUpdateDto request)
         {
@@ -495,7 +937,7 @@ namespace ZHome.API.Controllers
                 return NotFound(new { message = "Không tìm thấy phòng trọ." });
             }
 
-            if (room.Property.LandlordId != landlordId)
+            if (room.Property.LandlordId != landlordId && !User.IsInRole("Administrator"))
             {
                 return StatusCode(403, new { message = "Bạn không có quyền chỉnh sửa phòng trọ này." });
             }
@@ -543,11 +985,11 @@ namespace ZHome.API.Controllers
             {
                 foreach (var base64 in request.NewImageBase64s)
                 {
-                    if (!string.IsNullOrEmpty(base64))
+                    if (!string.IsNullOrEmpty(base64) && base64.StartsWith("data:image"))
                     {
                         try
                         {
-                            var imgUrl = SaveBase64Image(base64, "room", room.Id.ToString());
+                            var imgUrl = await _mediaStorage.SaveBase64ImageAsync(base64, "rooms", room.Id.ToString());
                             _context.RoomImages.Add(new RoomImage { RoomId = room.Id, MediaUrl = imgUrl, MediaType = "Image" });
                         }
                         catch { }
@@ -561,7 +1003,7 @@ namespace ZHome.API.Controllers
         }
 
         // Delete room
-        [Authorize(Roles = "Landlord")]
+        [Authorize(Roles = "Landlord,Administrator")]
         [HttpDelete("room/{roomId}")]
         public async Task<IActionResult> DeleteRoom(long roomId)
         {
@@ -582,15 +1024,16 @@ namespace ZHome.API.Controllers
                 return NotFound(new { message = "Không tìm thấy phòng trọ." });
             }
 
-            if (room.Property.LandlordId != landlordId)
+            if (room.Property.LandlordId != landlordId && !User.IsInRole("Administrator"))
             {
                 return StatusCode(403, new { message = "Bạn không có quyền xóa phòng trọ này." });
             }
 
             var hasActiveContracts = await _context.Contracts.AnyAsync(c => c.RoomId == roomId && c.Status == "Active");
-            if (hasActiveContracts)
+            var isOccupied = room.Status == "Occupied" || room.Status == "Rented";
+            if (hasActiveContracts || isOccupied)
             {
-                return BadRequest(new { message = "Không thể xóa phòng đang có hợp đồng thuê hoạt động. Vui lòng làm thủ tục trả phòng trước khi xóa." });
+                return BadRequest(new { message = "Không thể xóa phòng đang có khách thuê hoặc hợp đồng đang hoạt động. Vui lòng làm thủ tục trả phòng trước khi xóa." });
             }
 
             _context.RoomAmenities.RemoveRange(room.Amenities);
@@ -815,6 +1258,7 @@ namespace ZHome.API.Controllers
 
         private static PropertyResponseDto MapPropertyToDto(Property p)
         {
+            var splitImages = p.ImageUrl?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList() ?? new List<string>();
             return new PropertyResponseDto
             {
                 Id = p.Id,
@@ -826,7 +1270,8 @@ namespace ZHome.API.Controllers
                 Longitude = p.Longitude,
                 IsVerifiedTick = p.IsVerifiedTick,
                 ViewCount = p.ViewCount,
-                ImageUrl = p.ImageUrl,
+                ImageUrl = splitImages.FirstOrDefault() ?? p.ImageUrl,
+                ImageUrls = splitImages,
                 Rooms = p.Rooms.Select(MapRoomToDto).ToList()
             };
         }
@@ -853,44 +1298,6 @@ namespace ZHome.API.Controllers
                     ? r.Images.Select(i => i.MediaUrl).ToList()
                     : (!string.IsNullOrWhiteSpace(r.Property?.ImageUrl) ? new List<string> { r.Property.ImageUrl } : new List<string>())
             };
-        }
-
-        private string SaveBase64Image(string base64String, string prefix, string identifier)
-        {
-            if (string.IsNullOrEmpty(base64String)) return string.Empty;
-
-            var base64Data = base64String;
-            string extension = ".png";
-
-            if (base64String.Contains(","))
-            {
-                var parts = base64String.Split(',');
-                var header = parts[0];
-                base64Data = parts[1];
-
-                if (header.Contains("image/jpeg")) extension = ".jpg";
-                else if (header.Contains("image/webp")) extension = ".webp";
-                else if (header.Contains("image/gif")) extension = ".gif";
-            }
-
-            byte[] imageBytes = Convert.FromBase64String(base64Data);
-            
-            var webRootPath = _environment.WebRootPath;
-            if (string.IsNullOrEmpty(webRootPath))
-            {
-                webRootPath = System.IO.Path.Combine(_environment.ContentRootPath, "wwwroot");
-            }
-            var directoryPath = System.IO.Path.Combine(webRootPath, "media", "properties");
-            if (!System.IO.Directory.Exists(directoryPath))
-            {
-                System.IO.Directory.CreateDirectory(directoryPath);
-            }
-
-            string fileName = $"{prefix}_{identifier}_{DateTime.UtcNow.Ticks}{extension}";
-            var filePath = System.IO.Path.Combine(directoryPath, fileName);
-            System.IO.File.WriteAllBytes(filePath, imageBytes);
-
-            return $"/media/properties/{fileName}";
         }
     }
 }

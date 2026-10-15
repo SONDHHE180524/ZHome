@@ -11,7 +11,7 @@ export class ReportService {
 
   constructor(private http: HttpClient) {}
 
-  createReport(data: { title: string, content: string, contractId?: number, rating?: number }): Observable<any> {
+  createReport(data: { title: string, content: string, contractId?: number, propertyId?: number, rating?: number }): Observable<any> {
     return this.http.post<any>(this.apiUrl, data);
   }
 

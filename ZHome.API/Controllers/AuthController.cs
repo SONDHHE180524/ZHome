@@ -21,17 +21,20 @@ namespace ZHome.API.Controllers
         private readonly TokenService _tokenService;
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _environment;
         private readonly Services.INotificationService _notificationService;
+        private readonly Services.IMediaStorageService _mediaStorage;
 
         public AuthController(
             ZHomeDbContext context, 
             TokenService tokenService, 
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment,
-            Services.INotificationService notificationService)
+            Services.INotificationService notificationService,
+            Services.IMediaStorageService mediaStorage)
         {
             _context = context;
             _tokenService = tokenService;
             _environment = environment;
             _notificationService = notificationService;
+            _mediaStorage = mediaStorage;
         }
 
         [HttpPost("register")]
@@ -103,8 +106,8 @@ namespace ZHome.API.Controllers
             {
                 try
                 {
-                    frontUrl = SaveBase64Image(request.CccdFrontBase64!, "cccd_front", request.Phone);
-                    backUrl = SaveBase64Image(request.CccdBackBase64!, "cccd_back", request.Phone);
+                    frontUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdFrontBase64!, "cards", "cccd_front", request.Phone);
+                    backUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdBackBase64!, "cards", "cccd_back", request.Phone);
                 }
                 catch (Exception ex)
                 {
@@ -122,7 +125,7 @@ namespace ZHome.API.Controllers
                 CccdNumber = isLandlord ? request.CccdNumber : null,
                 CccdFrontUrl = frontUrl,
                 CccdBackUrl = backUrl,
-                VerificationStatus = isLandlord && request.SendVerificationRequest ? "Pending" : null,
+                VerificationStatus = isLandlord ? "Pending" : "Approved",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -130,19 +133,24 @@ namespace ZHome.API.Controllers
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            // Notify Admin if Landlord requested verification
-            if (user.VerificationStatus == "Pending")
+            // Gửi thông báo ngay cho Admin khi có Chủ trọ mới đăng ký chờ duyệt
+            if (isLandlord)
             {
                 await _notificationService.NotifyAdminsAsync(
-                    title: "Yêu cầu xác minh chủ trọ mới",
-                    message: $"Chủ trọ {user.FullName} ({user.Phone}) vừa gửi hồ sơ xác minh CCCD/chính chủ. Vui lòng kiểm tra và duyệt!",
+                    title: "Yêu cầu xét duyệt chủ trọ mới",
+                    message: $"Chủ trọ {user.FullName} ({user.Phone}) vừa đăng ký tài khoản. Vui lòng kiểm tra và phê duyệt hồ sơ!",
                     type: "LandlordVerification",
                     targetUrl: "/admin/verifications",
                     referenceId: user.Id
                 );
             }
 
-            return Ok(new { message = "Đăng ký tài khoản thành công!" });
+            return Ok(new 
+            { 
+                message = isLandlord 
+                    ? "Đăng ký tài khoản Chủ trọ thành công! Tài khoản của bạn đang chờ Quản trị viên xét duyệt trước khi có thể đăng nhập." 
+                    : "Đăng ký tài khoản người thuê thành công!" 
+            });
         }
 
         private string SaveBase64Image(string base64String, string prefix, string phone)
@@ -158,9 +166,10 @@ namespace ZHome.API.Controllers
                 var header = parts[0];
                 base64Data = parts[1];
 
-                if (header.Contains("image/jpeg")) extension = ".jpg";
+                if (header.Contains("image/jpeg") || header.Contains("image/jpg")) extension = ".jpg";
                 else if (header.Contains("image/webp")) extension = ".webp";
                 else if (header.Contains("image/gif")) extension = ".gif";
+                else if (header.Contains("image/png")) extension = ".png";
             }
 
             byte[] imageBytes = Convert.FromBase64String(base64Data);
@@ -201,14 +210,7 @@ namespace ZHome.API.Controllers
                 return Unauthorized("Số điện thoại hoặc mật khẩu không chính xác.");
             }
 
-            // Check if subscription has expired and reset to Free plan
-            if (user.SubscriptionEndDate.HasValue && user.SubscriptionEndDate.Value < DateTime.UtcNow)
-            {
-                user.SubscriptionId = 1; // Free package ID
-                user.SubscriptionEndDate = null;
-                await _context.SaveChangesAsync();
-            }
-
+            // Kiểm tra mật khẩu
             bool isPasswordCorrect = false;
             try
             {
@@ -223,6 +225,49 @@ namespace ZHome.API.Controllers
             {
                 return Unauthorized("Số điện thoại hoặc mật khẩu không chính xác.");
             }
+
+            // KIỂM TRA DUYỆT CHỦ TRỌ: Chủ trọ bắt buộc phải được Admin duyệt mới được vào hệ thống
+            if (user.Role != null && user.Role.RoleName.Equals("Landlord", StringComparison.OrdinalIgnoreCase))
+            {
+                if (user.VerificationStatus == "Pending" || string.IsNullOrEmpty(user.VerificationStatus) || user.VerificationStatus == "None")
+                {
+                    return BadRequest("Tài khoản của bạn đang chờ xét duyệt. Quản trị viên ZHome đang kiểm tra hồ sơ của bạn, vui lòng quay lại sau!");
+                }
+
+                if (user.VerificationStatus == "Rejected")
+                {
+                    return BadRequest("Tài khoản Chủ trọ của bạn đã bị từ chối xét duyệt. Vui lòng liên hệ Quản trị viên ZHome để được hỗ trợ.");
+                }
+            }
+
+            // Cập nhật thời gian hoạt động và ghi nhận lịch sử đăng nhập
+            user.LastLoginAt = DateTime.UtcNow;
+            user.LastActiveAt = DateTime.UtcNow;
+
+            try
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "127.0.0.1";
+                var userAgent = Request.Headers["User-Agent"].ToString();
+                if (userAgent.Length > 250) userAgent = userAgent.Substring(0, 250);
+
+                _context.ActivityLogs.Add(new ActivityLog
+                {
+                    UserId = user.Id,
+                    UserName = user.FullName,
+                    UserRole = user.Role?.RoleName ?? "Tenant",
+                    Action = "Đăng nhập",
+                    Description = $"Đăng nhập thành công vào hệ thống ZHome",
+                    IpAddress = ipAddress,
+                    UserAgent = userAgent,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ActivityLog Warning] {ex.Message}");
+            }
+
+            await _context.SaveChangesAsync();
 
             var token = _tokenService.CreateToken(user);
 
@@ -284,7 +329,9 @@ namespace ZHome.API.Controllers
                 BankName = user.BankName,
                 BankAccountNumber = user.BankAccountNumber,
                 BankAccountName = user.BankAccountName,
-                BankQrUrl = user.BankQrUrl
+                BankQrUrl = user.BankQrUrl,
+                CccdFrontUrl = user.CccdFrontUrl,
+                CccdBackUrl = user.CccdBackUrl
             });
         }
 
@@ -322,6 +369,39 @@ namespace ZHome.API.Controllers
                 user.CccdNumber = request.CccdNumber;
             }
 
+            // Cập nhật CCCD mặt trước & mặt sau
+            bool cccdUpdated = false;
+            if (!string.IsNullOrEmpty(request.CccdFrontBase64) && request.CccdFrontBase64.StartsWith("data:image"))
+            {
+                try
+                {
+                    user.CccdFrontUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdFrontBase64, "cards", "cccd_front", user.Phone);
+                    cccdUpdated = true;
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Không thể lưu ảnh mặt trước CCCD: " + ex.Message);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(request.CccdBackBase64) && request.CccdBackBase64.StartsWith("data:image"))
+            {
+                try
+                {
+                    user.CccdBackUrl = await _mediaStorage.SaveBase64ImageAsync(request.CccdBackBase64, "cards", "cccd_back", user.Phone);
+                    cccdUpdated = true;
+                }
+                catch (Exception ex)
+                {
+                    return BadRequest("Không thể lưu ảnh mặt sau CCCD: " + ex.Message);
+                }
+            }
+
+            if (cccdUpdated && user.Role?.RoleName == "Landlord" && user.VerificationStatus != "Approved")
+            {
+                user.VerificationStatus = "Pending";
+            }
+
             user.BankName = request.BankName;
             user.BankAccountNumber = request.BankAccountNumber;
             user.BankAccountName = request.BankAccountName;
@@ -332,7 +412,7 @@ namespace ZHome.API.Controllers
                 {
                     try
                     {
-                        var qrUrl = SaveBase64Image(request.BankQrBase64, "bank_qr", user.Phone);
+                        var qrUrl = await _mediaStorage.SaveBase64ImageAsync(request.BankQrBase64, "cards", "bank_qr", user.Phone);
                         user.BankQrUrl = qrUrl;
                     }
                     catch (Exception ex)
@@ -352,7 +432,7 @@ namespace ZHome.API.Controllers
             {
                 try
                 {
-                    var avatarUrl = SaveBase64Image(request.AvatarBase64, "avatar", user.Phone);
+                    var avatarUrl = await _mediaStorage.SaveBase64ImageAsync(request.AvatarBase64, "cards", "avatar", user.Phone);
                     user.AvatarUrl = avatarUrl;
                 }
                 catch (Exception ex)
@@ -380,7 +460,9 @@ namespace ZHome.API.Controllers
                 BankName = user.BankName,
                 BankAccountNumber = user.BankAccountNumber,
                 BankAccountName = user.BankAccountName,
-                BankQrUrl = user.BankQrUrl
+                BankQrUrl = user.BankQrUrl,
+                CccdFrontUrl = user.CccdFrontUrl,
+                CccdBackUrl = user.CccdBackUrl
             });
         }
 

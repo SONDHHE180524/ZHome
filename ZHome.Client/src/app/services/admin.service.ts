@@ -23,6 +23,10 @@ export class AdminService {
     return this.http.post<any>(`${this.apiUrl}/verifications/${userId}/reject`, { reason });
   }
 
+  updateLandlordCccd(userId: number, data: { cccdNumber?: string; cccdFrontBase64?: string; cccdBackBase64?: string }): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/verifications/${userId}/cccd`, data);
+  }
+
   getDashboardStats(): Observable<any> {
     return this.http.get<any>(`${this.apiUrl}/dashboard-stats`);
   }
@@ -44,5 +48,61 @@ export class AdminService {
       url += `?${params.join('&')}`;
     }
     return this.http.get<any[]>(url);
+  }
+
+  // Roles & User Management
+  getRoles(): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/roles`);
+  }
+
+  getUsers(keyword?: string, roleId?: number, verificationStatus?: string): Observable<any[]> {
+    let url = `${this.apiUrl}/users`;
+    const params: string[] = [];
+    if (keyword && keyword.trim()) params.push(`keyword=${encodeURIComponent(keyword.trim())}`);
+    if (roleId && roleId > 0) params.push(`roleId=${roleId}`);
+    if (verificationStatus && verificationStatus !== 'All') params.push(`verificationStatus=${encodeURIComponent(verificationStatus)}`);
+    if (params.length > 0) {
+      url += `?${params.join('&')}`;
+    }
+    return this.http.get<any[]>(url);
+  }
+
+  getUserById(id: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/users/${id}`);
+  }
+
+  createUser(data: any): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/users`, data);
+  }
+
+  updateUser(id: number, data: any): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/users/${id}`, data);
+  }
+
+  assignRole(id: number, roleId: number): Observable<any> {
+    return this.http.put<any>(`${this.apiUrl}/users/${id}/role`, { roleId });
+  }
+
+  deleteUser(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/users/${id}`);
+  }
+
+  getActivityLogs(params?: { userId?: number; role?: string; action?: string; keyword?: string; page?: number; pageSize?: number }): Observable<any> {
+    let url = `${this.apiUrl}/activity-logs`;
+    const queryParts: string[] = [];
+    if (params?.userId && params.userId > 0) queryParts.push(`userId=${params.userId}`);
+    if (params?.role && params.role !== 'All') queryParts.push(`role=${encodeURIComponent(params.role)}`);
+    if (params?.action && params.action !== 'All') queryParts.push(`action=${encodeURIComponent(params.action)}`);
+    if (params?.keyword && params.keyword.trim()) queryParts.push(`keyword=${encodeURIComponent(params.keyword.trim())}`);
+    if (params?.page) queryParts.push(`page=${params.page}`);
+    if (params?.pageSize) queryParts.push(`pageSize=${params.pageSize}`);
+    if (queryParts.length > 0) {
+      url += `?${queryParts.join('&')}`;
+    }
+    return this.http.get<any>(url);
+  }
+
+  getUserActivityLogs(userId: number): Observable<any> {
+    return this.http.get<any>(`${this.apiUrl}/users/${userId}/activity-logs`);
   }
 }

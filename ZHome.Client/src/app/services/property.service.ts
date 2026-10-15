@@ -27,6 +27,10 @@ export class PropertyService {
     return this.http.put<any>(`${this.apiUrl}/${id}`, data);
   }
 
+  deleteProperty(id: number): Observable<any> {
+    return this.http.delete<any>(`${this.apiUrl}/${id}`);
+  }
+
   updatePropertyImage(id: number, imageBase64: string): Observable<any> {
     return this.http.put<any>(`${this.apiUrl}/${id}/image`, { imageBase64 });
   }
@@ -37,6 +41,14 @@ export class PropertyService {
 
   addRoom(propertyId: number, roomData: any): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/${propertyId}/room`, roomData);
+  }
+
+  addRoomsBatch(propertyId: number, rooms: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${propertyId}/rooms/batch`, { rooms });
+  }
+
+  syncFloors(propertyId: number, floors: any[]): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/${propertyId}/sync-floors`, { floors });
   }
 
   getLandlordRoomDetail(roomId: number): Observable<any> {
@@ -90,7 +102,7 @@ export class PropertyService {
     return this.http.post<any>(`${this.apiUrl}/favorites/${roomId}`, {});
   }
 
-  getPropertyReports(propertyId: number): Observable<any[]> {
-    return this.http.get<any[]>(`${environment.apiUrl}/report/property/${propertyId}`);
+  getPropertyReports(propertyId: number): Observable<any> {
+    return this.http.get<any>(`${environment.apiUrl}/report/property/${propertyId}`);
   }
 }

@@ -30,6 +30,7 @@ namespace ZHome.API.Data
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<UserSession> UserSessions { get; set; }
         public DbSet<PageViewLog> PageViewLogs { get; set; }
+        public DbSet<ActivityLog> ActivityLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

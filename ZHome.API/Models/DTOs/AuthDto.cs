@@ -69,6 +69,8 @@ namespace ZHome.API.Models.DTOs
         public string? BankAccountNumber { get; set; }
         public string? BankAccountName { get; set; }
         public string? BankQrUrl { get; set; }
+        public string? CccdFrontUrl { get; set; }
+        public string? CccdBackUrl { get; set; }
     }
 
     public class UpdateProfileRequest
@@ -82,6 +84,8 @@ namespace ZHome.API.Models.DTOs
         public string? Email { get; set; }
 
         public string? CccdNumber { get; set; }
+        public string? CccdFrontBase64 { get; set; }
+        public string? CccdBackBase64 { get; set; }
         public string? AvatarBase64 { get; set; }
         public string? BankName { get; set; }
         public string? BankAccountNumber { get; set; }

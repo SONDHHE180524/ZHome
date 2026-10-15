@@ -18,11 +18,16 @@ namespace ZHome.API.Models.DTOs
         public decimal? Latitude { get; set; }
         public decimal? Longitude { get; set; }
         public string? ImageBase64 { get; set; }
+        public List<string>? ImageBase64s { get; set; }
+        public List<string>? ExistingImageUrls { get; set; }
+        public bool? IsVerifiedTick { get; set; }
     }
 
     public class UpdatePropertyImageDto
     {
-        public string ImageBase64 { get; set; } = string.Empty;
+        public string? ImageBase64 { get; set; }
+        public List<string>? ImageBase64s { get; set; }
+        public List<string>? ExistingImageUrls { get; set; }
     }
 
     public class PropertyResponseDto
@@ -37,6 +42,7 @@ namespace ZHome.API.Models.DTOs
         public bool IsVerifiedTick { get; set; }
         public int ViewCount { get; set; }
         public string? ImageUrl { get; set; }
+        public List<string> ImageUrls { get; set; } = new();
         public List<RoomResponseDto> Rooms { get; set; } = new();
     }
 
@@ -61,6 +67,27 @@ namespace ZHome.API.Models.DTOs
         public List<string> Amenities { get; set; } = new();
         public List<string> ImageUrls { get; set; } = new();
         public List<string> ImageBase64s { get; set; } = new();
+    }
+
+    public class BatchCreateRoomsDto
+    {
+        public List<RoomCreateDto> Rooms { get; set; } = new();
+    }
+
+    public class SyncPropertyFloorsDto
+    {
+        public List<FloorConfigItemDto> Floors { get; set; } = new();
+    }
+
+    public class FloorConfigItemDto
+    {
+        public int FloorNumber { get; set; }
+        public string FloorName { get; set; } = string.Empty;
+        public string StartRoom { get; set; } = string.Empty;
+        public string EndRoom { get; set; } = string.Empty;
+        public decimal Price { get; set; }
+        public decimal Area { get; set; }
+        public int MaxOccupants { get; set; } = 2;
     }
 
     public class RoomResponseDto

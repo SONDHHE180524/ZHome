@@ -159,29 +159,33 @@ namespace ZHome.API.Controllers
                 return BadRequest("Hợp đồng này đã kết thúc trước đó.");
             }
 
-            // Update contract status
-            contract.Status = "Terminated";
-            await _context.SaveChangesAsync();
-
-            var roomId = contract.RoomId;
-            var room = await _context.Rooms.FindAsync(roomId);
-
-            var remainingContracts = await _context.Contracts
-                .Where(c => c.RoomId == roomId && c.Status == "Active")
-                .ToListAsync();
-
-            if (remainingContracts.Count > 0 && room != null)
+            await using var tx = await _context.Database.BeginTransactionAsync();
+            try
             {
-                // Just keep them as is
-            }
-            else if (contract.Room != null)
-            {
-                // Reset room status to Available if no tenants remain
-                contract.Room.Status = "Available";
+                // Update contract status
+                contract.Status = "Terminated";
+
+                var roomId = contract.RoomId;
+                var remainingContracts = await _context.Contracts
+                    .Where(c => c.RoomId == roomId && c.Id != contract.Id && c.Status == "Active")
+                    .ToListAsync();
+
+                if (remainingContracts.Count == 0 && contract.Room != null)
+                {
+                    // Reset room status to Available if no tenants remain
+                    contract.Room.Status = "Available";
+                }
+
                 await _context.SaveChangesAsync();
-            }
+                await tx.CommitAsync();
 
-            return Ok(new { message = "Làm thủ tục trả phòng thành công!" });
+                return Ok(new { message = "Làm thủ tục trả phòng thành công!" });
+            }
+            catch (Exception ex)
+            {
+                await tx.RollbackAsync();
+                return StatusCode(500, new { message = "Lỗi xảy ra trong quá trình trả phòng: " + ex.Message });
+            }
         }
 
         // Get active contracts for landlord properties

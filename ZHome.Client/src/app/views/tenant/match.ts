@@ -5620,7 +5620,8 @@ export class TenantMatchComponent implements OnInit {
 
   getImageUrl(url?: string): string {
     if (!url) return 'assets/default-room.jpg';
+    if (url.includes(',')) url = url.split(',')[0].trim();
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image')) return url;
-    return `${environment.baseUrl}${url}`;
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
   }
 }

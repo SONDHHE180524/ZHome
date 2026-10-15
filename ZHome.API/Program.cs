@@ -76,6 +76,8 @@ builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<MatchingService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IMediaStorageService, MediaStorageService>();
+builder.Services.AddScoped<IBillService, BillService>();
 
 // Cấu hình cài đặt thanh toán (SePay & PayOS) từ appsettings.json
 builder.Services.Configure<SePaySettings>(builder.Configuration.GetSection("SePay"));
@@ -86,8 +88,13 @@ builder.Services.AddScoped<ISePayService, SePayService>();
 builder.Services.AddScoped<IPayOSService, PayOSService>();
 builder.Services.AddSingleton<PaymentOrderStore>();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString;
+    });
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSignalR();
 
 // ==========================================
 // 4. CẤU HÌNH SWAGGER UI
@@ -137,6 +144,21 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidAudience = jwtAudience,
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
+        };
+
+        // Cho phép SignalR WebSockets xác thực qua Query String access_token
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"];
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+                return Task.CompletedTask;
+            }
         };
     });
 
@@ -284,7 +306,31 @@ using (var scope = app.Services.CreateScope())
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_number VARCHAR(50);
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_account_name VARCHAR(100);
                         ALTER TABLE public.users ADD COLUMN IF NOT EXISTS bank_qr_url VARCHAR(500);
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_active_at TIMESTAMP WITH TIME ZONE;
+                        ALTER TABLE public.users ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMP WITH TIME ZONE;
                     END IF;
+
+                    CREATE TABLE IF NOT EXISTS public.activity_logs (
+                        id BIGSERIAL PRIMARY KEY,
+                        user_id BIGINT NULL REFERENCES public.users(id) ON DELETE SET NULL,
+                        user_name VARCHAR(150),
+                        user_role VARCHAR(50),
+                        action VARCHAR(100) NOT NULL,
+                        description TEXT,
+                        ip_address VARCHAR(50),
+                        user_agent VARCHAR(255),
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS ix_activity_logs_user_id ON public.activity_logs(user_id);
+                    CREATE INDEX IF NOT EXISTS ix_activity_logs_created_at ON public.activity_logs(created_at);
+
+                    CREATE TABLE IF NOT EXISTS public.media_files (
+                        id VARCHAR(255) PRIMARY KEY,
+                        content_type VARCHAR(100) NOT NULL,
+                        data BYTEA NOT NULL,
+                        created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                    );
+                    CREATE INDEX IF NOT EXISTS ix_media_files_created_at ON public.media_files(created_at);
                 END $$;
             ");
         }
@@ -340,6 +386,10 @@ using (var scope = app.Services.CreateScope())
             ");
         }
 
+        // Tự động sao lưu và đồng bộ toàn bộ file ảnh từ đĩa cứng lên database PostgreSQL (chống mất ảnh khi restart server)
+        var mediaStorage = scope.ServiceProvider.GetRequiredService<IMediaStorageService>();
+        await mediaStorage.SyncLocalDiskToDbAsync();
+
         // Tự động seed bổ sung đầy đủ danh sách Xã/Thị trấn/Phường cho tất cả 30 quận huyện Hà Nội
         await LocationSeeder.SeedMissingLocationsAsync(dbContext);
 
@@ -348,6 +398,9 @@ using (var scope = app.Services.CreateScope())
 
         // Tự động seed thống kê truy cập & hành vi người dùng (Analytics)
         await AnalyticsSeeder.SeedAnalyticsDataAsync(dbContext);
+
+        // Tự động cập nhật gói cước (99k, 199k) và seed dữ liệu mẫu nhà trọ & sàn ghép trọ
+        await SampleDataSeeder.SeedAsync(dbContext);
     }
     catch (Exception ex)
     {
@@ -384,7 +437,86 @@ app.UseExceptionHandler(errorApp =>
     });
 });
 
-app.UseStaticFiles();
+// ==========================================
+// TỰ ĐỘNG ĐỒNG BỘ MEDIA/UPLOADS TỪ PRODUCTION (RENDER) NẾU LOCALHOST CHƯA CÓ
+// ==========================================
+app.Use(async (context, next) =>
+{
+    var path = context.Request.Path.Value ?? "";
+    if (path.StartsWith("/media/", StringComparison.OrdinalIgnoreCase) || 
+        path.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
+    {
+        var env = context.RequestServices.GetRequiredService<IWebHostEnvironment>();
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        var relativeFilePath = path.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+        var localFilePath = Path.Combine(webRoot, relativeFilePath);
+
+        // 1. Nếu chưa có trên đĩa cứng, kiểm tra xem có trong database PostgreSQL (Supabase) không
+        if (!File.Exists(localFilePath))
+        {
+            try
+            {
+                var mediaStorage = context.RequestServices.GetRequiredService<IMediaStorageService>();
+                var parts = path.TrimStart('/').Split('/');
+                if (parts.Length >= 3)
+                {
+                    var folder = parts[1];
+                    var fileName = parts[2];
+                    var dbMedia = await mediaStorage.GetImageAsync(folder, fileName);
+                    if (dbMedia != null)
+                    {
+                        context.Response.ContentType = dbMedia.Value.ContentType;
+                        context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+                        await context.Response.Body.WriteAsync(dbMedia.Value.Data);
+                        return;
+                    }
+                }
+            }
+            catch { }
+
+            // 2. Nếu trong DB không có, thử kéo nhanh từ server remote với timeout 1.5s
+            try
+            {
+                var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+                var client = httpClientFactory.CreateClient();
+                client.Timeout = TimeSpan.FromSeconds(1.5);
+                var remoteUrl = $"https://zhome-be.onrender.com{path}";
+                var response = await client.GetAsync(remoteUrl);
+                if (response.IsSuccessStatusCode)
+                {
+                    var bytes = await response.Content.ReadAsByteArrayAsync();
+                    var dir = Path.GetDirectoryName(localFilePath);
+                    if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    {
+                        Directory.CreateDirectory(dir);
+                    }
+                    await File.WriteAllBytesAsync(localFilePath, bytes);
+
+                    var contentType = response.Content.Headers.ContentType?.ToString() ?? "image/jpeg";
+                    context.Response.ContentType = contentType;
+                    context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+                    await context.Response.Body.WriteAsync(bytes);
+                    return;
+                }
+            }
+            catch
+            {
+                // Bỏ qua nếu lỗi mạng và chuyển tiếp sang pipeline kế tiếp (trả 404 bình thường)
+            }
+        }
+    }
+
+    await next();
+});
+
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Cache toàn bộ ảnh/static files trong 30 ngày trên browser, tải lại trang sẽ lấy trực tiếp từ memory/disk cache 0ms
+        ctx.Context.Response.Headers["Cache-Control"] = "public, max-age=2592000, immutable";
+    }
+});
 
 app.UseRouting();
 
@@ -392,11 +524,13 @@ app.UseRouting();
 app.UseCors("AllowFrontend");
 
 // Kích hoạt Rate Limiter chống spam request và DDoS/Brute-force
+//ss
 app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<ZHome.API.Hubs.NotificationHub>("/hubs/notifications");
 
 app.Run();

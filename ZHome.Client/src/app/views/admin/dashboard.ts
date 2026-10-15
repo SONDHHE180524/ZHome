@@ -55,80 +55,98 @@ import { ToastService } from '../../services/toast.service';
       } @else {
         <!-- KPI Cards Grid with Simple Modern Tinted Icons -->
         <div class="kpi-grid">
-          <div class="kpi-card">
-            <div class="kpi-icon kpi-icon-blue">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                <polyline points="9 22 9 12 15 12 15 22"/>
-              </svg>
-            </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Tổng Nhà Trọ</span>
-              <strong class="kpi-value text-blue">{{ stats()?.totalProperties || 0 }}</strong>
-              <span class="kpi-sub">Trọ hoạt động trên hệ thống</span>
-            </div>
-          </div>
-
-          <div class="kpi-card">
-            <div class="kpi-icon kpi-icon-indigo">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <!-- Card 1: Tổng Chủ Trọ -->
+          <div class="kpi-card card-indigo">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
               </svg>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Tổng Chủ Trọ</span>
               <strong class="kpi-value text-indigo">{{ stats()?.totalLandlords || 0 }}</strong>
-              <span class="kpi-sub">Tài khoản đăng ký chủ trọ</span>
+              <span class="kpi-sub">Tài khoản chủ trọ hệ thống</span>
             </div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-icon kpi-icon-emerald">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2"/>
-                <path d="M9 3v18"/>
-                <path d="M15 3v18"/>
-                <path d="M3 9h18"/>
-                <path d="M3 15h18"/>
+          <!-- Card 2: Số Người Thuê -->
+          <div class="kpi-card card-blue">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Số Người Thuê</span>
+              <strong class="kpi-value text-blue">{{ stats()?.totalTenants || 0 }}</strong>
+              <span class="kpi-sub">Khách tìm trọ & đang thuê</span>
+            </div>
+          </div>
+
+          <!-- Card 3: Tổng Số Phòng -->
+          <div class="kpi-card card-emerald">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                <path d="M4 3l10 2.5v13L4 21V3z"></path>
+                <circle cx="11.5" cy="12" r="1" fill="currentColor"></circle>
               </svg>
             </div>
             <div class="kpi-info">
               <span class="kpi-label">Tổng Số Phòng</span>
-              <strong class="kpi-value text-emerald">{{ stats()?.totalRooms || 0 }}</strong>
-              <span class="kpi-sub">
-                <span class="text-success">{{ stats()?.vacantRooms || 0 }} phòng trống</span> / {{ stats()?.occupiedRooms || 0 }} đang thuê
-              </span>
+              <strong class="kpi-value">{{ stats()?.totalRooms || 0 }}</strong>
+              <span class="kpi-sub">{{ stats()?.totalProperties || 0 }} nhà trọ toàn sàn</span>
             </div>
           </div>
 
-          <div class="kpi-card">
-            <div class="kpi-icon kpi-icon-amber">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                <polyline points="9 12 11 14 15 10"/>
+          <!-- Card 4: Số Phòng Đang Cho Thuê & Phòng Trống -->
+          <div class="kpi-card card-cyan">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <circle cx="12" cy="13" r="2.5"></circle>
               </svg>
             </div>
             <div class="kpi-info">
-              <span class="kpi-label">Duyệt Hồ Sơ</span>
+              <span class="kpi-label">Phòng Đang Thuê / Trống</span>
+              <strong class="kpi-value text-cyan">{{ stats()?.occupiedRooms || 0 }} <span class="kpi-sub-unit">/ {{ stats()?.vacantRooms || 0 }} trống</span></strong>
+              <span class="kpi-sub">{{ stats()?.occupiedRooms || 0 }} phòng đã có người ở</span>
+            </div>
+          </div>
+
+          <!-- Card 5: Duyệt Chủ Trọ Chờ Xử Lý -->
+          <div class="kpi-card card-amber">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="M12 8v4"></path>
+                <path d="M12 16h.01"></path>
+              </svg>
+            </div>
+            <div class="kpi-info">
+              <span class="kpi-label">Duyệt Chủ Trọ</span>
               <strong class="kpi-value text-amber">{{ stats()?.pendingVerifications || 0 }}</strong>
-              <span class="kpi-sub">Chủ trọ đang chờ xác minh</span>
+              <span class="kpi-sub">Chủ trọ đang chờ xét duyệt</span>
             </div>
           </div>
 
-          <div class="kpi-card span-2">
-            <div class="kpi-icon kpi-icon-purple">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="2"/>
-                <line x1="2" y1="10" x2="22" y2="10"/>
+          <!-- Card 6: Tổng Doanh Thu Giao Dịch Sàn -->
+          <div class="kpi-card card-purple">
+            <div class="kpi-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="5" width="20" height="14" rx="3"></rect>
+                <path d="M2 10h20"></path>
+                <circle cx="17" cy="14.5" r="1.2" fill="currentColor"></circle>
               </svg>
             </div>
             <div class="kpi-info">
-              <span class="kpi-label">Tổng Doanh Thu Giao Dịch Hóa Đơn</span>
-              <strong class="kpi-value text-purple">{{ (stats()?.totalTransactionsRevenue || 0) | number:'1.0-0' }} VNĐ</strong>
-              <span class="kpi-sub">Tổng tiền giao dịch thanh toán qua ZHome</span>
+              <span class="kpi-label">Doanh Thu Giao Dịch</span>
+              <strong class="kpi-value text-purple">{{ (stats()?.totalTransactionsRevenue || 0) | number:'1.0-0' }} <span class="kpi-sub-unit">VNĐ</span></strong>
+              <span class="kpi-sub">Dòng tiền thanh toán qua ZHome</span>
             </div>
           </div>
         </div>
@@ -140,12 +158,33 @@ import { ToastService } from '../../services/toast.service';
         </div>
 
         <div class="admin-modules-grid">
+          <a routerLink="/admin/users" class="module-card">
+            <div class="module-header">
+              <div class="module-icon icon-purple">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <span class="module-tag tag-purple">Phân quyền</span>
+            </div>
+            <h3>Quản Lý Tài Khoản & Phân Quyền</h3>
+            <p>CRUD tài khoản, chỉ định quyền Administrator / Landlord / Tenant, cấp gói cước và đặt lại mật khẩu người dùng.</p>
+            <div class="module-footer">
+              <span>Quản lý người dùng</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
+
           <a routerLink="/admin/verifications" class="module-card">
             <div class="module-header">
-              <div class="module-icon module-icon-amber">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  <polyline points="9 12 11 14 15 10"/>
+              <div class="module-icon icon-amber">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="8.5" cy="7" r="4"></circle>
+                  <polyline points="17 11 19 13 23 9"></polyline>
                 </svg>
               </div>
               <span class="module-tag tag-warning">Cần xử lý</span>
@@ -160,10 +199,17 @@ import { ToastService } from '../../services/toast.service';
 
           <a routerLink="/admin/properties" class="module-card">
             <div class="module-header">
-              <div class="module-icon module-icon-blue">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                  <polyline points="9 22 9 12 15 12 15 22"/>
+              <div class="module-icon icon-blue">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M10 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"></path>
+                  <path d="M2 22v-6.5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2V22"></path>
+                  <line x1="14" y1="7" x2="14.01" y2="7"></line>
+                  <line x1="18" y1="7" x2="18.01" y2="7"></line>
+                  <line x1="14" y1="11" x2="14.01" y2="11"></line>
+                  <line x1="18" y1="11" x2="18.01" y2="11"></line>
+                  <line x1="14" y1="15" x2="14.01" y2="15"></line>
+                  <line x1="18" y1="15" x2="18.01" y2="15"></line>
+                  <path d="M2 22h20"></path>
                 </svg>
               </div>
               <span class="module-tag tag-primary">Tất cả trọ</span>
@@ -178,10 +224,11 @@ import { ToastService } from '../../services/toast.service';
 
           <a routerLink="/admin/transactions" class="module-card">
             <div class="module-header">
-              <div class="module-icon module-icon-emerald">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="5" width="20" height="14" rx="2"/>
-                  <line x1="2" y1="10" x2="22" y2="10"/>
+              <div class="module-icon icon-emerald">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="5" width="20" height="14" rx="3"></rect>
+                  <path d="M2 10h20"></path>
+                  <circle cx="17" cy="14.5" r="1.2" fill="currentColor"></circle>
                 </svg>
               </div>
               <span class="module-tag tag-success">Dòng tiền</span>
@@ -218,9 +265,9 @@ import { ToastService } from '../../services/toast.service';
   `,
   styles: [`
     .admin-dashboard-container {
-      max-width: 1320px;
+      width: 100%;
       margin: 0 auto;
-      padding: 32px 24px;
+      padding: 10px 0 32px 0;
     }
 
     .dash-header {
@@ -369,6 +416,13 @@ import { ToastService } from '../../services/toast.service';
       border: 1px solid #1e293b;
     }
 
+    .card-blue .kpi-icon { background: #eff6ff; }
+    .card-indigo .kpi-icon { background: #e0e7ff; }
+    .card-emerald .kpi-icon { background: #ecfdf5; }
+    .card-cyan .kpi-icon { background: #ecfeff; }
+    .card-amber .kpi-icon { background: #fffbeb; }
+    .card-purple .kpi-icon { background: #f3e8ff; }
+
     .kpi-info {
       display: flex;
       flex-direction: column;
@@ -390,8 +444,15 @@ import { ToastService } from '../../services/toast.service';
       margin: 4px 0;
     }
 
+    .text-purple { color: #7c3aed; }
+    .text-indigo { color: #4f46e5; }
+    .text-blue { color: #0284c7; }
+    .text-cyan { color: #0891b2; }
+    .text-amber { color: #d97706; }
+    .text-success { color: #16a34a; font-weight: 700; }
     .text-dark { color: #0f172a; }
     .text-dark-bold { color: #0f172a; font-weight: 700; }
+    .kpi-sub-unit { font-size: 0.95rem; font-weight: 600; color: #64748b; }
 
     .kpi-sub {
       font-size: 0.8rem;
