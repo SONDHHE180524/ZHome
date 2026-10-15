@@ -30,6 +30,17 @@ namespace ZHome.API.Services
         {
             try
             {
+                var landlord = await _context.Users.FindAsync(landlordId);
+                if (landlord == null)
+                {
+                    return (false, "Không tìm thấy thông tin chủ trọ.");
+                }
+
+                if (string.IsNullOrWhiteSpace(landlord.BankName) || string.IsNullOrWhiteSpace(landlord.BankAccountNumber))
+                {
+                    return (false, "MISSING_BANK_ACCOUNT: Bạn chưa cập nhật số tài khoản ngân hàng. Vui lòng thiết lập thông tin ngân hàng thụ hưởng trước khi lập hóa đơn cho người thuê.");
+                }
+
                 var strategy = _context.Database.CreateExecutionStrategy();
                 return await strategy.ExecuteAsync(async () =>
                 {

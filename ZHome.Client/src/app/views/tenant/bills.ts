@@ -310,9 +310,49 @@ import { environment } from '../../../environments/environment';
                   </div>
                 } @else if (payOSData()) {
                   <div class="qr-display-box my-3">
-                    <div class="qr-frame" style="padding: 12px; background: #ffffff; border-radius: 16px; border: 2px solid #10b981; display: inline-block;">
-                      <img [src]="payOSData()?.qrCodeUrl" alt="SePay VietQR Code" class="qr-code-img" style="width: 210px; height: 210px; object-fit: contain;">
+                    @if (payOSData()?.hasCustomQr && payOSData()?.vietQrUrl) {
+                      <div class="d-flex justify-content-center gap-2 mb-2">
+                        <button type="button" 
+                                class="btn btn-sm" 
+                                [style.background]="selectedQrMode() === 'custom' ? '#10b981' : '#f1f5f9'"
+                                [style.color]="selectedQrMode() === 'custom' ? '#ffffff' : '#475569'"
+                                [style.border]="selectedQrMode() === 'custom' ? '1px solid #10b981' : '1px solid #cbd5e1'"
+                                style="border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 4px 10px;"
+                                (click)="selectedQrMode.set('custom')">
+                          🖼️ Mã QR gốc chủ trọ
+                        </button>
+                        <button type="button" 
+                                class="btn btn-sm"
+                                [style.background]="selectedQrMode() === 'vietqr' ? '#10b981' : '#f1f5f9'"
+                                [style.color]="selectedQrMode() === 'vietqr' ? '#ffffff' : '#475569'"
+                                [style.border]="selectedQrMode() === 'vietqr' ? '1px solid #10b981' : '1px solid #cbd5e1'"
+                                style="border-radius: 8px; font-weight: 600; font-size: 0.8rem; padding: 4px 10px;"
+                                (click)="selectedQrMode.set('vietqr')">
+                          ⚡ VietQR tự điền số tiền
+                        </button>
+                      </div>
+                    }
+
+                    <div class="qr-frame" style="padding: 10px; background: #ffffff; border-radius: 16px; border: 2px solid #10b981; display: inline-block; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);">
+                      <img [src]="getCurrentQrUrl()" 
+                           (error)="onQrImageError()" 
+                           alt="Mã QR thanh toán" 
+                           class="qr-code-img" 
+                           style="width: 220px; height: 220px; object-fit: contain; border-radius: 8px; display: block; margin: 0 auto;">
                     </div>
+
+                    <div class="qr-info-note mt-2 text-center">
+                      @if (selectedQrMode() === 'custom' && payOSData()?.hasCustomQr) {
+                        <small class="text-muted d-block" style="font-size: 0.78rem;">
+                          ℹ️ Mã QR gốc do chủ trọ cung cấp. Vui lòng quét và kiểm tra số tiền trước khi xác nhận chuyển.
+                        </small>
+                      } @else {
+                        <small class="text-muted d-block" style="font-size: 0.78rem;">
+                          ⚡ Mã VietQR động: Quét trên app ngân hàng sẽ tự điền sẵn số tiền & nội dung chuyển khoản.
+                        </small>
+                      }
+                    </div>
+
                     <div class="polling-status mt-2">
                       <span class="spinner-pulse"></span>
                       <span class="text-sm font-medium" style="color: #059669;">Hệ thống tự động chờ nhận tiền hoặc gửi ảnh biên lai bên dưới</span>
@@ -837,6 +877,11 @@ export class TenantBillsComponent implements OnInit, OnDestroy {
       next: (res) => {
         this.isCreatingPayment.set(false);
         this.payOSData.set(res);
+        if (res.hasCustomQr) {
+          this.selectedQrMode.set('custom');
+        } else {
+          this.selectedQrMode.set('vietqr');
+        }
         this.startPolling(res.orderCode);
       },
       error: (err) => {
@@ -844,6 +889,38 @@ export class TenantBillsComponent implements OnInit, OnDestroy {
         this.toastService.show(err.error?.message || 'Không thể tạo mã QR thanh toán.', 'error');
       }
     });
+  }
+
+  selectedQrMode = signal<'custom' | 'vietqr'>('custom');
+
+  formatQrUrl(url?: string): string {
+    if (!url) return '';
+    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
+      return url;
+    }
+    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+  }
+
+  getCurrentQrUrl(): string {
+    const data = this.payOSData();
+    if (!data) return '';
+    let target = '';
+    if (this.selectedQrMode() === 'custom' && data.customQrUrl) {
+      target = data.customQrUrl;
+    } else if (this.selectedQrMode() === 'vietqr' && data.vietQrUrl) {
+      target = data.vietQrUrl;
+    } else {
+      target = data.qrCodeUrl || data.customQrUrl || data.vietQrUrl || '';
+    }
+    return this.formatQrUrl(target);
+  }
+
+  onQrImageError(): void {
+    if (this.selectedQrMode() === 'custom' && this.payOSData()?.vietQrUrl) {
+      this.selectedQrMode.set('vietqr');
+    } else if (this.selectedQrMode() === 'vietqr' && this.payOSData()?.customQrUrl) {
+      this.selectedQrMode.set('custom');
+    }
   }
 
   startPolling(orderCode: number): void {
