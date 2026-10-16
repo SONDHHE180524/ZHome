@@ -193,7 +193,12 @@ namespace ZHome.API.Models.DTOs
         public long RoomId { get; set; }
         public string RoomNumber { get; set; } = string.Empty;
         public decimal Price { get; set; }
+        public decimal? MinPrice { get; set; }
+        public decimal? MaxPrice { get; set; }
+        public string? PriceDisplay { get; set; }
         public decimal Area { get; set; }
+        public decimal? MinArea { get; set; }
+        public decimal? MaxArea { get; set; }
         public int MaxOccupants { get; set; }
         public string Status { get; set; } = string.Empty;
         public string? Description { get; set; }

@@ -1358,7 +1358,11 @@ namespace ZHome.API.Controllers
                 {
                     PropertyId = g.Key,
                     TotalRooms = g.Count(),
-                    VacantRooms = g.Count(rm => rm.Status == "Available")
+                    VacantRooms = g.Count(rm => rm.Status == "Available"),
+                    MinPrice = g.Min(rm => rm.Price),
+                    MaxPrice = g.Max(rm => rm.Price),
+                    MinArea = g.Min(rm => rm.Area),
+                    MaxArea = g.Max(rm => rm.Area)
                 })
                 .ToDictionaryAsync(x => x.PropertyId);
             
@@ -1374,34 +1378,65 @@ namespace ZHome.API.Controllers
                 })
                 .ToDictionaryAsync(x => x.PropertyId);
 
-            var listings = rooms.Select(r => new PropertyListingDto
+            // Nhóm theo từng nhà trọ: Mỗi trọ chỉ đăng lên 1 phòng/tin đại diện
+            var groupedProperties = rooms.GroupBy(r => r.PropertyId).ToList();
+
+            var listings = groupedProperties.Select(g =>
             {
-                PropertyId = r.PropertyId,
-                PropertyTitle = r.Property?.Title ?? string.Empty,
-                Address = r.Property?.Address ?? string.Empty,
-                IsVerifiedTick = r.Property?.IsVerifiedTick == true || r.Property?.Landlord?.VerificationStatus == "Approved",
-                LandlordId = r.Property?.LandlordId ?? 0,
-                LandlordName = r.Property?.Landlord?.FullName ?? "Chủ nhà ẩn danh",
-                LandlordPhone = r.Property?.Landlord?.Phone ?? string.Empty,
-                TotalRooms = propertyRoomStats.ContainsKey(r.PropertyId) ? propertyRoomStats[r.PropertyId].TotalRooms : 1,
-                VacantRoomsCount = propertyRoomStats.ContainsKey(r.PropertyId) ? propertyRoomStats[r.PropertyId].VacantRooms : (r.Status == "Available" ? 1 : 0),
-                RoomId = r.Id,
-                RoomNumber = r.RoomNumber,
-                Price = r.Price,
-                Area = r.Area,
-                MaxOccupants = r.MaxOccupants,
-                Status = r.Status,
-                Description = r.Property?.Description,
-                Amenities = r.Amenities.Select(a => a.AmenityName).ToList(),
-                ImageUrls = r.Images != null && r.Images.Any() 
-                    ? r.Images.Select(i => i.MediaUrl).ToList() 
-                    : (!string.IsNullOrWhiteSpace(r.Property?.ImageUrl) ? new List<string> { r.Property.ImageUrl } : new List<string>()),
-                AverageRating = propertyRatings.ContainsKey(r.PropertyId) ? Math.Round(propertyRatings[r.PropertyId].AverageRating, 1) : 5.0,
-                ReviewCount = propertyRatings.ContainsKey(r.PropertyId) ? propertyRatings[r.PropertyId].ReviewCount : 0,
-                ViewCount = r.Property?.ViewCount ?? 0,
-                IsFavorite = favoriteRoomIds.Contains(r.Id),
-                SubscriptionId = r.Property?.Landlord?.SubscriptionId ?? 1,
-                PropertyImageUrl = r.Property?.ImageUrl
+                var propertyId = g.Key;
+                // Ưu tiên chọn phòng còn trống, giá thấp nhất làm đại diện
+                var repRoom = g.OrderBy(r => r.Status == "Available" ? 0 : 1)
+                               .ThenBy(r => r.Price)
+                               .First();
+                var prop = repRoom.Property;
+
+                var stats = propertyRoomStats.ContainsKey(propertyId) ? propertyRoomStats[propertyId] : null;
+                var totalRooms = stats?.TotalRooms ?? g.Count();
+                var vacantRooms = stats?.VacantRooms ?? g.Count(r => r.Status == "Available");
+                var minPrice = stats?.MinPrice ?? g.Min(r => r.Price);
+                var maxPrice = stats?.MaxPrice ?? g.Max(r => r.Price);
+                var minArea = stats?.MinArea ?? g.Min(r => r.Area);
+                var maxArea = stats?.MaxArea ?? g.Max(r => r.Area);
+
+                var allAmenities = g.SelectMany(r => r.Amenities.Select(a => a.AmenityName)).Distinct().ToList();
+                var allImages = g.SelectMany(r => r.Images != null ? r.Images.Select(i => i.MediaUrl) : Enumerable.Empty<string>()).Distinct().ToList();
+                if (!string.IsNullOrEmpty(prop?.ImageUrl) && !allImages.Contains(prop.ImageUrl))
+                {
+                    allImages.Insert(0, prop.ImageUrl);
+                }
+
+                return new PropertyListingDto
+                {
+                    PropertyId = propertyId,
+                    PropertyTitle = prop?.Title ?? string.Empty,
+                    Address = prop?.Address ?? string.Empty,
+                    IsVerifiedTick = prop?.IsVerifiedTick == true || prop?.Landlord?.VerificationStatus == "Approved",
+                    LandlordId = prop?.LandlordId ?? 0,
+                    LandlordName = prop?.Landlord?.FullName ?? "Chủ nhà ẩn danh",
+                    LandlordPhone = prop?.Landlord?.Phone ?? string.Empty,
+                    TotalRooms = totalRooms,
+                    VacantRoomsCount = vacantRooms,
+                    RoomId = repRoom.Id,
+                    RoomNumber = repRoom.RoomNumber,
+                    Price = minPrice,
+                    MinPrice = minPrice,
+                    MaxPrice = maxPrice,
+                    PriceDisplay = FormatPriceDisplay(minPrice, maxPrice),
+                    Area = minArea,
+                    MinArea = minArea,
+                    MaxArea = maxArea,
+                    MaxOccupants = repRoom.MaxOccupants,
+                    Status = vacantRooms > 0 ? "Available" : "Occupied",
+                    Description = prop?.Description,
+                    Amenities = allAmenities,
+                    ImageUrls = allImages,
+                    AverageRating = propertyRatings.ContainsKey(propertyId) ? Math.Round(propertyRatings[propertyId].AverageRating, 1) : 5.0,
+                    ReviewCount = propertyRatings.ContainsKey(propertyId) ? propertyRatings[propertyId].ReviewCount : 0,
+                    ViewCount = prop?.ViewCount ?? 0,
+                    IsFavorite = g.Any(r => favoriteRoomIds.Contains(r.Id)),
+                    SubscriptionId = prop?.Landlord?.SubscriptionId ?? 1,
+                    PropertyImageUrl = prop?.ImageUrl
+                };
             })
             .OrderByDescending(x => x.IsFavorite)
             .ThenByDescending(x => x.SubscriptionId)
@@ -1410,6 +1445,31 @@ namespace ZHome.API.Controllers
             .ToList();
 
             return Ok(listings);
+        }
+
+        private static string FormatPriceDisplay(decimal minPrice, decimal maxPrice)
+        {
+            static string FormatPart(decimal val)
+            {
+                if (val <= 0) return "0 đ";
+                if (val >= 1_000_000m)
+                {
+                    var tr = val / 1_000_000m;
+                    var formatted = (tr % 1 == 0 ? tr.ToString("0") : tr.ToString("0.#")).Replace('.', ',');
+                    return $"{formatted} triệu";
+                }
+                if (val >= 1_000m)
+                {
+                    return $"{(val / 1000m):0.#}k";
+                }
+                return $"{val:N0} đ";
+            }
+
+            if (minPrice > 0 && maxPrice > 0 && minPrice < maxPrice)
+            {
+                return $"từ {FormatPart(minPrice)} đến {FormatPart(maxPrice)}";
+            }
+            return FormatPart(minPrice > 0 ? minPrice : maxPrice);
         }
 
         // Increment property view count

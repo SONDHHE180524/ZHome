@@ -94,7 +94,7 @@ import { environment } from '../../../environments/environment';
             <h1 class="property-title-main">{{ prop.propertyTitle }}</h1>
             
             <div class="price-range-line">
-              <span class="price-range-text">Từ {{ getPriceRangeText(prop) }} <span class="unit">/tháng</span></span>
+              <span class="price-range-text">{{ getPriceRangeText(prop).toLowerCase().startsWith('từ') ? getPriceRangeText(prop) : ('Từ ' + getPriceRangeText(prop)) }} <span class="unit">/tháng</span></span>
             </div>
 
             <div class="rating-address-line">
@@ -418,7 +418,7 @@ import { environment } from '../../../environments/environment';
                       <h4 class="other-card-title text-truncate">{{ other.title || other.propertyTitle }}</h4>
                       <p class="other-card-address text-truncate mb-2">📍 {{ other.address }}</p>
                       <div class="d-flex justify-content-between align-items-center">
-                        <span class="other-card-price">{{ (other.minPrice || other.price || 1500000) | number:'1.0-0' }}đ/tháng</span>
+                        <span class="other-card-price">{{ other.priceDisplay ? (other.priceDisplay + ' /tháng') : (((other.minPrice || other.price || 1500000) | number:'1.0-0') + ' đ/tháng') }}</span>
                         <span class="btn-detail-sm">Xem chi tiết ›</span>
                       </div>
                     </div>
@@ -427,7 +427,6 @@ import { environment } from '../../../environments/environment';
               </div>
             </div>
           }
-
         </div>
 
         <!-- RIGHT COLUMN: Sticky Booking & Contact Card (Matching Screenshot 2) -->
@@ -1986,6 +1985,9 @@ export class PropertyDetailComponent implements OnInit {
                 title: item.propertyTitle || item.PropertyTitle || item.title || item.Title,
                 address: item.address || item.Address,
                 price: item.price || item.Price,
+                minPrice: item.minPrice ?? item.price,
+                maxPrice: item.maxPrice ?? item.price,
+                priceDisplay: item.priceDisplay || item.PriceDisplay,
                 imageUrl: item.propertyImageUrl || item.PropertyImageUrl || item.imageUrl || (item.imageUrls && item.imageUrls[0]),
                 vacantRoomsCount: vacantCount
               });
@@ -2192,14 +2194,29 @@ export class PropertyDetailComponent implements OnInit {
   }
 
   getPriceRangeText(prop: any): string {
-    if (!prop) return '2.000.000 đ';
+    if (!prop) return '2 triệu';
     const min = this.getMinPrice(prop);
     const max = this.getMaxPrice(prop);
-    if (min <= 0 && max <= 0) return '2.000.000 đ';
-    if (min > 0 && max > min) {
-      return `${min.toLocaleString('vi-VN')} đ - ${max.toLocaleString('vi-VN')} đ`;
+    if (min <= 0 && max <= 0) return '2 triệu';
+
+    const formatPart = (val: number): string => {
+      if (val <= 0) return '0 đ';
+      if (val >= 1000000) {
+        const millions = val / 1000000;
+        const formatted = millions % 1 === 0 ? millions.toString() : millions.toFixed(1).replace('.', ',');
+        return `${formatted} triệu`;
+      }
+      return `${val.toLocaleString('vi-VN')} đ`;
+    };
+
+    if (min > 0 && max > 0 && min < max) {
+      return `từ ${formatPart(min)} đến ${formatPart(max)}`;
     }
-    return `${(min || 2000000).toLocaleString('vi-VN')} đ`;
+    return formatPart(min > 0 ? min : max);
+  }
+
+  getMinPriceText(prop: any): string {
+    return this.getPriceRangeText(prop);
   }
 
   getAreaText(prop: any): string {
