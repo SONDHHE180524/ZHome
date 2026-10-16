@@ -96,7 +96,7 @@ import { environment } from '../../../environments/environment';
         <!-- Top Price Bar & Action Buttons Row -->
         <div class="price-action-bar">
           <div class="price-start-group">
-            <span class="price-label">Giá chỉ từ</span>
+            <span class="price-label">Giá thuê</span>
             <span class="price-value-highlight">{{ getMinPriceText(prop) }}</span>
           </div>
 
@@ -367,7 +367,7 @@ import { environment } from '../../../environments/environment';
                   <h4 class="other-card-title text-truncate">{{ other.title || other.propertyTitle }}</h4>
                   <p class="other-card-address text-truncate mb-2"><i class="fas fa-map-marker-alt text-danger me-1"></i> {{ other.address }}</p>
                   <div class="d-flex justify-content-between align-items-center">
-                    <span class="other-card-price">{{ (other.minPrice || other.price || 1500000) | number:'1.0-0' }}đ/tháng</span>
+                    <span class="other-card-price">{{ other.priceDisplay ? (other.priceDisplay + ' /tháng') : (((other.minPrice || other.price || 1500000) | number:'1.0-0') + ' đ/tháng') }}</span>
                     <span class="btn-detail-sm">Xem chi tiết &rsaquo;</span>
                   </div>
                 </div>
@@ -1454,6 +1454,9 @@ export class PropertyDetailComponent implements OnInit {
                 title: item.propertyTitle || item.PropertyTitle || item.title || item.Title,
                 address: item.address || item.Address,
                 price: item.price || item.Price,
+                minPrice: item.minPrice ?? item.price,
+                maxPrice: item.maxPrice ?? item.price,
+                priceDisplay: item.priceDisplay || item.PriceDisplay,
                 imageUrl: item.propertyImageUrl || item.PropertyImageUrl || item.imageUrl || (item.imageUrls && item.imageUrls[0]),
                 vacantRoomsCount: vacantCount
               });
@@ -1554,13 +1557,25 @@ export class PropertyDetailComponent implements OnInit {
 
   getMinPriceText(prop: any): string {
     const minPrice = this.getMinPrice(prop);
-    if (minPrice <= 0) return '1,5 triệu/tháng';
-    if (minPrice >= 1000000) {
-      const millions = minPrice / 1000000;
-      const formatted = millions % 1 === 0 ? millions.toString() : millions.toFixed(1).replace('.', ',');
-      return `${formatted} triệu/tháng`;
+    const maxPrice = this.getMaxPrice(prop);
+    
+    const formatPart = (val: number): string => {
+      if (val <= 0) return '0 đ';
+      if (val >= 1000000) {
+        const millions = val / 1000000;
+        const formatted = millions % 1 === 0 ? millions.toString() : millions.toFixed(1).replace('.', ',');
+        return `${formatted} triệu`;
+      }
+      return `${val.toLocaleString('vi-VN')}đ`;
+    };
+
+    if (minPrice > 0 && maxPrice > 0 && minPrice < maxPrice) {
+      return `từ ${formatPart(minPrice)} đến ${formatPart(maxPrice)}/tháng`;
     }
-    return `${minPrice.toLocaleString('vi-VN')}đ/tháng`;
+    if (minPrice > 0) {
+      return `${formatPart(minPrice)}/tháng`;
+    }
+    return '1,5 triệu/tháng';
   }
 
   getAreaText(prop: any): string {

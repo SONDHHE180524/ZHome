@@ -843,7 +843,7 @@
         </p>
 
         <div class="hot-card-price-row">
-          <span class="hot-card-price">{{ (prop.minRoomPrice || prop.price) | number:'1.0-0' }} đ</span>
+          <span class="hot-card-price">{{ formatPriceRange(prop) }}</span>
           <span class="hot-card-unit">/tháng</span>
         </div>
       </div>
@@ -869,7 +869,7 @@
               <div class="dock-chip">
                 <img [src]="getImageUrl(r.imageUrls?.[0])" alt="thumb" class="dock-chip-thumb" />
                 <span class="dock-chip-name">{{ r.propertyTitle }}</span>
-                <span class="dock-chip-price">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }}đ</span>
+                <span class="dock-chip-price">{{ formatPriceRange(r) }}</span>
                 <button class="dock-chip-remove" (click)="removeFromCompare(r.roomId || r.propertyId)">✕</button>
               </div>
             }
@@ -913,7 +913,7 @@
                     <div class="compare-room-summary">
                       <img [src]="getImageUrl(r.imageUrls?.[0])" alt="Room" class="compare-room-thumb" />
                       <h4 class="compare-room-name">{{ r.propertyTitle }}</h4>
-                      <div class="compare-room-cost">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }} đ/tháng</div>
+                      <div class="compare-room-cost">{{ formatPriceRange(r) }} /tháng</div>
                       <button class="btn-remove-from-table" (click)="removeFromCompare(r.roomId || r.propertyId)">Bỏ so sánh</button>
                     </div>
                   </th>
@@ -930,7 +930,7 @@
               <tr>
                 <td class="col-criteria">💰 Giá thuê niêm yết</td>
                 @for (r of selectedCompareRooms(); track r.roomId || r.propertyId) {
-                  <td><strong class="highlight-price">{{ (r.minRoomPrice || r.price) | number:'1.0-0' }} đ/tháng</strong></td>
+                  <td><strong class="highlight-price">{{ formatPriceRange(r) }} /tháng</strong></td>
                 }
               </tr>
               <tr>

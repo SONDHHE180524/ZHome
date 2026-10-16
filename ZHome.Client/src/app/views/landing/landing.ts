@@ -131,19 +131,19 @@ export class LandingComponent implements OnInit, OnDestroy {
     }
 
     if (this.minPrice !== undefined && this.minPrice !== null) {
-      list = list.filter(r => r.price >= this.minPrice!);
+      list = list.filter(r => (r.maxRoomPrice ?? r.maxPrice ?? r.price) >= this.minPrice!);
     }
 
     if (this.maxPrice !== undefined && this.maxPrice !== null) {
-      list = list.filter(r => r.price <= this.maxPrice!);
+      list = list.filter(r => (r.minRoomPrice ?? r.minPrice ?? r.price) <= this.maxPrice!);
     }
 
     if (this.minArea !== undefined && this.minArea !== null) {
-      list = list.filter(r => r.area >= this.minArea!);
+      list = list.filter(r => (r.maxArea ?? r.area ?? 0) >= this.minArea!);
     }
 
     if (this.maxArea !== undefined && this.maxArea !== null) {
-      list = list.filter(r => r.area <= this.maxArea!);
+      list = list.filter(r => (r.minArea ?? r.area ?? 0) <= this.maxArea!);
     }
 
     if (this.verifiedHost) {
@@ -627,22 +627,13 @@ export class LandingComponent implements OnInit, OnDestroy {
         if (data && data.length > 0) {
           this.listings.set(data);
           
-          // Map to rooms list for pagination
-          const rooms = data.map(item => ({
-            ...item,
-            activeImageIndex: 0,
-            isHot: item.subscriptionId === 2 || item.subscriptionId === 3 || (item.viewCount && item.viewCount > 10),
-            price: item.price,
-            minRoomPrice: item.price,
-            imageUrls: (item.imageUrls && item.imageUrls.length > 0) ? item.imageUrls : [this.defaultPropertyImage]
-          }));
-          this.allRooms.set(rooms);
-
-          // Group by property
+          // Mỗi trọ chỉ đăng lên 1 phòng/tin đại diện
           this.groupProperties(data);
+          this.allRooms.set(this.groupedProperties());
         } else {
           if (!this.searchQuery && !this.selectedDistrict && !this.selectedWard) {
             this.groupProperties([]);
+            this.allRooms.set(this.groupedProperties());
           } else {
             this.allRooms.set([]);
             this.groupedProperties.set([]);
@@ -661,6 +652,31 @@ export class LandingComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  formatPriceRange(prop: any): string {
+    if (!prop) return '';
+    if (prop.priceDisplay) return prop.priceDisplay;
+    const min = prop.minRoomPrice ?? prop.minPrice ?? prop.price ?? 0;
+    const max = prop.maxRoomPrice ?? prop.maxPrice ?? prop.price ?? min;
+
+    const formatPart = (val: number): string => {
+      if (!val || val <= 0) return '0 đ';
+      if (val >= 1000000) {
+        const tr = val / 1000000;
+        const formatted = tr % 1 === 0 ? tr.toString() : tr.toFixed(1).replace('.', ',');
+        return `${formatted} triệu`;
+      }
+      if (val >= 1000) {
+        return `${(val / 1000).toLocaleString('vi-VN')}k`;
+      }
+      return `${val.toLocaleString('vi-VN')} đ`;
+    };
+
+    if (min > 0 && max > 0 && min < max) {
+      return `từ ${formatPart(min)} đến ${formatPart(max)}`;
+    }
+    return formatPart(min || max);
   }
 
   groupProperties(list: any[]): void {
@@ -685,9 +701,14 @@ export class LandingComponent implements OnInit, OnDestroy {
         }
       }
 
+      const itemMin = item.minPrice ?? item.price;
+      const itemMax = item.maxPrice ?? item.price;
+
       if (!map.has(item.propertyId)) {
         map.set(item.propertyId, {
           propertyId: item.propertyId,
+          roomId: item.roomId || item.propertyId,
+          roomNumber: item.roomNumber || '',
           propertyTitle: item.propertyTitle,
           address: item.address,
           isVerifiedTick: item.isVerifiedTick,
@@ -697,7 +718,8 @@ export class LandingComponent implements OnInit, OnDestroy {
           description: item.description,
           totalRooms: item.totalRooms || 0,
           viewCount: item.viewCount || 0,
-          vacantRoomsCount: 0,
+          vacantRoomsCount: item.vacantRoomsCount || 0,
+          status: item.status || 'Available',
           rooms: [],
           activeImageIndex: 0,
           isHot: item.subscriptionId === 2 || item.subscriptionId === 3 || (item.viewCount && item.viewCount > 10),
@@ -705,26 +727,50 @@ export class LandingComponent implements OnInit, OnDestroy {
           averageRating: item.averageRating,
           reviewCount: item.reviewCount,
           subscriptionId: item.subscriptionId,
-          minRoomPrice: item.price,
+          minRoomPrice: itemMin,
+          maxRoomPrice: itemMax,
+          price: itemMin,
+          minArea: item.minArea ?? item.area,
+          maxArea: item.maxArea ?? item.area,
+          area: item.minArea ?? item.area,
+          amenities: item.amenities ? [...item.amenities] : [],
+          priceDisplay: item.priceDisplay || '',
           minVacantRoomPrice: Infinity
         });
       }
       const prop = map.get(item.propertyId);
       prop.rooms.push(item);
+
       if (item.status === 'Available') {
-        prop.vacantRoomsCount++;
-        if (item.price < prop.minVacantRoomPrice) {
+        prop.vacantRoomsCount = Math.max(prop.vacantRoomsCount, 1);
+        if (item.price && item.price < prop.minVacantRoomPrice) {
           prop.minVacantRoomPrice = item.price;
         }
       }
       
-      if (item.price < prop.minRoomPrice) {
-        prop.minRoomPrice = item.price;
+      if (itemMin && itemMin < prop.minRoomPrice) {
+        prop.minRoomPrice = itemMin;
+      }
+      if (itemMax && itemMax > (prop.maxRoomPrice || 0)) {
+        prop.maxRoomPrice = itemMax;
+      }
+
+      if (item.priceDisplay) {
+        prop.priceDisplay = item.priceDisplay;
       }
 
       if (prop.totalRooms < prop.rooms.length) {
         prop.totalRooms = prop.rooms.length;
       }
+
+      if (item.amenities && Array.isArray(item.amenities)) {
+        for (const am of item.amenities) {
+          if (!prop.amenities.includes(am)) {
+            prop.amenities.push(am);
+          }
+        }
+      }
+
       if (item.imageUrls && Array.isArray(item.imageUrls)) {
         for (const u of item.imageUrls) {
           if (u && typeof u === 'string') {
@@ -741,8 +787,9 @@ export class LandingComponent implements OnInit, OnDestroy {
     
     const propsArray = Array.from(map.values()).map(prop => {
       prop.isFavorite = prop.rooms.some((r: any) => r.isFavorite);
-      if (prop.vacantRoomsCount > 0 && prop.minVacantRoomPrice !== Infinity) {
-        prop.minRoomPrice = prop.minVacantRoomPrice;
+      prop.price = prop.minRoomPrice;
+      if (!prop.priceDisplay) {
+        prop.priceDisplay = this.formatPriceRange(prop);
       }
       return prop;
     });
@@ -805,7 +852,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/property_0358356866_639274973312204706.jpg'],
         minRoomPrice: 2000000,
+        maxRoomPrice: 3000000,
         price: 2000000,
+        priceDisplay: 'từ 2 triệu đến 3 triệu',
         area: 25,
         averageRating: 5.0,
         amenities: ['Điều hòa', 'Nóng lạnh', 'Khép kín']
@@ -827,7 +876,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/0919919919_639275077481748600.jpg'],
         minRoomPrice: 3500000,
+        maxRoomPrice: 4500000,
         price: 3500000,
+        priceDisplay: 'từ 3,5 triệu đến 4,5 triệu',
         area: 35,
         averageRating: 5.0,
         amenities: ['Điều hòa', 'Nóng lạnh', 'Ban công', 'Thang máy']
@@ -849,7 +900,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/0919919919_639275826163087052.jpg'],
         minRoomPrice: 1600000,
+        maxRoomPrice: 2000000,
         price: 1600000,
+        priceDisplay: 'từ 1,6 triệu đến 2 triệu',
         area: 20,
         averageRating: 4.8,
         amenities: ['Nóng lạnh', 'Khép kín', 'Wifi']
@@ -871,7 +924,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/property_0886459398_639275003924210085.jpg'],
         minRoomPrice: 2000000,
+        maxRoomPrice: 2500000,
         price: 2000000,
+        priceDisplay: 'từ 2 triệu đến 2,5 triệu',
         area: 22,
         averageRating: 4.9,
         amenities: ['Điều hòa', 'Nóng lạnh']
@@ -893,7 +948,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/property_0898765433_639250812545623697.jpg'],
         minRoomPrice: 2200000,
+        maxRoomPrice: 2800000,
         price: 2200000,
+        priceDisplay: 'từ 2,2 triệu đến 2,8 triệu',
         area: 26,
         averageRating: 5.0,
         amenities: ['Điều hòa', 'Nóng lạnh', 'Khép kín', 'Tủ lạnh']
@@ -915,7 +972,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/property_0919919919_639274991567935199.png'],
         minRoomPrice: 2900000,
+        maxRoomPrice: 3500000,
         price: 2900000,
+        priceDisplay: 'từ 2,9 triệu đến 3,5 triệu',
         area: 28,
         averageRating: 4.9,
         amenities: ['Điều hòa', 'Nóng lạnh', 'Ban công']
@@ -937,7 +996,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/0919919919_639275077484150808.jpg'],
         minRoomPrice: 2800000,
+        maxRoomPrice: 2800000,
         price: 2800000,
+        priceDisplay: '2,8 triệu',
         area: 30,
         averageRating: 5.0,
         amenities: ['Điều hòa', 'Nóng lạnh', 'Thang máy', 'Ban công']
@@ -959,7 +1020,9 @@ export class LandingComponent implements OnInit, OnDestroy {
         activeImageIndex: 0,
         imageUrls: ['/media/properties/0919919919_639275077486040420.jpg'],
         minRoomPrice: 2500000,
+        maxRoomPrice: 3200000,
         price: 2500000,
+        priceDisplay: 'từ 2,5 triệu đến 3,2 triệu',
         area: 24,
         averageRating: 4.8,
         amenities: ['Gác lửng', 'Nóng lạnh', 'Khép kín']
