@@ -41,8 +41,8 @@ export class LandingComponent implements OnInit, OnDestroy {
   // Hot Section Location Filter
   hotLocationFilter = signal<string>('all');
 
-  // Pagination for Phòng trọ (15 rooms per page)
-  pageSize = 15;
+  // Pagination for Phòng trọ (16 rooms per page, 4 rooms per row)
+  pageSize = 16;
   currentPage = signal<number>(1);
 
   // Contact Form Model
@@ -526,8 +526,28 @@ export class LandingComponent implements OnInit, OnDestroy {
     if (this.selectedPriceOption === '1to10m') return '1 - 10 triệu';
     if (this.selectedPriceOption === '10to30m') return '10 - 30 triệu';
     if (this.selectedPriceOption === '30to50m') return '30 - 50 triệu';
-    if (this.minPrice || this.maxPrice) return 'Mức giá đã chọn';
+    if (this.minPrice || this.maxPrice) {
+      const minText = this.minPriceInput ? this.formatPriceVndText(this.minPriceInput) : '0 đ';
+      const maxText = this.maxPriceInput ? this.formatPriceVndText(this.maxPriceInput) : 'Tất cả';
+      return `${minText} - ${maxText}`;
+    }
     return 'Mức giá';
+  }
+
+  formatPriceVndText(thousands: number | null | undefined): string {
+    if (thousands === null || thousands === undefined || thousands === 0) return '0 đ';
+    const val = Number(thousands);
+    if (isNaN(val) || val <= 0) return '0 đ';
+    const realVnd = val * 1000;
+    if (realVnd >= 1000000000) {
+      const ty = realVnd / 1000000000;
+      return `${Number(ty.toFixed(2))} tỷ`;
+    }
+    if (realVnd >= 1000000) {
+      const tr = realVnd / 1000000;
+      return `${Number(tr.toFixed(2))} triệu`;
+    }
+    return `${realVnd.toLocaleString('vi-VN')} đ`;
   }
 
   selectAreaOption(option: string): void {
@@ -1129,17 +1149,30 @@ export class LandingComponent implements OnInit, OnDestroy {
     const fallback = this.getImageUrl(this.defaultPropertyImage);
     if (target && target.src !== fallback) {
       target.src = fallback;
+    } else if (target && !target.src.includes('default-room.jpg')) {
+      target.src = '/assets/default-room.jpg';
     }
   }
 
   getImageUrl(url?: string): string {
-    if (!url) return this.defaultPropertyImage;
+    if (!url) return this.getImageUrl(this.defaultPropertyImage);
     if (url.includes(',')) {
       url = url.split(',')[0].trim();
     }
     if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
       return url;
     }
-    return `${environment.baseUrl}${url.startsWith('/') ? '' : '/'}${url}`;
+    if (url.startsWith('/assets/') || url.startsWith('assets/')) {
+      return url.startsWith('/') ? url : `/${url}`;
+    }
+    const cleanUrl = url.startsWith('/') ? url : `/${url}`;
+    return `${environment.baseUrl}${cleanUrl}`;
+  }
+
+  scrollToSearch(): void {
+    const el = document.querySelector('.search-pill-container') || document.querySelector('.smart-filter-box');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
   }
 }

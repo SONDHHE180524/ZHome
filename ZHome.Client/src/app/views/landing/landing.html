@@ -37,7 +37,7 @@
 
                 <div class="banner-web-pill">
                   <span class="globe-icon">🌐</span>
-                  <span>Tại www.zhome.vn</span>
+                  <span>Tại zhome-fe.onrender.com</span>
                 </div>
 
                 <p class="banner-desc">
@@ -90,7 +90,7 @@
 
                 <div class="banner-web-pill">
                   <span class="globe-icon">🌐</span>
-                  <span>Tại www.zhome.vn</span>
+                  <span>Tại zhome-fe.onrender.com</span>
                 </div>
 
                 <p class="banner-desc">
@@ -142,7 +142,7 @@
 
                 <div class="banner-web-pill">
                   <span class="globe-icon">🌐</span>
-                  <span>Tại www.zhome.vn</span>
+                  <span>Tại zhome-fe.onrender.com</span>
                 </div>
 
                 <p class="banner-desc">
@@ -539,16 +539,36 @@
                   <div class="input-col">
                     <label class="popover-label">Giá thấp nhất</label>
                     <input type="number" class="popover-input rounded-input" [(ngModel)]="minPriceInput" (input)="onPriceInputCustom()" placeholder="0" />
+                    <div class="input-price-helper">
+                      ≈ <strong class="helper-val-highlight">{{ formatPriceVndText(minPriceInput) }}</strong>
+                    </div>
                   </div>
                   <div class="arrow-sep">→</div>
                   <div class="input-col">
                     <label class="popover-label">Giá cao nhất</label>
                     <input type="number" class="popover-input rounded-input" [(ngModel)]="maxPriceInput" (input)="onPriceInputCustom()" placeholder="10000" />
+                    <div class="input-price-helper">
+                      ≈ <strong class="helper-val-highlight">{{ formatPriceVndText(maxPriceInput) }}</strong>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Live Price Range Indicator Box -->
+                <div class="price-range-callout-banner">
+                  <span class="range-callout-icon">💰</span>
+                  <div class="range-callout-texts">
+                    <span class="callout-title">Đang chọn khoảng giá:</span>
+                    <strong class="callout-price-range">Từ {{ formatPriceVndText(minPriceInput) }} đến {{ formatPriceVndText(maxPriceInput) }} / tháng</strong>
                   </div>
                 </div>
                 
                 <div class="range-slider-wrapper">
                   <input type="range" min="0" max="50" step="1" [(ngModel)]="sliderValue" (input)="onSliderChange()" class="price-slider" />
+                  <div class="slider-ticks-row">
+                    <span>0 đ</span>
+                    <span>25 triệu</span>
+                    <span>50 triệu</span>
+                  </div>
                 </div>
 
                 <div class="popover-options-list">

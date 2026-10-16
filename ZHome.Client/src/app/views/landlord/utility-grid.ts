@@ -6,6 +6,7 @@ import { PropertyService } from '../../services/property.service';
 import { BillService } from '../../services/bill.service';
 import { ToastService } from '../../services/toast.service';
 import { AuthService } from '../../services/auth.service';
+import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-landlord-utility-grid',
@@ -13,6 +14,26 @@ import { AuthService } from '../../services/auth.service';
   imports: [CommonModule, FormsModule],
   template: `
     <div class="utility-container">
+      
+      <!-- Warning Banner if Landlord has not set bank account -->
+      @if (!isBankConfigured()) {
+        <div class="bank-warning-alert mb-4 p-3 d-flex align-items-center justify-content-between" 
+             style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: 14px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);">
+          <div class="d-flex align-items-center gap-3">
+            <span style="font-size: 1.8rem;">⚠️</span>
+            <div>
+              <strong style="color: #991b1b; font-size: 0.95rem; display: block;">BẠN CHƯA THIẾT LẬP TÀI KHOẢN NGÂN HÀNG</strong>
+              <span style="color: #b91c1c; font-size: 0.85rem;">
+                Hệ thống yêu cầu bạn điền thông tin ngân hàng thụ hưởng trước khi chốt số điện nước & lập hóa đơn cho khách thuê.
+              </span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm" (click)="openBankModal()" 
+                  style="background: #dc2626; color: #fff; font-weight: 700; border-radius: 10px; padding: 8px 16px; border: none; white-space: nowrap;">
+            💳 Cập nhật tài khoản ngay
+          </button>
+        </div>
+      }
       
       <!-- Page Header -->
       <div class="header-row">
@@ -444,6 +465,106 @@ import { AuthService } from '../../services/auth.service';
               <button (click)="closeSupplementaryModal()" class="btn btn-secondary-light">Hủy</button>
               <button (click)="submitSupplementary()" [disabled]="suppData.roomId === 0 || suppData.amount <= 0 || isSubmittingSupp" class="btn btn-primary-light">
                 {{ isSubmittingSupp ? 'Đang tạo...' : 'Xác Nhận Tạo' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      }
+
+      <!-- Modal: Cập nhật tài khoản ngân hàng bắt buộc -->
+      @if (showBankModal()) {
+        <div class="meter-modal-backdrop" (click)="closeBankModal()">
+          <div class="meter-modal-card bank-setup-modal" (click)="$event.stopPropagation()" style="max-width: 680px; width: 95%;">
+            <div class="meter-modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 18px 24px; border-radius: 16px 16px 0 0;">
+              <div>
+                <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
+                  <span>💳</span> Thiết Lập Tài Khoản Ngân Hàng Nhận Tiền
+                </h3>
+                <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: #94a3b8;">
+                  Khách thuê sẽ quét mã QR chuyển khoản trực tiếp vào tài khoản này khi thanh toán tiền phòng & điện nước
+                </p>
+              </div>
+              <button (click)="closeBankModal()" class="close-btn" style="color: #94a3b8;">✕</button>
+            </div>
+
+            <div class="meter-modal-body p-4" style="background: #ffffff; max-height: 75vh; overflow-y: auto;">
+              @if (!isBankConfigured()) {
+                <div class="alert alert-warning mb-3 p-3" style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; color: #92400e; font-size: 0.85rem;">
+                  ⚠️ <strong>Lưu ý:</strong> Bạn cần nhập ít nhất <strong>Ngân hàng</strong> và <strong>Số tài khoản</strong> để kích hoạt tính năng lập hóa đơn.
+                </div>
+              }
+
+              <div class="row g-3">
+                <div class="col-md-7">
+                  <div class="form-group mb-3">
+                    <label for="bankSelect" style="font-weight: 700; font-size: 0.85rem; color: #334155;">Ngân Hàng Thụ Hưởng <span style="color: #dc2626;">*</span></label>
+                    <select id="bankSelect" [(ngModel)]="bankForm.bankName" class="form-control-light">
+                      <option value="">-- Chọn ngân hàng --</option>
+                      @for (b of popularBanks; track b.code) {
+                        <option [value]="b.code">{{ b.name }} ({{ b.code }})</option>
+                      }
+                    </select>
+                  </div>
+
+                  <div class="form-group mb-3">
+                    <label for="bankAccNo" style="font-weight: 700; font-size: 0.85rem; color: #334155;">Số Tài Khoản (STK) <span style="color: #dc2626;">*</span></label>
+                    <input type="text" id="bankAccNo" [(ngModel)]="bankForm.bankAccountNumber" class="form-control-light font-mono" placeholder="Ví dụ: 3515205252203" />
+                  </div>
+
+                  <div class="form-group mb-3">
+                    <label for="bankAccName" style="font-weight: 700; font-size: 0.85rem; color: #334155;">Tên Chủ Tài Khoản (In hoa không dấu)</label>
+                    <input type="text" id="bankAccName" [(ngModel)]="bankForm.bankAccountName" class="form-control-light text-uppercase" placeholder="Ví dụ: LE THANH BINH" />
+                  </div>
+
+                  <div class="form-group mb-2">
+                    <label style="font-weight: 700; font-size: 0.85rem; color: #334155;">Tải Lên Ảnh Mã QR Riêng (Tùy chọn)</label>
+                    <div class="d-flex align-items-center gap-2 mt-1">
+                      <input type="file" id="bankQrFileInput" (change)="onBankQrFileSelected($event)" accept="image/*" style="display: none;" />
+                      <label for="bankQrFileInput" class="btn btn-outline-sky btn-sm" style="cursor: pointer; margin: 0; font-size: 0.85rem; padding: 6px 14px;">
+                        📤 Chọn ảnh QR từ máy
+                      </label>
+                      @if (bankForm.bankQrUrl || bankQrBase64) {
+                        <button type="button" class="btn btn-sm" (click)="clearBankQr()" style="background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.85rem; padding: 6px 12px; border-radius: 8px;">
+                          🗑️ Xóa ảnh QR
+                        </button>
+                      }
+                    </div>
+                    <small class="text-muted d-block mt-1" style="font-size: 0.76rem;">
+                      💡 Bạn có thể tải ảnh mã QR từ app ngân hàng của mình. Khách thuê sẽ thấy trực tiếp ảnh này khi quét thanh toán.
+                    </small>
+                  </div>
+                </div>
+
+                <!-- Preview Column -->
+                <div class="col-md-5 text-center">
+                  <div style="background: #f8fafc; border: 1.5px dashed #cbd5e1; border-radius: 14px; padding: 14px;">
+                    <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 8px;">
+                      Xem trước mã QR của bạn
+                    </span>
+                    <div style="min-height: 180px; display: flex; align-items: center; justify-content: center; background: #ffffff; border-radius: 12px; padding: 8px; border: 1px solid #e2e8f0;">
+                      @if (getBankQrPreview()) {
+                        <img [src]="getBankQrPreview()" alt="Mã QR xem trước" style="max-width: 170px; max-height: 170px; object-fit: contain; border-radius: 6px;" />
+                      } @else {
+                        <span style="font-size: 0.78rem; color: #94a3b8; padding: 20px 10px;">
+                          Chọn ngân hàng & nhập STK để xem trước mã QR
+                        </span>
+                      }
+                    </div>
+                    <div class="mt-2 text-center">
+                      <strong class="d-block font-mono" style="font-size: 0.88rem; color: #0f172a;">{{ bankForm.bankAccountNumber || 'Chưa có STK' }}</strong>
+                      <span style="font-size: 0.78rem; color: #64748b;">{{ bankForm.bankName || 'Chưa chọn ngân hàng' }} • {{ bankForm.bankAccountName || 'CHỦ NHÀ' }}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="meter-modal-footer p-3" style="background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; display: flex; justify-content: flex-end; gap: 10px;">
+              <button type="button" (click)="closeBankModal()" class="btn btn-secondary-light">
+                Đóng
+              </button>
+              <button type="button" (click)="saveBankInfo()" [disabled]="isSavingBank() || !bankForm.bankName || !bankForm.bankAccountNumber" class="btn btn-success-action" style="background: #0284c7; border: none; padding: 9px 20px;">
+                {{ isSavingBank() ? '⏳ Đang lưu...' : '💾 Lưu Tài Khoản & Tiếp Tục' }}
               </button>
             </div>
           </div>
@@ -908,6 +1029,157 @@ export class LandlordUtilityGridComponent implements OnInit {
     note: ''
   };
 
+  // Bank Info configuration state
+  isBankConfigured = signal(false);
+  showBankModal = signal(false);
+  isSavingBank = signal(false);
+  bankQrBase64 = '';
+  clearBankQrFlag = false;
+
+  popularBanks = [
+    { code: 'VietinBank', name: 'VietinBank (Ngân hàng TMCP Công Thương)' },
+    { code: 'Vietcombank', name: 'Vietcombank (Ngân hàng Ngoại Thương)' },
+    { code: 'MBBank', name: 'MBBank (Ngân hàng Quân Đội)' },
+    { code: 'Techcombank', name: 'Techcombank (Kỹ Thương Việt Nam)' },
+    { code: 'BIDV', name: 'BIDV (Đầu Tư và Phát Triển)' },
+    { code: 'Agribank', name: 'Agribank (Nông Nghiệp và PTNT)' },
+    { code: 'VPBank', name: 'VPBank (Việt Nam Thịnh Vượng)' },
+    { code: 'ACB', name: 'ACB (Á Châu)' },
+    { code: 'TPBank', name: 'TPBank (Tiên Phong)' },
+    { code: 'Sacombank', name: 'Sacombank (Sài Gòn Thương Tín)' },
+    { code: 'HDBank', name: 'HDBank (Phát Triển TP.HCM)' },
+    { code: 'VIB', name: 'VIB (Quốc Tế)' },
+    { code: 'MSB', name: 'MSB (Hàng Hải)' },
+    { code: 'SHB', name: 'SHB (Sài Gòn - Hà Nội)' },
+    { code: 'OCB', name: 'OCB (Phương Đông)' },
+    { code: 'LPBank', name: 'LPBank (Lộc Phát)' },
+    { code: 'SeABank', name: 'SeABank (Đông Nam Á)' },
+    { code: 'NamABank', name: 'Nam A Bank' },
+    { code: 'PVcomBank', name: 'PVcomBank' },
+    { code: 'BACABANK', name: 'Bac A Bank' }
+  ];
+
+  bankForm = {
+    bankName: '',
+    bankAccountNumber: '',
+    bankAccountName: '',
+    bankQrUrl: ''
+  };
+
+  loadBankInfo(): void {
+    this.billService.getLandlordBankInfo().subscribe({
+      next: (res: any) => {
+        this.isBankConfigured.set(res?.isConfigured || false);
+        this.bankForm = {
+          bankName: res?.bankName || '',
+          bankAccountNumber: res?.bankAccountNumber || '',
+          bankAccountName: res?.bankAccountName || '',
+          bankQrUrl: res?.bankQrUrl || ''
+        };
+        if (!res?.isConfigured) {
+          this.showBankModal.set(true);
+        }
+      },
+      error: () => {
+        // If error fetching dedicated bank info, check profile
+        this.authService.getProfile().subscribe({
+          next: (p: any) => {
+            const hasBank = !!(p?.bankName && p?.bankAccountNumber);
+            this.isBankConfigured.set(hasBank);
+            this.bankForm = {
+              bankName: p?.bankName || '',
+              bankAccountNumber: p?.bankAccountNumber || '',
+              bankAccountName: p?.bankAccountName || p?.fullName || '',
+              bankQrUrl: p?.bankQrUrl || ''
+            };
+            if (!hasBank) {
+              this.showBankModal.set(true);
+            }
+          }
+        });
+      }
+    });
+  }
+
+  openBankModal(): void {
+    this.showBankModal.set(true);
+  }
+
+  closeBankModal(): void {
+    this.showBankModal.set(false);
+  }
+
+  onBankQrFileSelected(event: any): void {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        this.toastService.show('Ảnh mã QR không được vượt quá 5MB.', 'error');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = () => {
+        this.bankQrBase64 = reader.result as string;
+        this.clearBankQrFlag = false;
+      };
+      reader.readAsDataURL(file);
+    }
+  }
+
+  clearBankQr(): void {
+    this.bankQrBase64 = '';
+    this.bankForm.bankQrUrl = '';
+    this.clearBankQrFlag = true;
+  }
+
+  getBankQrPreview(): string {
+    if (this.bankQrBase64) return this.bankQrBase64;
+    if (this.bankForm.bankQrUrl) {
+      return this.bankForm.bankQrUrl.startsWith('http') || this.bankForm.bankQrUrl.startsWith('data:')
+        ? this.bankForm.bankQrUrl
+        : `${environment.baseUrl}${this.bankForm.bankQrUrl.startsWith('/') ? '' : '/'}${this.bankForm.bankQrUrl}`;
+    }
+    if (this.bankForm.bankName && this.bankForm.bankAccountNumber) {
+      const bank = encodeURIComponent(this.bankForm.bankName);
+      const acc = encodeURIComponent(this.bankForm.bankAccountNumber);
+      const name = encodeURIComponent(this.bankForm.bankAccountName || 'CHU TRO');
+      return `https://img.vietqr.io/image/${bank}-${acc}-compact2.png?accountName=${name}`;
+    }
+    return '';
+  }
+
+  saveBankInfo(): void {
+    if (!this.bankForm.bankName || !this.bankForm.bankAccountNumber) {
+      this.toastService.show('Vui lòng chọn ngân hàng và nhập số tài khoản.', 'error');
+      return;
+    }
+
+    this.isSavingBank.set(true);
+    const payload = {
+      bankName: this.bankForm.bankName,
+      bankAccountNumber: this.bankForm.bankAccountNumber,
+      bankAccountName: this.bankForm.bankAccountName,
+      bankQrBase64: this.bankQrBase64 || null,
+      clearBankQr: this.clearBankQrFlag
+    };
+
+    this.billService.saveLandlordBankInfo(payload).subscribe({
+      next: (res: any) => {
+        this.isSavingBank.set(false);
+        this.isBankConfigured.set(true);
+        this.bankForm.bankQrUrl = res.bankQrUrl || this.bankForm.bankQrUrl;
+        this.bankQrBase64 = '';
+        this.clearBankQrFlag = false;
+        this.toastService.show('✅ Đã lưu thông tin tài khoản ngân hàng thành công! Bạn có thể bắt đầu tạo hóa đơn.', 'success');
+        this.closeBankModal();
+      },
+      error: (err: any) => {
+        this.isSavingBank.set(false);
+        const msg = err.error?.message || (typeof err.error === 'string' ? err.error : 'Lỗi lưu thông tin ngân hàng.');
+        this.toastService.show(msg, 'error');
+      }
+    });
+  }
+
   onMonthChange(): void {
     this.loadGrid();
   }
@@ -917,6 +1189,7 @@ export class LandlordUtilityGridComponent implements OnInit {
   }
 
   ngOnInit(): void {
+    this.loadBankInfo();
     this.fetchPropertiesAndAutoLoad();
   }
 
@@ -1027,6 +1300,12 @@ export class LandlordUtilityGridComponent implements OnInit {
   }
 
   submitSingleRoom(item: any): void {
+    if (!this.isBankConfigured()) {
+      this.toastService.show('⚠️ Vui lòng cập nhật tài khoản ngân hàng trước khi chốt hóa đơn!', 'error');
+      this.showBankModal.set(true);
+      return;
+    }
+
     if (item.waterCalculationMethod !== 'PerPerson' && item.currentWaterReading < item.previousWaterReading) {
       this.toastService.show('Chỉ số nước mới không được nhỏ hơn chỉ số cũ.', 'error');
       return;
@@ -1074,6 +1353,12 @@ export class LandlordUtilityGridComponent implements OnInit {
   }
 
   openSupplementaryModal(): void {
+    if (!this.isBankConfigured()) {
+      this.toastService.show('⚠️ Vui lòng cập nhật tài khoản ngân hàng trước khi tạo hóa đơn bổ sung!', 'error');
+      this.showBankModal.set(true);
+      return;
+    }
+
     this.showSupplementaryModal.set(true);
     this.suppData = {
       roomId: 0,
@@ -1133,6 +1418,12 @@ export class LandlordUtilityGridComponent implements OnInit {
   }
 
   submitGrid(): void {
+    if (!this.isBankConfigured()) {
+      this.toastService.show('⚠️ Vui lòng cập nhật tài khoản ngân hàng trước khi lập hóa đơn!', 'error');
+      this.showBankModal.set(true);
+      return;
+    }
+
     if (!this.isGridValid()) {
       this.toastService.show('Vui lòng kiểm tra lại. Chỉ số điện/nước mới phải lớn hơn hoặc bằng số cũ.', 'error');
       return;

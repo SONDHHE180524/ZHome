@@ -31,20 +31,25 @@ export interface RoommateNeed {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
-    <div class="tenants-container">
+    <div class="tenants-container animate-fade-in">
       
       <!-- HEADER ROW -->
       <div class="header-action-row mb-4">
         <div>
+          <div class="header-badge-tag mb-1">
+            <span class="pulse-indicator-dot"></span>
+            <span>QUẢN LÝ CƯ TRÚ & KHÁCH THUÊ</span>
+          </div>
           <h1 class="page-main-title m-0">Danh Sách Khách Thuê & Ghép Trọ</h1>
-          <p class="text-sm text-muted m-0 mt-1">Quản lý thông tin người thuê phòng và kết nối tìm bạn ở ghép theo từng khu trọ</p>
+          <p class="text-sm text-muted m-0 mt-1">Quản lý hồ sơ cư dân, hợp đồng thuê phòng và kết nối tìm bạn ở ghép theo từng khu trọ</p>
         </div>
-        <div class="d-flex gap-2 align-items-center flex-wrap">
-          <button (click)="refreshAll()" class="btn-action-light">
+
+        <div class="header-buttons-group d-flex gap-2 align-items-center flex-wrap">
+          <button (click)="refreshAll()" class="btn-action-light" title="Làm mới dữ liệu">
             <svg class="btn-icon-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
             </svg>
-            Làm mới
+            <span>Làm mới</span>
           </button>
           
           <button type="button" class="btn-roommate-quick-add" (click)="openCreateRoommateModal()">
@@ -54,7 +59,7 @@ export interface RoommateNeed {
               <line x1="20" y1="8" x2="20" y2="14"/>
               <line x1="23" y1="11" x2="17" y2="11"/>
             </svg>
-            + Đăng Tin Ghép Trọ
+            <span>+ Đăng Tin Ghép Trọ</span>
           </button>
 
           <a routerLink="/landlord/contracts" class="btn-primary-add">
@@ -64,320 +69,453 @@ export interface RoommateNeed {
               <line x1="12" y1="18" x2="12" y2="12"/>
               <line x1="9" y1="15" x2="15" y2="15"/>
             </svg>
-            Quản Lý Hợp Đồng
+            <span>Quản Lý Hợp Đồng</span>
           </a>
         </div>
       </div>
 
-      <!-- MAIN NAVIGATION TABS -->
-      <div class="tenants-nav-tabs mb-4">
-        <button 
-          type="button" 
-          class="tenant-tab-btn" 
-          [class.active]="activeTab() === 'all-tenants'"
-          (click)="activeTab.set('all-tenants')">
-          <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <span>Khách Thuê Theo Phòng</span>
-          <span class="tab-count-pill">{{ activeTenantsCount() }}</span>
-        </button>
-
-        <button 
-          type="button" 
-          class="tenant-tab-btn tab-roommate-highlight" 
-          [class.active]="activeTab() === 'roommate-match'"
-          (click)="activeTab.set('roommate-match')">
-          <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="8.5" cy="7" r="4"/>
-            <polyline points="17 11 19 13 23 9"/>
-          </svg>
-          <span>Ô Ghép Trọ (Tìm Bạn Ở Ghép)</span>
-          <span class="tab-count-pill pill-roommate-badge">{{ activeLookingRoommatesCount() }} chỗ đang tìm</span>
-        </button>
-      </div>
-
-      <!-- STATS KPI BANNER -->
-      <div class="stats-kpi-grid mb-4">
-        <!-- 1. Total Tenants -->
-        <div class="stat-card">
-          <div class="stat-icon-wrapper bg-blue-subtle">
-            <svg class="stat-svg text-sky" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+      <!-- MAIN NAVIGATION TABS (MODERN SEGMENTED PILL) -->
+      <div class="tenants-tabs-wrapper mb-4">
+        <div class="tenants-nav-tabs">
+          <button 
+            type="button" 
+            class="tenant-tab-btn" 
+            [class.active]="activeTab() === 'all-tenants'"
+            (click)="activeTab.set('all-tenants')">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
               <circle cx="9" cy="7" r="4"/>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-          </div>
-          <div class="stat-meta">
-            <span class="stat-label">Tổng khách đang thuê</span>
-            <strong class="stat-value text-sky">{{ activeTenantsCount() }} <span class="text-sm font-normal text-muted">người</span></strong>
-          </div>
-        </div>
+            <span>Khách Thuê Theo Phòng</span>
+            <span class="tab-count-pill">{{ activeTenantsCount() }}</span>
+          </button>
 
-        <!-- 2. Occupied Rooms -->
-        <div class="stat-card">
-          <div class="stat-icon-wrapper bg-emerald-subtle">
-            <svg class="stat-svg text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="3" width="16" height="18" rx="2"/>
-              <path d="M4 3l10 2.5v13L4 21V3z"/>
-              <circle cx="11.5" cy="12" r="1" fill="currentColor"/>
+          <button 
+            type="button" 
+            class="tenant-tab-btn tab-roommate-highlight" 
+            [class.active]="activeTab() === 'roommate-match'"
+            (click)="activeTab.set('roommate-match')">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <polyline points="17 11 19 13 23 9"/>
             </svg>
-          </div>
-          <div class="stat-meta">
-            <span class="stat-label">Phòng có người thuê</span>
-            <strong class="stat-value text-emerald">{{ occupiedRoomsCount() }} <span class="text-sm font-normal text-muted">phòng</span></strong>
-          </div>
-        </div>
+            <span>Tìm Bạn Ở Ghép (Ghép Trọ)</span>
+            <span class="tab-count-pill pill-roommate-badge">Mới</span>
+          </button>
 
-        <!-- 3. Properties With Tenants -->
-        <div class="stat-card">
-          <div class="stat-icon-wrapper bg-indigo-subtle">
-            <svg class="stat-svg text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M10 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/>
-              <path d="M2 22v-6.5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2V22"/>
-              <path d="M2 22h20"/>
+          <a 
+            routerLink="/landlord/appointments" 
+            class="tenant-tab-btn tab-appointment-link">
+            <svg class="tab-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="16" y1="2" x2="16" y2="6"></line>
+              <line x1="8" y1="2" x2="8" y2="6"></line>
+              <line x1="3" y1="10" x2="21" y2="10"></line>
             </svg>
-          </div>
-          <div class="stat-meta">
-            <span class="stat-label">Khu trọ có khách</span>
-            <strong class="stat-value text-indigo">{{ propertiesWithTenantsCount() }} <span class="text-sm font-normal text-muted">khu</span></strong>
-          </div>
-        </div>
-
-        <!-- 4. Expiring Soon -->
-        <div class="stat-card">
-          <div class="stat-icon-wrapper bg-amber-subtle">
-            <svg class="stat-svg text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/>
-              <polyline points="12 6 12 12 16 14"/>
-            </svg>
-          </div>
-          <div class="stat-meta">
-            <span class="stat-label">Hợp đồng sắp hết hạn</span>
-            <strong class="stat-value text-amber">{{ expiringSoonCount() }} <span class="text-sm font-normal text-muted">hợp đồng</span></strong>
-          </div>
+            <span>Lịch Hẹn Xem Phòng</span>
+            <span class="tab-count-pill pill-appointment-badge">Khách hẹn</span>
+          </a>
         </div>
       </div>
 
-      <!-- FILTER CONTROLS BAR -->
-      <div class="filters-card-wrapper mb-4">
-        <div class="filters-grid">
-          
-          <!-- 1. Chọn Khu Trọ -->
-          <div class="filter-item">
-            <label class="filter-label">Chọn Khu Trọ (Nhà trọ)</label>
-            <select [ngModel]="selectedPropertyId()" (ngModelChange)="onPropertyChange($event)" class="filter-select">
-              <option [value]="0">-- Tất cả khu trọ ({{ propertyList().length }}) --</option>
-              @for (p of propertyList(); track p.id) {
-                <option [value]="p.id">{{ p.title }}</option>
-              }
-            </select>
-          </div>
-
-          <!-- 2. Chọn Phòng -->
-          <div class="filter-item">
-            <label class="filter-label">Chọn Phòng</label>
-            <select [ngModel]="selectedRoomId()" (ngModelChange)="selectedRoomId.set(+$event)" class="filter-select" [disabled]="selectedPropertyId() === 0">
-              <option [value]="0">-- Tất cả phòng {{ selectedPropertyId() > 0 ? '(' + availableRoomsForFilter().length + ')' : '' }} --</option>
-              @for (r of availableRoomsForFilter(); track r.id) {
-                <option [value]="r.id">Phòng {{ r.roomNumber }}</option>
-              }
-            </select>
-          </div>
-
-          <!-- 3. Trạng thái khách thuê -->
-          <div class="filter-item">
-            <label class="filter-label">Trạng Thái Thuê</label>
-            <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)" class="filter-select">
-              <option value="Active">Đang thuê (Hiện tại)</option>
-              <option value="Expiring">Sắp hết hạn (30 ngày)</option>
-              <option value="Terminated">Đã trả phòng / Kết thúc</option>
-              <option value="All">-- Tất cả trạng thái --</option>
-            </select>
-          </div>
-
-          <!-- 4. Tìm kiếm nhanh -->
-          <div class="filter-item search-filter-item">
-            <label class="filter-label">Tìm kiếm người thuê</label>
-            <div class="search-input-box">
-              <input 
-                type="text" 
-                [ngModel]="searchQuery()" 
-                (ngModelChange)="searchQuery.set($event)"
-                placeholder="Nhập tên khách, SĐT, CCCD, số phòng..." 
-                class="filter-search-input" />
-              @if (searchQuery()) {
-                <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">&times;</button>
-              }
+      <!-- TAB 1: KHÁCH THUÊ THEO PHÒNG -->
+      @if (activeTab() === 'all-tenants') {
+        
+        <!-- STATS KPI BANNER -->
+        <div class="stats-kpi-grid mb-4">
+          <!-- 1. Total Tenants -->
+          <div class="stat-card">
+            <div class="stat-icon-wrapper bg-blue-subtle">
+              <svg class="stat-svg text-sky" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="stat-meta">
+              <span class="stat-label">Tổng khách đang thuê</span>
+              <strong class="stat-value text-sky">{{ activeTenantsCount() }} <span class="text-sm font-normal text-muted">người</span></strong>
             </div>
           </div>
 
-        </div>
-      </div>
-
-      <!-- MAIN CONTENT: TENANTS GROUPED BY PROPERTY & ROOM -->
-      @if (isLoading()) {
-        <div class="loading-state text-center py-5">
-          <div class="spinner"></div>
-          <p class="text-sm text-muted mt-3">Đang tải thông tin khách thuê...</p>
-        </div>
-      } @else if (groupedPropertiesWithTenants().length === 0) {
-        <div class="empty-state-box text-center py-5">
-          <div class="empty-icon-circle mb-3">
-            <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-              <circle cx="9" cy="7" r="4"/>
-              <line x1="18" y1="8" x2="23" y2="13"/>
-              <line x1="23" y1="8" x2="18" y2="13"/>
-            </svg>
+          <!-- 2. Occupied Rooms -->
+          <div class="stat-card">
+            <div class="stat-icon-wrapper bg-emerald-subtle">
+              <svg class="stat-svg text-emerald" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="4" y="3" width="16" height="18" rx="2"/>
+                <path d="M4 3l10 2.5v13L4 21V3z"/>
+                <circle cx="11.5" cy="12" r="1" fill="currentColor"/>
+              </svg>
+            </div>
+            <div class="stat-meta">
+              <span class="stat-label">Phòng có người thuê</span>
+              <strong class="stat-value text-emerald">{{ occupiedRoomsCount() }} <span class="text-sm font-normal text-muted">phòng</span></strong>
+            </div>
           </div>
-          <h3 class="font-bold text-lg mb-1">Không tìm thấy khách thuê nào</h3>
-          <p class="text-muted text-sm max-w-400 mx-auto mb-4">Không có khách thuê nào phù hợp với bộ lọc hiện tại của bạn.</p>
-          <button (click)="refreshAll()" class="btn-action-light mx-auto">Đặt lại bộ lọc</button>
+
+          <!-- 3. Properties With Tenants -->
+          <div class="stat-card">
+            <div class="stat-icon-wrapper bg-indigo-subtle">
+              <svg class="stat-svg text-indigo" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/>
+                <path d="M2 22v-6.5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2V22"/>
+                <path d="M2 22h20"/>
+              </svg>
+            </div>
+            <div class="stat-meta">
+              <span class="stat-label">Khu trọ có khách</span>
+              <strong class="stat-value text-indigo">{{ propertiesWithTenantsCount() }} <span class="text-sm font-normal text-muted">khu</span></strong>
+            </div>
+          </div>
+
+          <!-- 4. Expiring Soon -->
+          <div class="stat-card">
+            <div class="stat-icon-wrapper bg-amber-subtle">
+              <svg class="stat-svg text-amber" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polyline points="12 6 12 12 16 14"/>
+              </svg>
+            </div>
+            <div class="stat-meta">
+              <span class="stat-label">Hợp đồng sắp hết hạn</span>
+              <strong class="stat-value text-amber">{{ expiringSoonCount() }} <span class="text-sm font-normal text-muted">hợp đồng</span></strong>
+            </div>
+          </div>
         </div>
-      } @else {
-        <div class="properties-tenants-list d-flex flex-column gap-4">
-          @for (prop of groupedPropertiesWithTenants(); track prop.propertyId) {
-            <div class="property-group-card">
-              
-              <!-- Property Header Banner -->
-              <div class="property-group-header" (click)="togglePropertyCollapse(prop.propertyId)">
-                <div class="d-flex align-items-center gap-3">
-                  <div class="property-badge-icon">
-                    <svg class="prop-header-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M10 22V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v17"/>
-                      <path d="M2 22v-6.5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2V22"/>
-                      <path d="M2 22h20"/>
-                    </svg>
-                  </div>
-                  <div>
-                    <h2 class="property-group-title m-0">{{ prop.propertyTitle }}</h2>
-                    <span class="property-group-address text-xs text-muted d-flex align-items-center gap-1 mt-0.5">
-                      {{ prop.propertyAddress || 'Chưa cập nhật địa chỉ' }}
-                    </span>
-                  </div>
-                </div>
 
-                <div class="d-flex align-items-center gap-3 flex-wrap">
-                  <div class="group-metrics-pills">
-                    <span class="metric-pill">
-                      <strong>{{ prop.occupiedRoomsCount }}</strong> phòng có khách
-                    </span>
-                    <span class="metric-pill metric-pill-primary">
-                      <strong>{{ prop.tenantsCount }}</strong> khách thuê
-                    </span>
-                  </div>
-                  <button type="button" class="btn-collapse-toggle">
-                    {{ isPropertyCollapsed(prop.propertyId) ? 'Mở rộng ▼' : 'Thu gọn ▲' }}
-                  </button>
-                </div>
+        <!-- FILTER CONTROLS BAR -->
+        <div class="filters-card-wrapper mb-4">
+          <div class="filters-grid">
+            
+            <!-- 1. Chọn Khu Trọ -->
+            <div class="filter-item">
+              <label class="filter-label">Chọn Khu Trọ (Nhà trọ)</label>
+              <select [ngModel]="selectedPropertyId()" (ngModelChange)="onPropertyChange($event)" class="filter-select">
+                <option [value]="0">-- Tất cả khu trọ ({{ propertyList().length }}) --</option>
+                @for (p of propertyList(); track p.id) {
+                  <option [value]="p.id">{{ p.title }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- 2. Chọn Phòng -->
+            <div class="filter-item">
+              <label class="filter-label">Chọn Phòng</label>
+              <select [ngModel]="selectedRoomId()" (ngModelChange)="selectedRoomId.set(+$event)" class="filter-select" [disabled]="selectedPropertyId() === 0">
+                <option [value]="0">-- Tất cả phòng {{ selectedPropertyId() > 0 ? '(' + availableRoomsForFilter().length + ')' : '' }} --</option>
+                @for (r of availableRoomsForFilter(); track r.id) {
+                  <option [value]="r.id">Phòng {{ r.roomNumber }}</option>
+                }
+              </select>
+            </div>
+
+            <!-- 3. Trạng thái khách thuê -->
+            <div class="filter-item">
+              <label class="filter-label">Trạng Thái Thuê</label>
+              <select [ngModel]="selectedStatus()" (ngModelChange)="selectedStatus.set($event)" class="filter-select">
+                <option value="Active">Đang thuê (Hiện tại)</option>
+                <option value="Expiring">Sắp hết hạn (30 ngày)</option>
+                <option value="Terminated">Đã trả phòng / Kết thúc</option>
+                <option value="All">-- Tất cả trạng thái --</option>
+              </select>
+            </div>
+
+            <!-- 4. Tìm kiếm nhanh -->
+            <div class="filter-item search-filter-item">
+              <label class="filter-label">Tìm kiếm người thuê</label>
+              <div class="search-input-box">
+                <svg class="search-icon-inside" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <circle cx="11" cy="11" r="8"/>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input 
+                  type="text" 
+                  [ngModel]="searchQuery()" 
+                  (ngModelChange)="searchQuery.set($event)"
+                  placeholder="Nhập tên khách, SĐT, CCCD, số phòng..." 
+                  class="filter-search-input" />
+                @if (searchQuery()) {
+                  <button type="button" class="btn-clear-search" (click)="searchQuery.set('')">&times;</button>
+                }
               </div>
+            </div>
 
-              <!-- Property Rooms & Tenants Grid -->
-              @if (!isPropertyCollapsed(prop.propertyId)) {
-                <div class="property-rooms-body p-3">
-                  <div class="rooms-tenants-grid">
-                    @for (roomGroup of prop.rooms; track roomGroup.roomId) {
-                      <div class="room-tenant-item-card">
-                        
-                        <!-- Room Header Badge -->
-                        <div class="room-card-top-bar">
-                          <div class="d-flex align-items-center gap-2">
-                            <span class="room-badge-pill">Phòng {{ roomGroup.roomNumber }}</span>
-                            <span class="room-price-tag text-xs font-semibold text-muted">
-                              {{ (roomGroup.roomPrice || 0) | number:'1.0-0' }} đ/tháng
+          </div>
+        </div>
+
+        <!-- MAIN CONTENT: TENANTS GROUPED BY PROPERTY & ROOM -->
+        @if (isLoading()) {
+          <div class="loading-state text-center py-5">
+            <div class="spinner-custom"></div>
+            <p class="text-sm text-muted mt-3 font-semibold">Đang tải thông tin khách thuê cư trú...</p>
+          </div>
+        } @else if (groupedPropertiesWithTenants().length === 0) {
+          <div class="empty-state-box text-center py-5">
+            <div class="empty-icon-circle mb-3">
+              <svg class="empty-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <line x1="18" y1="8" x2="23" y2="13"/>
+                <line x1="23" y1="8" x2="18" y2="13"/>
+              </svg>
+            </div>
+            <h3 class="font-bold text-lg mb-1">Không tìm thấy khách thuê nào</h3>
+            <p class="text-muted text-sm max-w-400 mx-auto mb-4">Không có hồ sơ cư trú nào khớp với điều kiện tìm kiếm của bạn.</p>
+            <button (click)="refreshAll()" class="btn-action-light mx-auto">Đặt lại bộ lọc</button>
+          </div>
+        } @else {
+          <div class="properties-tenants-list d-flex flex-column gap-4">
+            @for (prop of groupedPropertiesWithTenants(); track prop.propertyId) {
+              <div class="property-group-card">
+                
+                <!-- Property Header Banner -->
+                <div class="property-group-header" (click)="togglePropertyCollapse(prop.propertyId)">
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="property-badge-icon">
+                      <svg class="prop-header-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <h2 class="property-group-title m-0">{{ prop.propertyTitle }}</h2>
+                      <span class="property-group-address text-xs text-muted d-flex align-items-center gap-1 mt-0.5">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                        {{ prop.propertyAddress || 'Chưa cập nhật địa chỉ' }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="group-metrics-pills">
+                      <span class="metric-pill">
+                        <strong>{{ prop.occupiedRoomsCount }}</strong> phòng có khách
+                      </span>
+                      <span class="metric-pill metric-pill-primary">
+                        <strong>{{ prop.tenantsCount }}</strong> khách thuê
+                      </span>
+                    </div>
+                    <button type="button" class="btn-collapse-toggle">
+                      <span>{{ isPropertyCollapsed(prop.propertyId) ? 'Mở rộng' : 'Thu gọn' }}</span>
+                      <span class="collapse-arrow" [class.rotated]="isPropertyCollapsed(prop.propertyId)">▲</span>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Property Rooms & Tenants Grid -->
+                @if (!isPropertyCollapsed(prop.propertyId)) {
+                  <div class="property-rooms-body p-3">
+                    <div class="rooms-tenants-grid">
+                      @for (roomGroup of prop.rooms; track roomGroup.roomId) {
+                        <div class="room-tenant-item-card">
+                          
+                          <!-- Room Header Badge -->
+                          <div class="room-card-top-bar">
+                            <div class="d-flex align-items-center gap-2">
+                              <span class="room-badge-pill">Phòng {{ roomGroup.roomNumber }}</span>
+                              <span class="room-price-tag text-xs font-semibold text-muted">
+                                {{ (roomGroup.roomPrice || 0) | number:'1.0-0' }} đ/tháng
+                              </span>
+                            </div>
+                            <span class="occupants-badge text-xs font-bold" [class.badge-active]="roomGroup.hasActiveTenant">
+                              {{ roomGroup.tenants.length }} khách đang ở
                             </span>
                           </div>
-                          <span class="occupants-badge text-xs font-bold" [class.badge-active]="roomGroup.hasActiveTenant">
-                            {{ roomGroup.tenants.length }} khách
-                          </span>
-                        </div>
 
-                        <!-- Tenants Inside This Room -->
-                        <div class="room-tenants-content mt-2 d-flex flex-column gap-2">
-                          @for (tenant of roomGroup.tenants; track tenant.id) {
-                            <div class="tenant-info-row" (click)="openTenantDetails(tenant)">
-                              
-                              <!-- Avatar / Initial -->
-                              <div class="tenant-avatar-circle" [class.avatar-active]="tenant.status === 'Active'">
-                                {{ getInitials(tenant.tenantFullName) }}
-                              </div>
-
-                              <!-- Info Body -->
-                              <div class="tenant-main-info flex-grow-1">
-                                <div class="d-flex justify-content-between align-items-center mb-1">
-                                  <strong class="tenant-name font-md text-dark">{{ tenant.tenantFullName }}</strong>
-                                  <span class="status-badge-chip" [ngClass]="getStatusBadgeClass(tenant)">
-                                    {{ getStatusText(tenant) }}
-                                  </span>
+                          <!-- Tenants Inside This Room -->
+                          <div class="room-tenants-content mt-2 d-flex flex-column gap-2">
+                            @for (tenant of roomGroup.tenants; track tenant.id) {
+                              <div class="tenant-info-row" (click)="openTenantDetails(tenant)">
+                                
+                                <!-- Avatar / Initial -->
+                                <div class="tenant-avatar-circle" [class.avatar-active]="tenant.status === 'Active'">
+                                  {{ getInitials(tenant.tenantFullName) }}
                                 </div>
 
-                                <div class="tenant-meta-details-grid">
-                                  <!-- SĐT -->
-                                  <div class="meta-item">
-                                    <span class="meta-icon"></span>
-                                    <a [href]="'tel:' + tenant.tenantPhone" (click)="$event.stopPropagation()" class="meta-link-phone">
-                                      {{ tenant.tenantPhone }}
-                                    </a>
-                                  </div>
-
-                                  <!-- CCCD -->
-                                  <div class="meta-item">
-                                    <span class="meta-icon"></span>
-                                    <span class="meta-text">{{ tenant.tenantCccd || 'Chưa cập nhật CCCD' }}</span>
-                                  </div>
-
-                                  <!-- Thời gian thuê -->
-                                  <div class="meta-item col-span-2">
-                                    <span class="meta-icon"></span>
-                                    <span class="meta-text text-xs">
-                                      Từ {{ tenant.startDate | date:'dd/MM/yyyy' }} → Đến {{ tenant.endDate | date:'dd/MM/yyyy' }}
+                                <!-- Info Body -->
+                                <div class="tenant-main-info flex-grow-1">
+                                  <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="d-flex align-items-center gap-2">
+                                      <strong class="tenant-name font-md text-dark">{{ tenant.tenantFullName }}</strong>
+                                      @if (tenant.status === 'Active') {
+                                        <span class="tenant-dot-active" title="Hợp đồng đang hiệu lực"></span>
+                                      }
+                                    </div>
+                                    <span class="status-badge-chip" [ngClass]="getStatusBadgeClass(tenant)">
+                                      {{ getStatusText(tenant) }}
                                     </span>
                                   </div>
+
+                                  <div class="tenant-meta-details-grid">
+                                    <!-- SĐT -->
+                                    <div class="meta-item">
+                                      <svg class="meta-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                                      <a [href]="'tel:' + tenant.tenantPhone" (click)="$event.stopPropagation()" class="meta-link-phone">
+                                        {{ tenant.tenantPhone }}
+                                      </a>
+                                    </div>
+
+                                    <!-- CCCD -->
+                                    <div class="meta-item">
+                                      <svg class="meta-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><line x1="15" y1="8" x2="17" y2="8"/><line x1="15" y1="12" x2="17" y2="12"/></svg>
+                                      <span class="meta-text">{{ tenant.tenantCccd || 'Chưa cập nhật CCCD' }}</span>
+                                    </div>
+
+                                    <!-- Thời gian thuê -->
+                                    <div class="meta-item col-span-2">
+                                      <svg class="meta-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                                      <span class="meta-text text-xs">
+                                        Từ {{ tenant.startDate | date:'dd/MM/yyyy' }} → Đến {{ tenant.endDate | date:'dd/MM/yyyy' }}
+                                      </span>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
 
-                              <!-- Action Buttons Dropdown or Quick Actions -->
-                              <div class="tenant-row-actions" (click)="$event.stopPropagation()">
-                                <button type="button" class="btn-row-action" title="Xem & Xuất Hợp Đồng (.doc / In)" (click)="openLegalDocForTenant(tenant)">
-                                  <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                    <path d="M14 2v6h6"/>
-                                    <line x1="16" y1="13" x2="8" y2="13"/>
-                                    <line x1="16" y1="17" x2="8" y2="17"/>
-                                    <line x1="10" y1="9" x2="8" y2="9"/>
-                                  </svg>
-                                </button>
-                                <button type="button" class="btn-row-action" title="Xem chi tiết" (click)="openTenantDetails(tenant)">
-                                  <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                                    <circle cx="12" cy="12" r="3"/>
-                                  </svg>
-                                </button>
-                                <a [href]="'tel:' + tenant.tenantPhone" class="btn-row-action btn-call" title="Gọi điện">
-                                  <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-                                  </svg>
-                                </a>
-                              </div>
+                                <!-- Action Buttons -->
+                                <div class="tenant-row-actions" (click)="$event.stopPropagation()">
+                                  <button type="button" class="btn-row-action btn-doc-action" title="Xem & Xuất Hợp Đồng (.doc / In)" (click)="openLegalDocForTenant(tenant)">
+                                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                                      <path d="M14 2v6h6"/>
+                                      <line x1="16" y1="13" x2="8" y2="13"/>
+                                      <line x1="16" y1="17" x2="8" y2="17"/>
+                                      <line x1="10" y1="9" x2="8" y2="9"/>
+                                    </svg>
+                                  </button>
+                                  <button type="button" class="btn-row-action" title="Xem chi tiết hồ sơ" (click)="openTenantDetails(tenant)">
+                                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                                      <circle cx="12" cy="12" r="3"/>
+                                    </svg>
+                                  </button>
+                                  <a [href]="'tel:' + tenant.tenantPhone" class="btn-row-action btn-call" title="Gọi điện">
+                                    <svg class="action-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                                    </svg>
+                                  </a>
+                                </div>
 
-                            </div>
-                          }
+                              </div>
+                            }
+                          </div>
+
                         </div>
-
-                      </div>
-                    }
+                      }
+                    </div>
                   </div>
-                </div>
-              }
+                }
 
+              </div>
+            }
+          </div>
+        }
+
+      } @else {
+
+        <!-- TAB 2: TÌM BẠN Ở GHÉP (GHÉP TRỌ) -->
+        <div class="roommate-tab-container animate-fade-in">
+          
+          <!-- Hero Banner -->
+          <div class="roommate-hero-card mb-4">
+            <div class="hero-left-content">
+              <div class="hero-tag mb-2">
+                <span class="hero-tag-icon">✨</span>
+                <span>TÍNH NĂNG ĐỘC QUYỀN ZHOME</span>
+              </div>
+              <h2 class="hero-title m-0 mb-2">Sàn Tìm Bạn Ở Ghép & Lấp Đầy Phòng Trống</h2>
+              <p class="hero-desc m-0 mb-3">
+                Đăng tin tìm bạn cùng phòng để lấp đầy các giường/chỗ trống trong khu trọ của bạn, hoặc hỗ trợ khách thuê hiện tại tìm bạn chia sẻ tiền phòng nhanh chóng, an toàn.
+              </p>
+              
+              <div class="d-flex gap-3 align-items-center flex-wrap">
+                <button type="button" class="btn-hero-primary" (click)="openCreateRoommateModal()">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                    <circle cx="8.5" cy="7" r="4"/>
+                    <line x1="20" y1="8" x2="20" y2="14"/>
+                    <line x1="23" y1="11" x2="17" y2="11"/>
+                  </svg>
+                  <span>+ Đăng Tin Tìm Bạn Ở Ghép Ngay</span>
+                </button>
+                <a routerLink="/tenant/match" class="btn-hero-secondary">
+                  <span>Khám phá Sàn Ghép Trọ Công Khai &rarr;</span>
+                </a>
+              </div>
             </div>
-          }
+
+            <div class="hero-right-illustration">
+              <div class="illustration-badge-box">
+                <div class="illus-icon">🤝</div>
+                <div class="illus-text font-bold">Cộng Đồng Văn Minh</div>
+                <div class="illus-sub">Kết nối sinh viên & người đi làm</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rooms available for roommate matching -->
+          <div class="roommate-rooms-section">
+            <div class="section-header-row mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <h3 class="font-bold text-lg m-0 text-dark">Danh Sách Phòng Trong Khu Trọ Của Bạn</h3>
+                <p class="text-xs text-muted m-0 mt-0.5">Chọn phòng cần đăng tin ghép trọ để đưa lên Sàn Ghép Trọ sinh viên</p>
+              </div>
+              <span class="badge-total-rooms">Tổng: {{ allRooms().length }} phòng trọ</span>
+            </div>
+
+            @if (allRooms().length === 0) {
+              <div class="empty-state-box text-center py-5">
+                <p class="text-muted text-sm m-0">Chưa có phòng trọ nào. Hãy tạo phòng trọ trước khi đăng tin ghép trọ.</p>
+              </div>
+            } @else {
+              <div class="roommate-grid">
+                @for (room of allRooms(); track room.id) {
+                  <div class="roommate-room-card">
+                    <div class="r-card-top">
+                      <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="r-room-badge">Phòng {{ room.roomNumber }}</span>
+                        <span class="r-status-badge" [class.status-avail]="room.status === 'Available'">
+                          {{ room.status === 'Available' ? 'Phòng trống' : 'Đang thuê' }}
+                        </span>
+                      </div>
+                      <h4 class="r-prop-title m-0">{{ room.propertyTitle }}</h4>
+                    </div>
+
+                    <div class="r-card-body">
+                      <div class="r-metric-row">
+                        <span class="r-metric-label">Giá nguyên phòng:</span>
+                        <strong class="r-metric-val">{{ (room.price || 0) | number:'1.0-0' }} đ/tháng</strong>
+                      </div>
+                      <div class="r-metric-row">
+                        <span class="r-metric-label">Ước tính khi ghép 2 người:</span>
+                        <strong class="r-metric-val text-primary">{{ ((room.price || 0) / 2) | number:'1.0-0' }} đ/người</strong>
+                      </div>
+                      <div class="r-metric-row">
+                        <span class="r-metric-label">Diện tích phòng:</span>
+                        <span class="font-semibold text-dark">{{ room.area || 20 }} m²</span>
+                      </div>
+                    </div>
+
+                    <div class="r-card-footer">
+                      <button type="button" class="btn-card-match" (click)="openCreateRoommateModal()">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                          <circle cx="8.5" cy="7" r="4"/>
+                          <line x1="20" y1="8" x2="20" y2="14"/>
+                          <line x1="23" y1="11" x2="17" y2="11"/>
+                        </svg>
+                        <span>Đăng Tin Ghép Cho Phòng Này</span>
+                      </button>
+                    </div>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+
         </div>
       }
 
@@ -507,12 +645,12 @@ export interface RoommateNeed {
 
             @if (isLoadingLegalDoc()) {
               <div class="text-center py-5">
-                <div class="spinner mb-2"></div>
-                <p class="text-muted">Đang tải văn bản hợp đồng pháp lý...</p>
+                <div class="spinner-custom mb-2"></div>
+                <p class="text-muted font-semibold">Đang tải văn bản hợp đồng pháp lý...</p>
               </div>
             } @else if (legalDocData(); as doc) {
               
-              <!-- Legal Paper Body (Chuẩn mẫu văn bản mau-hop-dong-thue-nha-tro-ngan-gon.docx) -->
+              <!-- Legal Paper Body -->
               <div class="legal-contract-paper mt-3" id="printableContractTenant">
                 
                 <!-- Quốc hiệu & Tiêu ngữ -->
@@ -536,8 +674,8 @@ export interface RoommateNeed {
                 <div class="legal-party-section">
                   <p class="legal-party-head"><strong>1. Đại diện bên cho thuê phòng trọ (Bên A):</strong></p>
                   <p class="legal-text-p">Ông/bà: <strong>{{ doc.landlordFullName }}</strong></p>
-                  <p class="legal-text-p">Nơi đăng ký HK thường trú: <strong>{{ doc.propertyAddress || 'Cư Xá Phú Lâm B, Phường 13, Quận 6, TP.HCM' }}</strong></p>
-                  <p class="legal-text-p">CMND/CCCD số: <strong>{{ doc.landlordCccd || '075189005448' }}</strong></p>
+                  <p class="legal-text-p">Nơi đăng ký HK thường trú: <strong>{{ doc.propertyAddress || 'Đăng ký theo CCCD / Thường trú hợp pháp' }}</strong></p>
+                  <p class="legal-text-p">CMND/CCCD số: <strong>{{ doc.landlordCccd || 'Chưa cập nhật' }}</strong></p>
                   <p class="legal-text-p">Số điện thoại: <strong>{{ doc.landlordPhone }}</strong></p>
                 </div>
 
@@ -651,6 +789,37 @@ export interface RoommateNeed {
       padding: 4px 0;
     }
 
+    .animate-fade-in {
+      animation: fadeIn 0.25s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header-badge-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      color: #2563eb;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
+      padding: 3px 10px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    .pulse-indicator-dot {
+      width: 7px;
+      height: 7px;
+      background: #2563eb;
+      border-radius: 50%;
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+    }
+
     .header-action-row {
       display: flex;
       justify-content: space-between;
@@ -660,7 +829,7 @@ export interface RoommateNeed {
     }
 
     .page-main-title {
-      font-size: 1.5rem;
+      font-size: 1.65rem;
       font-weight: 900;
       color: #0f172a;
       letter-spacing: -0.02em;
@@ -668,50 +837,152 @@ export interface RoommateNeed {
 
     .btn-action-light {
       background: #ffffff;
-      border: 1px solid #cbd5e1;
+      border: 1.5px solid #cbd5e1;
       color: #334155;
       font-size: 0.85rem;
       font-weight: 700;
       padding: 9px 16px;
-      border-radius: 8px;
-      display: flex;
+      border-radius: 10px;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
       cursor: pointer;
       transition: all 0.2s ease;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
     }
 
     .btn-action-light:hover {
-      background: #f1f5f9;
+      background: #f8fafc;
       border-color: #94a3b8;
+      color: #0f172a;
+    }
+
+    .btn-roommate-quick-add {
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+      color: #ffffff;
+      border: none;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 9px 18px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+      transition: all 0.2s ease;
+    }
+
+    .btn-roommate-quick-add:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
     }
 
     .btn-primary-add {
-      background: #2563eb;
+      background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
       color: #ffffff;
       font-size: 0.85rem;
       font-weight: 700;
       padding: 9px 18px;
-      border-radius: 8px;
-      display: flex;
+      border-radius: 10px;
+      display: inline-flex;
       align-items: center;
       gap: 8px;
       text-decoration: none;
-      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.25);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
       transition: all 0.2s ease;
     }
 
     .btn-primary-add:hover {
-      background: #1d4ed8;
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      color: #ffffff;
     }
 
     .btn-icon-svg {
       width: 16px;
       height: 16px;
+      flex-shrink: 0;
     }
 
-    /* KPI Cards */
+    /* MODERN SEGMENTED TABS */
+    .tenants-tabs-wrapper {
+      display: flex;
+    }
+
+    .tenants-nav-tabs {
+      display: inline-flex;
+      background: #f1f5f9;
+      border: 1.5px solid #e2e8f0;
+      padding: 4px;
+      border-radius: 14px;
+      gap: 4px;
+    }
+
+    .tenant-tab-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 18px;
+      border-radius: 10px;
+      border: none;
+      background: transparent;
+      color: #64748b;
+      font-size: 0.88rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tenant-tab-btn:hover {
+      color: #0f172a;
+      background: rgba(255, 255, 255, 0.6);
+    }
+
+    .tenant-tab-btn.active {
+      background: #ffffff;
+      color: #2563eb;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .tab-svg {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+      stroke: currentColor;
+    }
+
+    .tab-count-pill {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 2px 8px;
+      border-radius: 20px;
+      background: #e2e8f0;
+      color: #475569;
+    }
+
+    .tenant-tab-btn.active .tab-count-pill {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+
+    .tab-roommate-highlight.active {
+      color: #7c3aed;
+    }
+
+    .tab-roommate-highlight.active .tab-count-pill {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+
+    .pill-roommate-badge {
+      background: #fee2e2;
+      color: #dc2626;
+      font-size: 0.68rem;
+    }
+
+    /* KPI STATS CARDS */
     .stats-kpi-grid {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -721,18 +992,25 @@ export interface RoommateNeed {
     .stat-card {
       background: #ffffff;
       border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 16px 18px;
+      border-radius: 14px;
+      padding: 18px 20px;
       display: flex;
       align-items: center;
       gap: 16px;
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+      transition: all 0.2s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+      border-color: #cbd5e1;
     }
 
     .stat-icon-wrapper {
-      width: 46px;
-      height: 46px;
-      border-radius: 10px;
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -760,21 +1038,22 @@ export interface RoommateNeed {
     }
 
     .stat-label {
-      font-size: 0.76rem;
-      font-weight: 700;
+      font-size: 0.74rem;
+      font-weight: 800;
       color: #64748b;
       text-transform: uppercase;
       letter-spacing: 0.04em;
     }
 
     .stat-value {
-      font-size: 1.4rem;
+      font-size: 1.45rem;
       font-weight: 900;
       color: #0f172a;
       line-height: 1.2;
+      margin-top: 2px;
     }
 
-    /* Filters */
+    /* FILTERS CARD */
     .filters-card-wrapper {
       background: #ffffff;
       border: 1.5px solid #e2e8f0;
@@ -808,15 +1087,17 @@ export interface RoommateNeed {
     }
 
     .filter-label {
-      font-size: 0.78rem;
+      font-size: 0.76rem;
       font-weight: 800;
       color: #475569;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
     }
 
     .filter-select {
       background: #f8fafc;
       border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
+      border-radius: 10px;
       padding: 9px 12px;
       font-size: 0.86rem;
       font-weight: 600;
@@ -837,12 +1118,21 @@ export interface RoommateNeed {
       align-items: center;
     }
 
+    .search-icon-inside {
+      position: absolute;
+      left: 12px;
+      width: 16px;
+      height: 16px;
+      stroke: #94a3b8;
+      pointer-events: none;
+    }
+
     .filter-search-input {
       width: 100%;
       background: #f8fafc;
       border: 1.5px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 9px 34px 9px 12px;
+      border-radius: 10px;
+      padding: 9px 34px 9px 36px;
       font-size: 0.86rem;
       color: #1e293b;
       outline: none;
@@ -865,13 +1155,13 @@ export interface RoommateNeed {
       cursor: pointer;
     }
 
-    /* Property Group Card */
+    /* PROPERTY GROUP CARD */
     .property-group-card {
       background: #ffffff;
       border: 1.5px solid #e2e8f0;
-      border-radius: 14px;
+      border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
     }
 
     .property-group-header {
@@ -892,15 +1182,16 @@ export interface RoommateNeed {
     }
 
     .property-badge-icon {
-      width: 40px;
-      height: 40px;
-      background: #eff6ff;
-      border-radius: 10px;
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       color: #2563eb;
       flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(37, 99, 235, 0.12);
     }
 
     .prop-header-svg {
@@ -924,10 +1215,11 @@ export interface RoommateNeed {
     .metric-pill {
       background: #ffffff;
       border: 1px solid #cbd5e1;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       color: #475569;
       padding: 5px 12px;
       border-radius: 20px;
+      font-weight: 600;
     }
 
     .metric-pill-primary {
@@ -943,35 +1235,48 @@ export interface RoommateNeed {
       font-weight: 700;
       color: #475569;
       padding: 6px 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
 
-    /* Rooms & Tenants Grid */
+    .collapse-arrow {
+      font-size: 0.7rem;
+      transition: transform 0.2s ease;
+    }
+
+    .collapse-arrow.rotated {
+      transform: rotate(180deg);
+    }
+
+    /* ROOMS & TENANTS GRID */
     .rooms-tenants-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
       gap: 16px;
     }
 
     .room-tenant-item-card {
       background: #ffffff;
       border: 1.5px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 14px 16px;
+      border-radius: 14px;
+      padding: 16px;
       transition: all 0.2s ease;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
     }
 
     .room-tenant-item-card:hover {
       border-color: #cbd5e1;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
     }
 
     .room-card-top-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 10px;
+      padding-bottom: 12px;
       border-bottom: 1px dashed #e2e8f0;
     }
 
@@ -981,14 +1286,15 @@ export interface RoommateNeed {
       font-size: 0.82rem;
       font-weight: 800;
       padding: 4px 10px;
-      border-radius: 6px;
+      border-radius: 8px;
     }
 
     .occupants-badge {
       background: #f1f5f9;
       color: #64748b;
-      padding: 3px 8px;
-      border-radius: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.74rem;
     }
 
     .occupants-badge.badge-active {
@@ -996,15 +1302,15 @@ export interface RoommateNeed {
       color: #15803d;
     }
 
-    /* Tenant Info Row Inside Room */
+    /* TENANT INFO ROW */
     .tenant-info-row {
       display: flex;
       align-items: center;
       gap: 12px;
-      padding: 10px;
+      padding: 12px;
       background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
+      border: 1.5px solid #f1f5f9;
+      border-radius: 12px;
       cursor: pointer;
       transition: all 0.15s ease;
     }
@@ -1012,43 +1318,63 @@ export interface RoommateNeed {
     .tenant-info-row:hover {
       background: #eff6ff;
       border-color: #bfdbfe;
+      transform: translateY(-1px);
     }
 
     .tenant-avatar-circle {
-      width: 38px;
-      height: 38px;
-      background: #e2e8f0;
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
       color: #475569;
       font-weight: 800;
-      font-size: 0.95rem;
+      font-size: 1rem;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.06);
     }
 
     .tenant-avatar-circle.avatar-active {
-      background: #dbeafe;
+      background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
       color: #1d4ed8;
     }
 
+    .tenant-dot-active {
+      width: 8px;
+      height: 8px;
+      background: #16a34a;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+    }
+
     .tenant-name {
-      font-size: 0.95rem;
+      font-size: 0.96rem;
+      font-weight: 800;
     }
 
     .tenant-meta-details-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 4px 8px;
+      gap: 5px 10px;
+      margin-top: 4px;
     }
 
     .meta-item {
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
       font-size: 0.8rem;
       color: #475569;
+    }
+
+    .meta-svg {
+      width: 14px;
+      height: 14px;
+      stroke: #64748b;
+      flex-shrink: 0;
     }
 
     .col-span-2 {
@@ -1068,7 +1394,7 @@ export interface RoommateNeed {
     .status-badge-chip {
       font-size: 0.72rem;
       font-weight: 800;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: 12px;
     }
 
@@ -1090,42 +1416,281 @@ export interface RoommateNeed {
     .tenant-row-actions {
       display: flex;
       flex-direction: column;
-      gap: 4px;
+      gap: 6px;
     }
 
     .btn-row-action {
-      width: 28px;
-      height: 28px;
+      width: 32px;
+      height: 32px;
       background: #ffffff;
       border: 1px solid #cbd5e1;
-      border-radius: 6px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #475569;
       cursor: pointer;
+      color: #475569;
       transition: all 0.15s ease;
-      text-decoration: none;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     .btn-row-action:hover {
       background: #2563eb;
       color: #ffffff;
       border-color: #2563eb;
+      transform: scale(1.05);
+    }
+
+    .btn-doc-action:hover {
+      background: #0284c7;
+      border-color: #0284c7;
+      color: #ffffff;
+    }
+
+    .btn-call {
+      color: #059669;
     }
 
     .btn-call:hover {
-      background: #16a34a;
-      border-color: #16a34a;
+      background: #059669;
+      border-color: #059669;
       color: #ffffff;
     }
 
     .action-svg {
-      width: 14px;
-      height: 14px;
+      width: 15px;
+      height: 15px;
+      stroke: currentColor;
     }
 
-    /* Modal Backdrop */
+    /* ROOMMATE MATCH TAB STYLES */
+    .roommate-hero-card {
+      background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+      border-radius: 18px;
+      padding: 28px 32px;
+      color: #ffffff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 24px;
+      box-shadow: 0 8px 24px rgba(49, 46, 129, 0.28);
+    }
+
+    .hero-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: rgba(255, 255, 255, 0.15);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      padding: 4px 12px;
+      border-radius: 20px;
+      letter-spacing: 0.05em;
+    }
+
+    .hero-title {
+      font-size: 1.6rem;
+      font-weight: 900;
+      line-height: 1.25;
+      color: #ffffff;
+    }
+
+    .hero-desc {
+      font-size: 0.92rem;
+      color: #c7d2fe;
+      max-width: 640px;
+      line-height: 1.5;
+    }
+
+    .btn-hero-primary {
+      background: #ffffff;
+      color: #4338ca;
+      font-size: 0.88rem;
+      font-weight: 800;
+      padding: 10px 20px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      transition: all 0.2s ease;
+    }
+
+    .btn-hero-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    }
+
+    .btn-hero-secondary {
+      background: rgba(255, 255, 255, 0.12);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .btn-hero-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .hero-right-illustration {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .illustration-badge-box {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      backdrop-filter: blur(8px);
+      padding: 18px 24px;
+      border-radius: 16px;
+      text-align: center;
+    }
+
+    .illus-icon {
+      font-size: 2.2rem;
+      margin-bottom: 4px;
+    }
+
+    .illus-text {
+      font-size: 0.95rem;
+      color: #ffffff;
+    }
+
+    .illus-sub {
+      font-size: 0.74rem;
+      color: #c7d2fe;
+    }
+
+    @media (max-width: 900px) {
+      .roommate-hero-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .hero-right-illustration {
+        display: none;
+      }
+    }
+
+    .badge-total-rooms {
+      background: #eff6ff;
+      color: #2563eb;
+      font-size: 0.78rem;
+      font-weight: 800;
+      padding: 4px 12px;
+      border-radius: 20px;
+    }
+
+    .roommate-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .roommate-room-card {
+      background: #ffffff;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    }
+
+    .roommate-room-card:hover {
+      border-color: #cbd5e1;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
+    }
+
+    .r-room-badge {
+      background: #0f172a;
+      color: #ffffff;
+      font-size: 0.8rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .r-status-badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      padding: 3px 8px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .r-status-badge.status-avail {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    .r-prop-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #0f172a;
+      margin-top: 8px;
+    }
+
+    .r-card-body {
+      margin: 14px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .r-metric-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    .r-metric-label {
+      color: #64748b;
+    }
+
+    .r-metric-val {
+      font-weight: 800;
+    }
+
+    .btn-card-match {
+      width: 100%;
+      background: #eff6ff;
+      border: 1.5px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 0.85rem;
+      font-weight: 800;
+      padding: 9px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-card-match:hover {
+      background: #2563eb;
+      color: #ffffff;
+      border-color: #2563eb;
+    }
+
+    /* MODAL STYLES */
     .modal-backdrop {
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
@@ -1134,36 +1699,46 @@ export interface RoommateNeed {
       display: flex;
       align-items: center;
       justify-content: center;
-      z-index: 9999;
+      z-index: 1050;
       padding: 16px;
     }
 
     .modal-card {
       background: #ffffff;
-      border-radius: 16px;
+      border-radius: 18px;
       padding: 24px;
       width: 100%;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
       max-height: 90vh;
       overflow-y: auto;
-      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     }
 
     .max-w-600 { max-width: 600px; }
+    .max-w-850 { max-width: 850px; }
+
+    .animate-slide-up {
+      animation: slideUp 0.2s ease-out;
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
 
     .modal-header-clean {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding-bottom: 14px;
-      border-bottom: 1.5px solid #e2e8f0;
+      padding-bottom: 16px;
+      border-bottom: 1.5px solid #f1f5f9;
     }
 
     .tenant-modal-avatar {
-      width: 44px;
-      height: 44px;
-      background: #2563eb;
-      color: #ffffff;
-      font-size: 1.2rem;
+      width: 48px;
+      height: 48px;
+      background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%);
+      color: #1d4ed8;
+      font-size: 1.25rem;
       font-weight: 900;
       border-radius: 50%;
       display: flex;
@@ -1180,16 +1755,23 @@ export interface RoommateNeed {
     .modal-close-x {
       background: none;
       border: none;
-      font-size: 1.8rem;
-      line-height: 1;
+      font-size: 1.6rem;
       color: #94a3b8;
       cursor: pointer;
+      line-height: 1;
+      padding: 4px 8px;
+      border-radius: 8px;
+    }
+
+    .modal-close-x:hover {
+      background: #f1f5f9;
+      color: #0f172a;
     }
 
     .detail-section-block {
       background: #f8fafc;
       border: 1px solid #e2e8f0;
-      border-radius: 10px;
+      border-radius: 12px;
       padding: 14px 16px;
     }
 
@@ -1204,22 +1786,22 @@ export interface RoommateNeed {
     .info-two-cols-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 10px 16px;
+      gap: 10px 14px;
     }
 
     .info-field {
       display: flex;
       flex-direction: column;
+      gap: 2px;
     }
 
     .field-label {
       font-size: 0.75rem;
       color: #64748b;
-      font-weight: 600;
     }
 
     .field-value {
-      font-size: 0.92rem;
+      font-size: 0.88rem;
       color: #0f172a;
     }
 
@@ -1227,215 +1809,165 @@ export interface RoommateNeed {
       display: flex;
       justify-content: flex-end;
       gap: 10px;
-      padding-top: 14px;
-      border-top: 1px solid #e2e8f0;
     }
 
     .btn-cancel-custom {
-      background: #f1f5f9;
-      border: 1px solid #cbd5e1;
+      background: #ffffff;
+      border: 1.5px solid #cbd5e1;
       color: #475569;
+      font-size: 0.85rem;
       font-weight: 700;
       padding: 9px 18px;
-      border-radius: 8px;
+      border-radius: 10px;
       cursor: pointer;
     }
 
     .btn-call-direct {
       background: #16a34a;
       color: #ffffff;
+      font-size: 0.85rem;
       font-weight: 700;
       padding: 9px 20px;
-      border-radius: 8px;
+      border-radius: 10px;
       text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: background 0.15s ease;
+      box-shadow: 0 2px 6px rgba(22, 163, 74, 0.3);
     }
 
     .btn-call-direct:hover {
       background: #15803d;
+      color: #ffffff;
     }
 
-    .spinner {
-      width: 32px;
-      height: 32px;
-      border: 3px solid #cbd5e1;
-      border-top-color: #2563eb;
-      border-radius: 50%;
-      animation: spin 1s infinite linear;
-      margin: 0 auto;
-    }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-    .empty-icon-circle {
-      width: 64px;
-      height: 64px;
-      background: #f1f5f9;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto;
-    }
-    .empty-svg {
-      width: 32px;
-      height: 32px;
-      stroke: #94a3b8;
-    }
-
-    /* Legal Contract Paper Styling (Matching Vietnamese Standard mau-hop-dong-thue-nha-tro-ngan-gon.docx) */
-    .legal-doc-modal-card {
-      background: #f8fafc;
-      max-height: 92vh;
-    }
-    .legal-contract-paper {
-      background: #ffffff;
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      padding: 40px 48px;
-      font-family: 'Times New Roman', Times, serif;
-      color: #000000;
-      line-height: 1.6;
-      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-      max-width: 780px;
-      margin: 0 auto;
-    }
-    .country-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      letter-spacing: 0.5px;
-      color: #000000;
-    }
-    .country-motto {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #000000;
-    }
-    .motto-divider {
-      text-align: center;
-      color: #000000;
-      font-weight: bold;
-      letter-spacing: 2px;
-      margin-top: 4px;
-    }
-    .contract-doc-title {
-      font-size: 1.45rem;
-      font-weight: 900;
-      color: #000000;
-      letter-spacing: 0.5px;
-    }
-    .legal-basis {
-      font-size: 0.95rem;
-      color: #333333;
-    }
-    .legal-text-p {
-      font-size: 1rem;
-      margin: 4px 0;
-      text-align: justify;
-      color: #000000;
-    }
-    .legal-party-head {
-      font-size: 1.02rem;
-      margin: 10px 0 4px 0;
-      color: #000000;
-    }
-    .legal-clause-heading {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #000000;
-      margin: 14px 0 6px 0;
-    }
-    .legal-clause-p {
-      font-size: 1rem;
-      margin: 6px 0;
-      text-align: justify;
-      color: #000000;
-    }
-    .legal-clause-list {
-      margin: 4px 0 10px 24px;
-      padding: 0;
-      font-size: 0.98rem;
-      line-height: 1.6;
-      color: #000000;
-    }
-    .legal-clause-list li {
-      margin-bottom: 4px;
-    }
-    .legal-signatures-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 30px;
-      margin-top: 36px;
-      padding-top: 10px;
-    }
-    .sig-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .sig-title {
-      font-size: 1.02rem;
-      margin: 0;
-      color: #000000;
-    }
-    .sig-hint {
-      font-size: 0.88rem;
-      margin: 2px 0 0 0;
-      color: #555555;
-    }
-    .sig-blank-space {
-      height: 70px;
-    }
-    .sig-name {
-      font-size: 1.02rem;
-      margin: 0;
-      color: #000000;
-      text-transform: uppercase;
-    }
-    .btn-print-big {
+    .btn-submit-custom {
       background: #2563eb;
       color: #ffffff;
+      font-size: 0.85rem;
       font-weight: 700;
-      padding: 9px 24px;
-      border-radius: 8px;
+      padding: 9px 20px;
+      border-radius: 10px;
       border: none;
       cursor: pointer;
     }
-    .btn-print-big:hover {
-      background: #1d4ed8;
+
+    /* LEGAL CONTRACT PAPER (PRINT FRIENDLY) */
+    .legal-contract-paper {
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      padding: 36px 40px;
+      border-radius: 8px;
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+      font-family: 'Times New Roman', Times, serif;
+      color: #111827;
+      line-height: 1.6;
+    }
+
+    .country-title {
+      font-size: 1.15rem;
+      font-weight: 900;
+      letter-spacing: 0.02em;
+    }
+
+    .country-motto {
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .motto-divider {
+      color: #475569;
+      font-weight: bold;
+    }
+
+    .contract-doc-title {
+      font-size: 1.45rem;
+      font-weight: 900;
+      color: #0f172a;
+    }
+
+    .legal-basis {
+      font-size: 0.95rem;
+    }
+
+    .legal-party-head {
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .legal-text-p {
+      margin: 4px 0;
+      font-size: 0.98rem;
+    }
+
+    .legal-clause-heading {
+      font-size: 1rem;
+      font-weight: 800;
+      margin: 12px 0 6px 0;
+      text-transform: uppercase;
+    }
+
+    .legal-clause-p {
+      margin: 6px 0;
+      font-size: 0.98rem;
+      text-align: justify;
+    }
+
+    .legal-clause-list {
+      margin: 4px 0 8px 24px;
+      padding: 0;
+    }
+
+    .legal-clause-list li {
+      margin-bottom: 4px;
+      font-size: 0.95rem;
+      text-align: justify;
+    }
+
+    .legal-signatures-row {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 36px;
+    }
+
+    .sig-col {
+      min-width: 200px;
+    }
+
+    .sig-blank-space {
+      height: 70px;
+    }
+
+    .spinner-custom {
+      width: 32px;
+      height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .tab-appointment-link {
+      text-decoration: none;
+      color: #334155;
+    }
+    .tab-appointment-link:hover {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+    .pill-appointment-badge {
+      background: #eff6ff;
+      color: #2563eb;
+      font-weight: 700;
     }
 
     @media print {
-      @page {
-        size: A4;
-        margin: 15mm 15mm 15mm 15mm;
-      }
-      body * {
-        visibility: hidden;
-      }
       .no-print {
         display: none !important;
       }
-      .modal-backdrop {
-        position: static !important;
-        background: none !important;
-        padding: 0 !important;
-      }
-      .legal-doc-modal-card {
-        box-shadow: none !important;
-        padding: 0 !important;
-        max-height: none !important;
-      }
-      #printableContractTenant, #printableContractTenant * {
-        visibility: visible !important;
-      }
-      #printableContractTenant {
-        position: absolute !important;
-        left: 0 !important;
-        top: 0 !important;
-        width: 100% !important;
+      .legal-contract-paper {
         border: none !important;
         box-shadow: none !important;
         padding: 0 !important;

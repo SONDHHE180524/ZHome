@@ -14,6 +14,26 @@ import { environment } from '../../../environments/environment';
   template: `
     <div class="bills-container">
       
+      <!-- Warning Banner if Landlord has not set bank account -->
+      @if (!isBankConfigured()) {
+        <div class="bank-warning-alert mb-4 p-3 d-flex align-items-center justify-content-between" 
+             style="background: #fef2f2; border: 1.5px solid #f87171; border-radius: 14px; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.1);">
+          <div class="d-flex align-items-center gap-3">
+            <span style="font-size: 1.8rem;">⚠️</span>
+            <div>
+              <strong style="color: #991b1b; font-size: 0.95rem; display: block;">BẠN CHƯA THIẾT LẬP TÀI KHOẢN NGÂN HÀNG THỤ HƯỞNG</strong>
+              <span style="color: #b91c1c; font-size: 0.85rem;">
+                Người thuê sẽ không có mã QR chính xác để quét chuyển khoản tiền trọ. Vui lòng cập nhật tài khoản trước khi tạo hóa đơn.
+              </span>
+            </div>
+          </div>
+          <a routerLink="/landlord/utility-grid" class="btn btn-sm" 
+             style="background: #dc2626; color: #fff; font-weight: 700; border-radius: 10px; padding: 8px 16px; text-decoration: none; white-space: nowrap;">
+            💳 Cập nhật tài khoản ngay
+          </a>
+        </div>
+      }
+
       <!-- Top Title & Fast Action Row -->
       <div class="header-action-row mb-4">
         <div>
@@ -1293,6 +1313,7 @@ export class LandlordBillsComponent implements OnInit {
   propertyList = signal<any[]>([]);
   allRooms = signal<any[]>([]);
   isLoading = signal(true);
+  isBankConfigured = signal(true);
 
   // Filters
   selectedMonth = signal<number>(new Date().getMonth() + 1); // 0 = all months, 1..12
@@ -1474,7 +1495,17 @@ export class LandlordBillsComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.checkBankConfig();
     this.loadData();
+  }
+
+  checkBankConfig(): void {
+    this.billService.getLandlordBankInfo().subscribe({
+      next: (res: any) => {
+        this.isBankConfigured.set(res?.isConfigured || false);
+      },
+      error: () => {}
+    });
   }
 
   loadData(): void {

@@ -1,5 +1,5 @@
 import { Component, HostListener, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { ToastService } from '../../services/toast.service';
@@ -343,6 +343,7 @@ export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
 
   phone = '';
   password = '';
@@ -380,7 +381,13 @@ export class LoginComponent {
         this.isLoading.set(false);
         this.toastService.show(`Chào mừng quay lại, ${user.fullName}!`, 'success');
         
-        // Redirect based on role
+        // Redirect based on returnUrl or role
+        const returnUrl = this.route.snapshot.queryParams['returnUrl'];
+        if (returnUrl) {
+          this.router.navigateByUrl(returnUrl);
+          return;
+        }
+
         if (user.role === 'Administrator') {
           this.router.navigate(['/admin/dashboard']);
         } else if (user.role === 'Landlord') {

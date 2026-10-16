@@ -210,4 +210,19 @@ namespace ZHome.API.Models.DTOs
         public bool IsFavorite { get; set; }
         public int SubscriptionId { get; set; }
     }
+
+    public class BookViewingDto
+    {
+        public string? ViewingDate { get; set; }
+        public string? ViewingTime { get; set; }
+        public int NumberOfPeople { get; set; } = 1;
+        public string? TenantName { get; set; }
+        public string? TenantPhone { get; set; }
+        public string? Note { get; set; }
+    }
+
+    public class UpdateAppointmentStatusDto
+    {
+        public string Status { get; set; } = "pending";
+    }
 }

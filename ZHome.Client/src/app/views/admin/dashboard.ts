@@ -18,13 +18,32 @@ import { ToastService } from '../../services/toast.service';
           <p>Giám sát toàn bộ hoạt động nhà trọ, chủ trọ, duyệt hồ sơ và thống kê dòng tiền hệ thống.</p>
         </div>
         <div class="header-actions">
+          <a routerLink="/admin/traffic-analytics" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
+            </svg>
+            Phân tích truy cập & phiên
+          </a>
           <a routerLink="/admin/verifications" class="btn btn-primary">
-            ️ Phê duyệt chủ trọ
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="8.5" cy="7" r="4"/>
+              <polyline points="17 11 19 13 23 9"/>
+            </svg>
+            Phê duyệt chủ trọ
             @if (stats()?.pendingVerifications > 0) {
               <span class="badge-count">{{ stats()?.pendingVerifications }}</span>
             }
           </a>
-          <a routerLink="/admin/properties" class="btn btn-secondary"> Quản lý nhà trọ</a>
+          <a routerLink="/admin/properties" class="btn btn-secondary">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+            Quản lý nhà trọ
+          </a>
         </div>
       </div>
 
@@ -34,7 +53,7 @@ import { ToastService } from '../../services/toast.service';
           <p>Đang tải dữ liệu tổng quan hệ thống...</p>
         </div>
       } @else {
-        <!-- KPI Cards Grid -->
+        <!-- KPI Cards Grid with Simple Modern Tinted Icons -->
         <div class="kpi-grid">
           <!-- Card 1: Tổng Chủ Trọ -->
           <div class="kpi-card card-indigo">
@@ -221,6 +240,25 @@ import { ToastService } from '../../services/toast.service';
               <span class="arrow">→</span>
             </div>
           </a>
+
+          <a routerLink="/admin/traffic-analytics" class="module-card">
+            <div class="module-header">
+              <div class="module-icon module-icon-purple">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="18" y1="20" x2="18" y2="10"/>
+                  <line x1="12" y1="20" x2="12" y2="4"/>
+                  <line x1="6" y1="20" x2="6" y2="14"/>
+                </svg>
+              </div>
+              <span class="module-tag tag-purple">Lưu lượng web</span>
+            </div>
+            <h3>Thống Kê Truy Cập & Thời Lượng Phiên</h3>
+            <p>Xem tổng số người truy cập hệ thống từ lúc lập web, lượng khách theo ngày, Top 1/2/3 trang được xem nhiều nhất, thời lượng phiên và tỷ lệ giữa chủ trọ vs sinh viên.</p>
+            <div class="module-footer">
+              <span>Xem báo cáo phân tích</span>
+              <span class="arrow">→</span>
+            </div>
+          </a>
         </div>
       }
     </div>
@@ -366,14 +404,16 @@ import { ToastService } from '../../services/toast.service';
     }
 
     .kpi-icon {
-      font-size: 2.2rem;
-      width: 60px;
-      height: 60px;
-      border-radius: 14px;
+      width: 52px;
+      height: 52px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       flex-shrink: 0;
+      background: #0f172a;
+      color: #ffffff;
+      border: 1px solid #1e293b;
     }
 
     .card-blue .kpi-icon { background: #eff6ff; }
@@ -410,6 +450,8 @@ import { ToastService } from '../../services/toast.service';
     .text-cyan { color: #0891b2; }
     .text-amber { color: #d97706; }
     .text-success { color: #16a34a; font-weight: 700; }
+    .text-dark { color: #0f172a; }
+    .text-dark-bold { color: #0f172a; font-weight: 700; }
     .kpi-sub-unit { font-size: 0.95rem; font-weight: 600; color: #64748b; }
 
     .kpi-sub {
@@ -464,9 +506,9 @@ import { ToastService } from '../../services/toast.service';
     }
 
     .module-card:hover {
-      border-color: #2563eb;
+      border-color: #0f172a;
       transform: translateY(-5px);
-      box-shadow: 0 14px 28px rgba(37, 99, 235, 0.12);
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.1);
     }
 
     .module-header {
@@ -477,15 +519,15 @@ import { ToastService } from '../../services/toast.service';
     }
 
     .module-icon {
-      font-size: 2rem;
-      width: 52px;
-      height: 52px;
-      background: #f8fafc;
+      width: 48px;
+      height: 48px;
+      background: #0f172a;
+      color: #ffffff;
       border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid #e2e8f0;
+      border: 1px solid #1e293b;
     }
 
     .module-tag {
@@ -496,9 +538,7 @@ import { ToastService } from '../../services/toast.service';
       text-transform: uppercase;
     }
 
-    .tag-warning { background: #fef3c7; color: #d97706; }
-    .tag-primary { background: #dbeafe; color: #1d4ed8; }
-    .tag-success { background: #dcfce7; color: #15803d; }
+    .tag-mono { background: #f1f5f9; color: #0f172a; border: 1px solid #cbd5e1; }
 
     .module-card h3 {
       font-size: 1.2rem;
