@@ -49,6 +49,10 @@ export class AuthService {
     }
   }
 
+  sendOtp(data: { email: string; phone?: string }): Observable<any> {
+    return this.http.post(`${this.apiUrl}/send-otp`, data);
+  }
+
   register(data: any): Observable<any> {
     return this.http.post(`${this.apiUrl}/register`, data);
   }

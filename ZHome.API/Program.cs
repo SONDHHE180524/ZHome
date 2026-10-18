@@ -70,6 +70,7 @@ builder.Services.AddCors(options =>
 // ==========================================
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient();
+builder.Services.AddMemoryCache();
 
 // Các services nghiệp vụ
 builder.Services.AddScoped<TokenService>();
