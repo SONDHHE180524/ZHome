@@ -10,7 +10,6 @@ using ZHome.API.Data;
 using ZHome.API.Models.DTOs;
 using ZHome.API.Models.Entities;
 using ZHome.API.Services;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace ZHome.API.Controllers
 {
@@ -23,99 +22,19 @@ namespace ZHome.API.Controllers
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _environment;
         private readonly Services.INotificationService _notificationService;
         private readonly Services.IMediaStorageService _mediaStorage;
-        private readonly Services.IEmailService _emailService;
-        private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _memoryCache;
 
         public AuthController(
             ZHomeDbContext context, 
             TokenService tokenService, 
             Microsoft.AspNetCore.Hosting.IWebHostEnvironment environment,
             Services.INotificationService notificationService,
-            Services.IMediaStorageService mediaStorage,
-            Services.IEmailService emailService,
-            Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache)
+            Services.IMediaStorageService mediaStorage)
         {
             _context = context;
             _tokenService = tokenService;
             _environment = environment;
             _notificationService = notificationService;
             _mediaStorage = mediaStorage;
-            _emailService = emailService;
-            _memoryCache = memoryCache;
-        }
-
-        [HttpPost("send-otp")]
-        [EnableRateLimiting("RegisterRateLimit")]
-        public async Task<IActionResult> SendRegistrationOtp([FromBody] SendOtpRequest request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(request.Email))
-            {
-                return BadRequest("Địa chỉ email không đúng định dạng. Vui lòng nhập email thật chính xác.");
-            }
-
-            var cleanEmail = request.Email.Trim().ToLower();
-
-            // Kiểm tra trùng email
-            if (await _context.Users.AnyAsync(u => u.Email != null && u.Email.ToLower() == cleanEmail))
-            {
-                return BadRequest("Địa chỉ email này đã được sử dụng bởi một tài khoản khác.");
-            }
-
-            // Kiểm tra trước số điện thoại nếu có
-            if (!string.IsNullOrWhiteSpace(request.Phone))
-            {
-                var cleanPhone = request.Phone.Trim();
-                if (await _context.Users.AnyAsync(u => u.Phone == cleanPhone))
-                {
-                    return BadRequest("Số điện thoại này đã được sử dụng bởi tài khoản khác.");
-                }
-            }
-
-            // Sinh mã OTP 6 chữ số
-            string otpCode = Random.Shared.Next(100000, 999999).ToString();
-
-            // Lưu vào cache 5 phút
-            var cacheKey = $"reg_otp_{cleanEmail}";
-            _memoryCache.Set(cacheKey, otpCode, TimeSpan.FromMinutes(5));
-
-            // Template Email HTML ZHome chuyên nghiệp
-            string subject = $"ZHome - Mã xác thực đăng ký tài khoản: {otpCode}";
-            string bodyHtml = $@"
-            <div style=""font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 14px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); border: 1px solid #e2e8f0;"">
-                <div style=""background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); padding: 32px 24px; text-align: center; border-bottom: 4px solid #3b82f6;"">
-                    <h1 style=""color: #ffffff; margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px;"">ZHome</h1>
-                    <p style=""color: #94a3b8; margin: 6px 0 0 0; font-size: 14px;"">Nền tảng Quản lý Nhà trọ & Tìm ở ghép Thông minh</p>
-                </div>
-                <div style=""padding: 32px 28px; color: #334155; line-height: 1.6;"">
-                    <h2 style=""color: #0f172a; font-size: 20px; margin-top: 0; margin-bottom: 12px;"">Xác nhận đăng ký tài khoản</h2>
-                    <p style=""font-size: 15px; margin-bottom: 20px;"">Xin chào,<br/>Bạn đang thực hiện đăng ký tài khoản mới trên hệ thống ZHome. Dưới đây là mã xác thực (OTP) dành cho bạn:</p>
-                    
-                    <div style=""background: #f8fafc; border: 2px dashed #3b82f6; border-radius: 12px; padding: 22px; text-align: center; margin: 26px 0;"">
-                        <span style=""display: block; font-size: 12px; text-transform: uppercase; color: #64748b; font-weight: 600; letter-spacing: 1.5px; margin-bottom: 8px;"">MÃ XÁC THỰC EMAIL CỦA BẠN</span>
-                        <span style=""font-family: 'Courier New', Courier, monospace; font-size: 36px; font-weight: 800; letter-spacing: 10px; color: #1d4ed8;"">{otpCode}</span>
-                        <span style=""display: block; font-size: 13px; color: #e11d48; margin-top: 10px; font-weight: 500;"">⏱️ Mã có hiệu lực trong vòng 5 phút</span>
-                    </div>
-
-                    <p style=""font-size: 14px; color: #64748b; margin-bottom: 6px;""><strong>Lưu ý bảo mật:</strong> Tuyệt đối không chia sẻ mã xác thực này cho người khác. ZHome không bao giờ yêu cầu bạn cung cấp mã xác nhận qua điện thoại hoặc tin nhắn.</p>
-                    <p style=""font-size: 14px; color: #64748b; margin-top: 0;"">Nếu bạn không gửi yêu cầu này, bạn có thể an tâm bỏ qua email này.</p>
-                </div>
-                <div style=""background: #f1f5f9; padding: 18px 24px; text-align: center; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8;"">
-                    <p style=""margin: 0;"">© {DateTime.Now.Year} ZHome Platform. Mọi quyền được bảo lưu.</p>
-                    <p style=""margin: 4px 0 0 0;"">Email tự động, vui lòng không phản hồi thư này.</p>
-                </div>
-            </div>";
-
-            var (sent, errorMsg) = await _emailService.SendEmailAsync(cleanEmail, subject, bodyHtml);
-            if (!sent)
-            {
-                return BadRequest($"Không thể gửi mã xác nhận đến email {cleanEmail}: {errorMsg}. Vui lòng kiểm tra lại email hoặc thử lại sau!");
-            }
-
-            return Ok(new
-            {
-                message = $"Mã xác thực 6 chữ số đã được gửi tới email {cleanEmail}. Vui lòng mở hộp thư đến (hoặc hòm thư Spam/Rác) để lấy mã xác nhận!",
-                email = cleanEmail
-            });
         }
 
         [HttpPost("register")]
@@ -125,30 +44,6 @@ namespace ZHome.API.Controllers
             if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             {
                 return BadRequest("Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Email) || !new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(request.Email))
-            {
-                return BadRequest("Vui lòng cung cấp địa chỉ email thật và hợp lệ để kích hoạt tài khoản.");
-            }
-
-            if (string.IsNullOrWhiteSpace(request.OtpCode))
-            {
-                return BadRequest("Vui lòng nhập mã xác thực email 6 chữ số.");
-            }
-
-            var cleanEmail = request.Email.Trim().ToLower();
-
-            // Xác thực mã OTP trong Cache
-            var cacheKey = $"reg_otp_{cleanEmail}";
-            if (!_memoryCache.TryGetValue(cacheKey, out string? cachedOtp) || string.IsNullOrEmpty(cachedOtp))
-            {
-                return BadRequest("Mã xác thực email đã hết hạn hoặc chưa được gửi. Vui lòng nhấn 'Gửi lại mã' để nhận mã mới.");
-            }
-
-            if (!string.Equals(cachedOtp.Trim(), request.OtpCode.Trim(), StringComparison.Ordinal))
-            {
-                return BadRequest("Mã xác thực email không chính xác. Vui lòng kiểm tra lại email của bạn.");
             }
 
             // BẢO MẬT: Tuyệt đối cấm người dùng tự cấp quyền Administrator qua cổng đăng ký công khai!
@@ -168,13 +63,10 @@ namespace ZHome.API.Controllers
                 return BadRequest("Số điện thoại này đã được sử dụng.");
             }
 
-            if (await _context.Users.AnyAsync(u => u.Email != null && u.Email.ToLower() == cleanEmail))
+            if (!string.IsNullOrEmpty(request.Email) && await _context.Users.AnyAsync(u => u.Email == request.Email))
             {
                 return BadRequest("Email này đã được đăng ký.");
             }
-
-            // Xóa mã OTP sau khi kiểm tra hợp lệ
-            _memoryCache.Remove(cacheKey);
 
             // Find matching role in db
             var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName.ToLower() == targetRoleName.ToLower());
@@ -304,38 +196,18 @@ namespace ZHome.API.Controllers
         [EnableRateLimiting("LoginRateLimit")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
-            var identifier = request.Phone?.Trim() ?? string.Empty;
-            if (string.IsNullOrWhiteSpace(identifier))
+            if (string.IsNullOrWhiteSpace(request.Phone) || !System.Text.RegularExpressions.Regex.IsMatch(request.Phone, @"^0[35789]\d{8}$"))
             {
-                return BadRequest("Vui lòng nhập Số điện thoại hoặc Email để đăng nhập.");
+                return BadRequest("Số điện thoại không hợp lệ. Số điện thoại phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
             }
 
-            bool isEmail = identifier.Contains("@");
-            if (isEmail)
-            {
-                if (!new System.ComponentModel.DataAnnotations.EmailAddressAttribute().IsValid(identifier))
-                {
-                    return BadRequest("Địa chỉ email không đúng định dạng.");
-                }
-            }
-            else
-            {
-                if (!System.Text.RegularExpressions.Regex.IsMatch(identifier, @"^0[35789]\d{8}$"))
-                {
-                    return BadRequest("Số điện thoại không hợp lệ. Phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số tiếp theo là 3, 5, 7, 8 hoặc 9.");
-                }
-            }
-
-            var cleanIdentifier = identifier.ToLower();
             var user = await _context.Users
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => isEmail 
-                    ? (u.Email != null && u.Email.ToLower() == cleanIdentifier)
-                    : u.Phone == identifier);
+                .FirstOrDefaultAsync(u => u.Phone == request.Phone);
 
             if (user == null)
             {
-                return Unauthorized("Số điện thoại / Email hoặc mật khẩu không chính xác.");
+                return Unauthorized("Số điện thoại hoặc mật khẩu không chính xác.");
             }
 
             // Kiểm tra mật khẩu

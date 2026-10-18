@@ -1,17 +1,14 @@
 using System;
-using System.Threading.Tasks;
+using System.Net;
+using System.Net.Mail;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
-using MimeKit;
-using MailKit.Net.Smtp;
-using MailKit.Security;
 
 namespace ZHome.API.Services
 {
     public interface IEmailService
     {
         bool SendEmail(string toEmail, string subject, string bodyHtml, out string details);
-        Task<(bool Success, string Message)> SendEmailAsync(string toEmail, string subject, string bodyHtml);
     }
 
     public class EmailService : IEmailService
@@ -27,64 +24,65 @@ namespace ZHome.API.Services
 
         public bool SendEmail(string toEmail, string subject, string bodyHtml, out string details)
         {
-            var result = SendEmailAsync(toEmail, subject, bodyHtml).GetAwaiter().GetResult();
-            details = result.Message;
-            return result.Success;
-        }
-
-        public async Task<(bool Success, string Message)> SendEmailAsync(string toEmail, string subject, string bodyHtml)
-        {
-            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "anhtungnd2004@gmail.com";
-            var senderName = _configuration["EmailSettings:SenderName"] ?? "ZHome Platform";
+            var senderEmail = _configuration["EmailSettings:SenderEmail"] ?? "danghoangson2752k4@gmail.com";
+            var senderName = _configuration["EmailSettings:SenderName"] ?? "ZHome Boarding Management";
             var smtpServer = _configuration["EmailSettings:SmtpServer"] ?? "smtp.gmail.com";
-            var username = _configuration["EmailSettings:Username"] ?? "anhtungnd2004@gmail.com";
-            var password = _configuration["EmailSettings:Password"] ?? "mjcypzkvxoomblug";
+            var portStr = _configuration["EmailSettings:Port"] ?? "587";
+            var username = _configuration["EmailSettings:Username"] ?? "danghoangson2752k4@gmail.com";
+            var password = _configuration["EmailSettings:Password"] ?? "";
 
-            if (string.IsNullOrWhiteSpace(password))
-            {
-                _logger.LogWarning($"Simulated Email sending to {toEmail} (Password not configured). Subject: {subject}");
-                return (true, "Lưu thành công vào log hệ thống (Simulated)");
-            }
+            int.TryParse(portStr, out int port);
+            if (port <= 0) port = 587;
 
             try
             {
-                var message = new MimeMessage();
-                message.From.Add(new MailboxAddress(senderName, senderEmail));
-                message.To.Add(new MailboxAddress(toEmail, toEmail));
-                message.Subject = subject;
-
-                var bodyBuilder = new BodyBuilder
+                if (string.IsNullOrWhiteSpace(password))
                 {
-                    HtmlBody = bodyHtml
-                };
-                message.Body = bodyBuilder.ToMessageBody();
-
-                using var client = new SmtpClient();
-                // Bỏ qua kiểm tra chứng chỉ SSL nếu có phần mềm diệt virus hoặc proxy can thiệp
-                client.ServerCertificateValidationCallback = (s, c, h, e) => true;
-
-                // Cổng 465 (Direct SSL) hoạt động ổn định và xuyên suốt mọi mạng, không bị ISP/WARP chặn
-                try
-                {
-                    await client.ConnectAsync(smtpServer, 465, SecureSocketOptions.SslOnConnect);
-                }
-                catch (Exception connEx)
-                {
-                    _logger.LogWarning($"Kết nối port 465 thất bại ({connEx.Message}), đang thử cổng 587 STARTTLS...");
-                    await client.ConnectAsync(smtpServer, 587, SecureSocketOptions.StartTls);
+                    _logger.LogWarning($"Simulated Email sending from {senderEmail} to {toEmail} (Password not configured). Subject: {subject}");
+                    details = "Lưu thành công vào log hệ thống (Simulated - SMTP password is blank)";
+                    return true; 
                 }
 
-                await client.AuthenticateAsync(username.Trim(), password.Trim());
-                await client.SendAsync(message);
-                await client.DisconnectAsync(true);
+                Task.Run(() => 
+                {
+                    try
+                    {
+                        using (var mail = new MailMessage())
+                        {
+                            mail.From = new MailAddress(senderEmail, senderName);
+                            mail.To.Add(new MailAddress(toEmail));
+                            mail.Subject = subject;
+                            mail.Body = bodyHtml;
+                            mail.IsBodyHtml = true;
+                            
+                            // Thêm các header để hạn chế bị đánh dấu Spam
+                            mail.Headers.Add("Message-Id", $"<{Guid.NewGuid()}@zhome.local>");
+                            mail.Headers.Add("Reply-To", senderEmail);
+                            mail.Priority = MailPriority.Normal;
 
-                _logger.LogInformation($"[MailKit] Đã gửi email thành công từ {senderEmail} đến {toEmail}. Tiêu đề: {subject}");
-                return (true, "Gửi email thành công!");
+                            using (var smtp = new SmtpClient(smtpServer, port))
+                            {
+                                smtp.Credentials = new NetworkCredential(username, password);
+                                smtp.EnableSsl = true;
+                                smtp.Send(mail);
+                            }
+                        }
+                        _logger.LogInformation($"Successfully sent email from {senderEmail} to {toEmail}. Subject: {subject}");
+                    }
+                    catch (Exception e)
+                    {
+                        _logger.LogError(e, $"Failed to send email to {toEmail} in background task.");
+                    }
+                });
+
+                details = "Đã đưa vào hàng đợi gửi email (SMTP Background Task)!";
+                return true;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"[MailKit] Thất bại khi gửi email đến {toEmail} qua {smtpServer}: {ex.Message}");
-                return (false, $"Lỗi gửi email: {ex.Message}");
+                _logger.LogError(ex, $"Failed to send email to {toEmail} via SMTP Server: {smtpServer}. Falling back to simulated log.");
+                details = $"Lỗi SMTP: {ex.Message} (Đã tự động sao lưu log hệ thống)";
+                return false;
             }
         }
     }

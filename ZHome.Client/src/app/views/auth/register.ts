@@ -1,4 +1,4 @@
-import { Component, OnDestroy, inject, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
@@ -58,7 +58,7 @@ import { PrivacyService } from '../../services/privacy.service';
           </div>
 
           <div class="form-group">
-            <label for="fullName">Họ và tên <span class="required-star">*</span></label>
+            <label for="fullName">Họ và tên</label>
             <input 
               type="text" 
               id="fullName" 
@@ -73,13 +73,13 @@ import { PrivacyService } from '../../services/privacy.service';
               @if (fullNameInput.errors?.['required']) {
                 <span class="error-text">Họ tên bắt buộc phải nhập.</span>
               } @else if (fullNameInput.errors?.['pattern']) {
-                <span class="error-text">Họ tên chỉ được chứa chữ cái và khoảng trắng.</span>
+                <span class="error-text">Họ tên chỉ được chứa chữ cái và khoảng trắng (không chứa ký tự đặc biệt, biểu tượng).</span>
               }
             }
           </div>
 
           <div class="form-group">
-            <label for="phone">Số điện thoại <span class="required-star">*</span></label>
+            <label for="phone">Số điện thoại</label>
             <input 
               type="text" 
               id="phone" 
@@ -96,29 +96,18 @@ import { PrivacyService } from '../../services/privacy.service';
           </div>
 
           <div class="form-group">
-            <label for="email">Địa chỉ Email (Nhận mã xác thực) <span class="required-star">*</span></label>
+            <label for="email">Email (Tùy chọn)</label>
             <input 
               type="email" 
               id="email" 
               name="email" 
               [(ngModel)]="email" 
-              #emailInput="ngModel"
-              required 
-              pattern="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
               class="form-control" 
-              placeholder="Ví dụ: name@gmail.com" />
-            @if (emailInput.invalid && (emailInput.dirty || emailInput.touched)) {
-              @if (emailInput.errors?.['required']) {
-                <span class="error-text">Email bắt buộc phải nhập để nhận mã xác thực.</span>
-              } @else {
-                <span class="error-text">Địa chỉ email không đúng định dạng.</span>
-              }
-            }
-            <span class="field-hint">Mã xác thực OTP gồm 6 chữ số sẽ được gửi về email này để tạo tài khoản.</span>
+              placeholder="Nhập địa chỉ email" />
           </div>
 
           <div class="form-group">
-            <label for="password">Mật khẩu <span class="required-star">*</span></label>
+            <label for="password">Mật khẩu</label>
             <input 
               type="password" 
               id="password" 
@@ -135,7 +124,7 @@ import { PrivacyService } from '../../services/privacy.service';
           </div>
 
           <div class="form-group">
-            <label for="confirmPassword">Nhập lại mật khẩu <span class="required-star">*</span></label>
+            <label for="confirmPassword">Nhập lại mật khẩu</label>
             <input 
               type="password" 
               id="confirmPassword" 
@@ -154,7 +143,7 @@ import { PrivacyService } from '../../services/privacy.service';
 
           @if (roleName === 'Landlord') {
             <div class="form-group">
-              <label for="cccdNumber">Số CCCD (Căn cước công dân) <span class="required-star">*</span></label>
+              <label for="cccdNumber">Số CCCD (Căn cước công dân)</label>
               <input 
                 type="text" 
                 id="cccdNumber" 
@@ -172,7 +161,7 @@ import { PrivacyService } from '../../services/privacy.service';
 
             <div class="row-flex">
               <div class="form-group flex-1">
-                <label>Ảnh mặt trước CCCD <span class="required-star">*</span></label>
+                <label>Ảnh mặt trước CCCD</label>
                 <div class="file-upload-wrapper">
                   <input 
                     type="file" 
@@ -184,14 +173,14 @@ import { PrivacyService } from '../../services/privacy.service';
                     @if (cccdFrontPreview()) {
                       <img [src]="cccdFrontPreview()" alt="Mặt trước" class="upload-preview" />
                     } @else {
-                      <span>Chọn mặt trước</span>
+                      <span> Chọn mặt trước</span>
                     }
                   </label>
                 </div>
               </div>
 
               <div class="form-group flex-1">
-                <label>Ảnh mặt sau CCCD <span class="required-star">*</span></label>
+                <label>Ảnh mặt sau CCCD</label>
                 <div class="file-upload-wrapper">
                   <input 
                     type="file" 
@@ -203,7 +192,7 @@ import { PrivacyService } from '../../services/privacy.service';
                     @if (cccdBackPreview()) {
                       <img [src]="cccdBackPreview()" alt="Mặt sau" class="upload-preview" />
                     } @else {
-                      <span>Chọn mặt sau</span>
+                      <span> Chọn mặt sau</span>
                     }
                   </label>
                 </div>
@@ -222,16 +211,16 @@ import { PrivacyService } from '../../services/privacy.service';
             <div class="alert-error">{{ errorMessage() }}</div>
           }
 
-          <div class="terms-policy-note">
+          <div class="terms-policy-note" style="margin: 4px 0 10px 0; font-size: 0.8rem; color: #94a3b8; text-align: center; line-height: 1.4;">
             Bằng việc nhấn Đăng ký, bạn đồng ý với 
-            <a href="javascript:void(0)" (click)="privacyService.openModal(roleName === 'Landlord' ? 'landlord' : 'tenant')">
+            <a href="javascript:void(0)" (click)="privacyService.openModal(roleName === 'Landlord' ? 'landlord' : 'tenant')" style="color: #3b82f6; text-decoration: underline; font-weight: 600;">
               Điều khoản bảo mật & dữ liệu
             </a> của ZHome.
           </div>
 
           <button type="submit" [disabled]="registerForm.invalid || password !== confirmPassword || (roleName === 'Landlord' && (!cccdFrontBase64() || !cccdBackBase64())) || isLoading()" class="btn btn-primary btn-block">
             @if (isLoading()) {
-              Đang gửi mã xác thực...
+              Đang đăng ký...
             } @else {
               Đăng ký tài khoản
             }
@@ -243,78 +232,6 @@ import { PrivacyService } from '../../services/privacy.service';
         </div>
       </div>
     </div>
-
-    <!-- MODAL NHẬP MÃ XÁC THỰC EMAIL (OTP) -->
-    @if (showOtpModal()) {
-      <div class="otp-modal-backdrop animate-fade-in" (click)="$event.stopPropagation()">
-        <div class="otp-modal-card animate-scale-up">
-          <button type="button" class="modal-close-icon" (click)="closeOtpModal()" title="Đóng">&times;</button>
-          
-          <div class="otp-icon-badge">
-            <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-          </div>
-
-          <h3 class="otp-modal-title">Xác thực địa chỉ Email</h3>
-          <p class="otp-modal-desc">
-            Hệ thống đã gửi mã xác thực <strong>6 chữ số</strong> đến:
-            <br/><span class="otp-target-email">{{ email }}</span>
-          </p>
-
-          <div class="otp-input-container">
-            <label for="otpCodeInput" class="otp-label">Nhập 6 số mã xác thực</label>
-            <input 
-              type="text" 
-              id="otpCodeInput" 
-              maxlength="6" 
-              [(ngModel)]="otpCode" 
-              (input)="onOtpInput($event)"
-              placeholder="••••••" 
-              class="otp-digit-field" 
-              autocomplete="one-time-code"
-              autofocus />
-          </div>
-
-          @if (otpErrorMessage()) {
-            <div class="alert-error" style="margin-top: 12px;">{{ otpErrorMessage() }}</div>
-          }
-
-          <div class="otp-action-group">
-            <button 
-              type="button" 
-              (click)="confirmRegister()" 
-              [disabled]="otpCode.length !== 6 || isSubmittingOtp()" 
-              class="btn btn-primary btn-block">
-              @if (isSubmittingOtp()) {
-                Đang xác thực & tạo tài khoản...
-              } @else {
-                Xác nhận & Hoàn tất
-              }
-            </button>
-
-            <div class="otp-resend-box">
-              @if (resendCooldown() > 0) {
-                <span class="resend-countdown">Gửi lại mã sau <strong>{{ resendCooldown() }}s</strong></span>
-              } @else {
-                <button type="button" class="btn-resend" (click)="resendOtp()" [disabled]="isResendingOtp()">
-                  @if (isResendingOtp()) {
-                    Đang gửi lại...
-                  } @else {
-                    Gửi lại mã xác thực
-                  }
-                </button>
-              }
-              <span class="resend-dot">•</span>
-              <button type="button" class="btn-change-email" (click)="closeOtpModal()">
-                Đổi lại email
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    }
   `,
   styles: [`
     .auth-wrapper {
@@ -441,17 +358,6 @@ import { PrivacyService } from '../../services/privacy.service';
       background: #2563eb;
       box-shadow: inset 0 0 0 3px #ffffff;
     }
-    .required-star {
-      color: #ef4444;
-      font-weight: bold;
-    }
-    .field-hint {
-      font-size: 0.75rem;
-      color: #64748b;
-      margin-top: 3px;
-      display: block;
-      line-height: 1.35;
-    }
     .btn-block {
       width: 100%;
       margin-top: 10px;
@@ -462,30 +368,18 @@ import { PrivacyService } from '../../services/privacy.service';
       font-size: 0.9rem;
     }
     .error-text {
-      color: #ef4444;
+      color: var(--color-danger-light);
       font-size: 0.75rem;
       margin-top: 2px;
     }
     .alert-error {
       background: rgba(244, 63, 94, 0.1);
       border: 1px solid rgba(244, 63, 94, 0.2);
-      color: #f43f5e;
+      color: var(--color-danger-light);
       padding: 10px 14px;
       border-radius: var(--radius-sm);
       font-size: 0.85rem;
       text-align: center;
-    }
-    .terms-policy-note {
-      margin: 4px 0 10px 0;
-      font-size: 0.8rem;
-      color: #94a3b8;
-      text-align: center;
-      line-height: 1.4;
-    }
-    .terms-policy-note a {
-      color: #3b82f6;
-      text-decoration: underline;
-      font-weight: 600;
     }
     .row-flex {
       display: flex;
@@ -541,178 +435,9 @@ import { PrivacyService } from '../../services/privacy.service';
       height: 16px;
       accent-color: var(--color-primary);
     }
-
-    /* POPUP OTP MODAL */
-    .otp-modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      background: rgba(15, 23, 42, 0.75);
-      backdrop-filter: blur(8px);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-    }
-    .otp-modal-card {
-      position: relative;
-      background: #ffffff;
-      border-radius: 20px;
-      padding: 36px 30px;
-      width: 100%;
-      max-width: 440px;
-      text-align: center;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
-      border: 1px solid #e2e8f0;
-      color: #1e293b;
-    }
-    .modal-close-icon {
-      position: absolute;
-      top: 14px;
-      right: 16px;
-      background: none;
-      border: none;
-      font-size: 1.8rem;
-      line-height: 1;
-      color: #94a3b8;
-      cursor: pointer;
-      transition: color 0.2s ease;
-    }
-    .modal-close-icon:hover {
-      color: #0f172a;
-    }
-    .otp-icon-badge {
-      width: 72px;
-      height: 72px;
-      border-radius: 50%;
-      background: #eff6ff;
-      color: #2563eb;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 0 auto 18px;
-      box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15);
-    }
-    .otp-modal-title {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #0f172a;
-      margin: 0 0 8px;
-    }
-    .otp-modal-desc {
-      font-size: 0.92rem;
-      color: #64748b;
-      line-height: 1.5;
-      margin-bottom: 24px;
-    }
-    .otp-target-email {
-      font-weight: 700;
-      color: #2563eb;
-      background: #f1f5f9;
-      padding: 3px 10px;
-      border-radius: 6px;
-      display: inline-block;
-      margin-top: 4px;
-    }
-    .otp-input-container {
-      margin-bottom: 12px;
-    }
-    .otp-label {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #475569;
-      display: block;
-      margin-bottom: 8px;
-    }
-    .otp-digit-field {
-      width: 100%;
-      height: 56px;
-      font-size: 2rem;
-      letter-spacing: 12px;
-      text-align: center;
-      font-family: 'Courier New', Courier, monospace;
-      font-weight: 700;
-      color: #1e293b;
-      background: #f8fafc;
-      border: 2px solid #cbd5e1;
-      border-radius: 12px;
-      outline: none;
-      transition: all 0.25s ease;
-    }
-    .otp-digit-field:focus {
-      border-color: #2563eb;
-      background: #ffffff;
-      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-    }
-    .otp-action-group {
-      margin-top: 18px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .otp-resend-box {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      margin-top: 6px;
-    }
-    .resend-countdown {
-      color: #64748b;
-    }
-    .resend-countdown strong {
-      color: #ef4444;
-    }
-    .btn-resend {
-      background: none;
-      border: none;
-      color: #2563eb;
-      font-weight: 600;
-      cursor: pointer;
-      text-decoration: underline;
-      padding: 0;
-      font-size: 0.85rem;
-    }
-    .btn-resend:hover {
-      color: #1d4ed8;
-    }
-    .btn-resend:disabled {
-      color: #94a3b8;
-      cursor: not-allowed;
-      text-decoration: none;
-    }
-    .resend-dot {
-      color: #cbd5e1;
-    }
-    .btn-change-email {
-      background: none;
-      border: none;
-      color: #64748b;
-      cursor: pointer;
-      padding: 0;
-      font-size: 0.85rem;
-    }
-    .btn-change-email:hover {
-      color: #0f172a;
-      text-decoration: underline;
-    }
-    .animate-scale-up {
-      animation: scaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    @keyframes scaleUp {
-      from {
-        opacity: 0;
-        transform: scale(0.92);
-      }
-      to {
-        opacity: 1;
-        transform: scale(1);
-      }
-    }
   `]
 })
-export class RegisterComponent implements OnDestroy {
+export class RegisterComponent {
   private readonly authService = inject(AuthService);
   private readonly toastService = inject(ToastService);
   public readonly privacyService = inject(PrivacyService);
@@ -736,19 +461,6 @@ export class RegisterComponent implements OnDestroy {
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
 
-  // OTP Verification state
-  showOtpModal = signal(false);
-  otpCode = '';
-  otpErrorMessage = signal<string | null>(null);
-  isSubmittingOtp = signal(false);
-  isResendingOtp = signal(false);
-  resendCooldown = signal(0);
-  private timerInterval: any = null;
-
-  ngOnDestroy(): void {
-    this.clearResendTimer();
-  }
-
   onFileSelected(event: any, type: 'front' | 'back'): void {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0];
@@ -760,6 +472,8 @@ export class RegisterComponent implements OnDestroy {
       return;
     }
 
+    // Tối ưu và nén ảnh (Canvas) về độ phân giải chuẩn rõ nét (1600px, 85% JPEG)
+    // Giúp tải lên nhanh chóng và không bao giờ vượt quá giới hạn payload của máy chủ
     this.compressImage(file, 1600, 0.85)
       .then((compressedBase64) => {
         if (type === 'front') {
@@ -771,6 +485,7 @@ export class RegisterComponent implements OnDestroy {
         }
       })
       .catch(() => {
+        // Fallback đọc trực tiếp nếu thiết bị không hỗ trợ Canvas
         const reader = new FileReader();
         reader.onload = (e: any) => {
           const base64 = e.target.result;
@@ -785,6 +500,7 @@ export class RegisterComponent implements OnDestroy {
         reader.readAsDataURL(file);
       })
       .finally(() => {
+        // Reset input để người dùng có thể chọn lại file cùng tên nếu muốn đổi
         input.value = '';
       });
   }
@@ -831,113 +547,14 @@ export class RegisterComponent implements OnDestroy {
     this.roleName = role;
   }
 
-  onOtpInput(event: any): void {
-    // Chỉ cho phép nhập chữ số, tối đa 6 ký tự
-    const val = (event.target.value || '').replace(/\D/g, '').slice(0, 6);
-    this.otpCode = val;
-    event.target.value = val;
-    this.otpErrorMessage.set(null);
-  }
-
-  closeOtpModal(): void {
-    this.showOtpModal.set(false);
-    this.otpCode = '';
-    this.otpErrorMessage.set(null);
-  }
-
-  private startResendTimer(): void {
-    this.clearResendTimer();
-    this.resendCooldown.set(60);
-    this.timerInterval = setInterval(() => {
-      const current = this.resendCooldown();
-      if (current <= 1) {
-        this.resendCooldown.set(0);
-        this.clearResendTimer();
-      } else {
-        this.resendCooldown.set(current - 1);
-      }
-    }, 1000);
-  }
-
-  private clearResendTimer(): void {
-    if (this.timerInterval) {
-      clearInterval(this.timerInterval);
-      this.timerInterval = null;
-    }
-  }
-
-  // Bước 1: Gửi mã OTP xác thực về Email thật
   onSubmit(): void {
-    if (!this.email || !this.email.trim()) {
-      this.toastService.show('Vui lòng nhập địa chỉ email để nhận mã xác thực.', 'error');
-      return;
-    }
-
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.authService.sendOtp({
-      email: this.email.trim(),
-      phone: this.phone.trim()
-    }).subscribe({
-      next: (res: any) => {
-        this.isLoading.set(false);
-        this.showOtpModal.set(true);
-        this.otpCode = ''; // Để trống ô nhập để người dùng mở Gmail lấy mã nhập vào
-        this.otpErrorMessage.set(null);
-        this.startResendTimer();
-        this.toastService.show(res?.message || 'Mã xác thực 6 số đã được gửi tới email của bạn!', 'success');
-      },
-      error: (err) => {
-        this.isLoading.set(false);
-        const errText = this.extractErrorMessage(err, 'Không thể gửi mã xác thực. Vui lòng kiểm tra lại email.');
-        this.errorMessage.set(errText);
-        this.toastService.show(errText, 'error');
-      }
-    });
-  }
-
-  // Gửi lại mã xác thực
-  resendOtp(): void {
-    if (this.resendCooldown() > 0 || this.isResendingOtp()) return;
-
-    this.isResendingOtp.set(true);
-    this.otpErrorMessage.set(null);
-
-    this.authService.sendOtp({
-      email: this.email.trim(),
-      phone: this.phone.trim()
-    }).subscribe({
-      next: (res: any) => {
-        this.isResendingOtp.set(false);
-        this.otpCode = ''; // Để trống ô nhập
-        this.startResendTimer();
-        this.toastService.show(res?.message || 'Đã gửi lại mã xác thực mới đến email của bạn!', 'success');
-      },
-      error: (err) => {
-        this.isResendingOtp.set(false);
-        const errText = this.extractErrorMessage(err, 'Gửi lại mã thất bại.');
-        this.otpErrorMessage.set(errText);
-        this.toastService.show(errText, 'error');
-      }
-    });
-  }
-
-  // Bước 2: Nhập mã xác nhận OTP và hoàn tất tạo tài khoản
-  confirmRegister(): void {
-    if (this.otpCode.length !== 6) {
-      this.otpErrorMessage.set('Vui lòng nhập đủ 6 chữ số mã xác thực.');
-      return;
-    }
-
-    this.isSubmittingOtp.set(true);
-    this.otpErrorMessage.set(null);
-
     const payload: any = {
-      fullName: this.fullName.trim(),
-      phone: this.phone.trim(),
-      email: this.email.trim(),
-      otpCode: this.otpCode.trim(),
+      fullName: this.fullName,
+      phone: this.phone,
+      email: this.email || null,
       password: this.password,
       roleName: this.roleName
     };
@@ -950,30 +567,24 @@ export class RegisterComponent implements OnDestroy {
     }
 
     this.authService.register(payload).subscribe({
-      next: (res: any) => {
-        this.isSubmittingOtp.set(false);
-        this.showOtpModal.set(false);
-        const successMsg = res?.message || 'Đăng ký tài khoản thành công! Bạn có thể đăng nhập ngay.';
-        this.toastService.show(successMsg, 'success');
+      next: () => {
+        this.isLoading.set(false);
+        this.toastService.show('Đăng ký tài khoản thành công! Bạn có thể đăng nhập.', 'success');
         this.router.navigate(['/login']);
       },
       error: (err) => {
-        this.isSubmittingOtp.set(false);
-        const errText = this.extractErrorMessage(err, 'Xác thực mã thất bại hoặc thông tin chưa hợp lệ.');
-        this.otpErrorMessage.set(errText);
+        this.isLoading.set(false);
+        let errText = 'Có lỗi xảy ra trong quá trình đăng ký.';
+        if (typeof err.error === 'string') {
+          errText = err.error;
+        } else if (err.error?.message) {
+          errText = err.error.message;
+        } else if (err.error?.error) {
+          errText = err.error.error;
+        }
+        this.errorMessage.set(errText);
         this.toastService.show(errText, 'error');
       }
     });
-  }
-
-  private extractErrorMessage(err: any, fallback: string): string {
-    if (typeof err.error === 'string') {
-      return err.error;
-    } else if (err.error?.message) {
-      return err.error.message;
-    } else if (err.error?.error) {
-      return err.error.error;
-    }
-    return fallback;
   }
 }

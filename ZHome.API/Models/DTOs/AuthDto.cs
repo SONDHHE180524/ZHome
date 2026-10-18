@@ -2,28 +2,14 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ZHome.API.Models.DTOs
 {
-    public class SendOtpRequest
-    {
-        [Required(ErrorMessage = "Email không được để trống")]
-        [EmailAddress(ErrorMessage = "Email không đúng định dạng")]
-        public string Email { get; set; } = string.Empty;
-
-        public string? Phone { get; set; }
-    }
-
     public class RegisterRequest
     {
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
         [RegularExpression(@"^0[35789]\d{8}$", ErrorMessage = "Số điện thoại di động không hợp lệ (phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số thứ 2 là 3, 5, 7, 8 hoặc 9)")]
         public string Phone { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email không được để trống")]
         [EmailAddress(ErrorMessage = "Email không hợp lệ")]
-        public string Email { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Mã xác thực email không được để trống")]
-        [RegularExpression(@"^\d{6}$", ErrorMessage = "Mã xác thực phải gồm 6 chữ số")]
-        public string OtpCode { get; set; } = string.Empty;
+        public string? Email { get; set; }
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
         [MinLength(6, ErrorMessage = "Mật khẩu phải từ 6 ký tự trở lên")]
@@ -45,7 +31,8 @@ namespace ZHome.API.Models.DTOs
 
     public class LoginRequest
     {
-        [Required(ErrorMessage = "Vui lòng nhập Số điện thoại hoặc Email")]
+        [Required(ErrorMessage = "Số điện thoại không được để trống")]
+        [RegularExpression(@"^0[35789]\d{8}$", ErrorMessage = "Số điện thoại di động không hợp lệ (phải gồm 10 chữ số, bắt đầu bằng số 0 và chữ số thứ 2 là 3, 5, 7, 8 hoặc 9)")]
         public string Phone { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Mật khẩu không được để trống")]

@@ -929,80 +929,11 @@ namespace ZHome.API.Controllers
                 return NotFound("Không tìm thấy người dùng.");
             }
 
-            try
-            {
-                // 1. Dọn dẹp nhật ký hoạt động
-                var activityLogs = await _context.ActivityLogs.Where(a => a.UserId == id).ToListAsync();
-                if (activityLogs.Any()) _context.ActivityLogs.RemoveRange(activityLogs);
+            // Xóa người dùng
+            _context.Users.Remove(user);
+            await _context.SaveChangesAsync();
 
-                // 2. Dọn dẹp thông báo
-                var notifications = await _context.Notifications.Where(n => n.UserId == id).ToListAsync();
-                if (notifications.Any()) _context.Notifications.RemoveRange(notifications);
-
-                // 3. Dọn dẹp user sessions
-                var sessions = await _context.UserSessions.Where(s => s.UserId == id).ToListAsync();
-                if (sessions.Any()) _context.UserSessions.RemoveRange(sessions);
-
-                // 4. Dọn dẹp hồ sơ tìm ghép
-                var matchingProfiles = await _context.MatchingProfiles.Where(m => m.StudentId == id).ToListAsync();
-                if (matchingProfiles.Any()) _context.MatchingProfiles.RemoveRange(matchingProfiles);
-
-                // 5. Dọn dẹp yêu cầu xác thực chủ trọ
-                var verifications = await _context.LandlordVerifications.Where(v => v.UserId == id).ToListAsync();
-                if (verifications.Any()) _context.LandlordVerifications.RemoveRange(verifications);
-
-                // 6. Dọn dẹp giao dịch hóa đơn và hợp đồng của Tenant
-                var tenantTxs = await _context.BillTransactions.Where(bt => bt.TenantId == id).ToListAsync();
-                if (tenantTxs.Any()) _context.BillTransactions.RemoveRange(tenantTxs);
-
-                var tenantContracts = await _context.Contracts.Where(c => c.TenantId == id).ToListAsync();
-                if (tenantContracts.Any()) _context.Contracts.RemoveRange(tenantContracts);
-
-                // 7. Xóa nhà trọ & phòng nếu là Chủ trọ
-                var properties = await _context.Properties
-                    .Include(p => p.Rooms)
-                        .ThenInclude(r => r.Images)
-                    .Include(p => p.Rooms)
-                        .ThenInclude(r => r.Amenities)
-                    .Where(p => p.LandlordId == id)
-                    .ToListAsync();
-
-                if (properties.Any())
-                {
-                    foreach (var prop in properties)
-                    {
-                        foreach (var room in prop.Rooms)
-                        {
-                            if (room.Images.Any()) _context.RoomImages.RemoveRange(room.Images);
-                            if (room.Amenities.Any()) _context.RoomAmenities.RemoveRange(room.Amenities);
-
-                            var roomBills = await _context.MonthlyBills.Where(mb => mb.RoomId == room.Id).ToListAsync();
-                            if (roomBills.Any())
-                            {
-                                var billIds = roomBills.Select(rb => rb.Id).ToList();
-                                var txs = await _context.BillTransactions.Where(bt => billIds.Contains(bt.MonthlyBillId)).ToListAsync();
-                                if (txs.Any()) _context.BillTransactions.RemoveRange(txs);
-                                _context.MonthlyBills.RemoveRange(roomBills);
-                            }
-
-                            var roomContracts = await _context.Contracts.Where(rc => rc.RoomId == room.Id).ToListAsync();
-                            if (roomContracts.Any()) _context.Contracts.RemoveRange(roomContracts);
-                        }
-                        _context.Rooms.RemoveRange(prop.Rooms);
-                    }
-                    _context.Properties.RemoveRange(properties);
-                }
-
-                // 8. Xóa tài khoản User
-                _context.Users.Remove(user);
-                await _context.SaveChangesAsync();
-
-                return Ok(new { message = $"Đã xóa tài khoản {user.FullName} ({user.Phone}) thành công!" });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Không thể xóa tài khoản: {ex.Message}");
-            }
+            return Ok(new { message = "Đã xóa tài khoản người dùng thành công!" });
         }
     }
 
