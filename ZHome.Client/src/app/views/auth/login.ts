@@ -18,7 +18,7 @@ import { ToastService } from '../../services/toast.service';
 
         <form (ngSubmit)="onSubmit()" #loginForm="ngForm" class="auth-form">
           <div class="form-group">
-            <label for="phone">Số điện thoại</label>
+            <label for="phone">Số điện thoại hoặc Email</label>
             <input 
               type="text" 
               id="phone" 
@@ -26,11 +26,10 @@ import { ToastService } from '../../services/toast.service';
               [(ngModel)]="phone" 
               #phoneInput="ngModel"
               required 
-              pattern="^0[35789]\\d{8}$"
               class="form-control" 
-              placeholder="Ví dụ: 0912345678" />
+              placeholder="Nhập số điện thoại hoặc email đã đăng ký" />
             @if (phoneInput.invalid && (phoneInput.dirty || phoneInput.touched)) {
-              <span class="error-text">Số điện thoại không hợp lệ (gồm 10 chữ số, bắt đầu bằng số 0 và chữ số thứ 2 là 3, 5, 7, 8 hoặc 9).</span>
+              <span class="error-text">Vui lòng nhập số điện thoại hoặc email.</span>
             }
           </div>
 
