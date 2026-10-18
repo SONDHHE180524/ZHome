@@ -166,6 +166,24 @@ namespace ZHome.API.Services
                 if (!Directory.Exists(mediaDir)) return;
 
                 var files = Directory.GetFiles(mediaDir, "*.*", SearchOption.AllDirectories);
+                if (files.Length == 0) return;
+
+                // Kiểm tra nhanh số lượng trong DB, nếu đã có nhiều hơn hoặc bằng số file trên đĩa thì bỏ qua
+                try
+                {
+                    var conn = _context.Database.GetDbConnection();
+                    if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+                    using var checkCmd = conn.CreateCommand();
+                    checkCmd.CommandText = "SELECT COUNT(1) FROM public.media_files;";
+                    var dbCount = Convert.ToInt64(await checkCmd.ExecuteScalarAsync());
+                    if (dbCount >= files.Length)
+                    {
+                        _logger.LogInformation("Database đã có {Count} media files, không cần đồng bộ lại toàn bộ.", dbCount);
+                        return;
+                    }
+                }
+                catch { }
+
                 foreach (var file in files)
                 {
                     var rel = Path.GetRelativePath(mediaDir, file).Replace('\\', '/').ToLowerInvariant();

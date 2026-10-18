@@ -387,9 +387,21 @@ using (var scope = app.Services.CreateScope())
             ");
         }
 
-        // Tự động sao lưu và đồng bộ toàn bộ file ảnh từ đĩa cứng lên database PostgreSQL (chống mất ảnh khi restart server)
-        var mediaStorage = scope.ServiceProvider.GetRequiredService<IMediaStorageService>();
-        await mediaStorage.SyncLocalDiskToDbAsync();
+        // Tự động sao lưu và đồng bộ ảnh chạy ngầm trong background để không chặn khởi động server
+        var serviceScopeFactory = scope.ServiceProvider.GetRequiredService<IServiceScopeFactory>();
+        _ = Task.Run(async () =>
+        {
+            try
+            {
+                using var bgScope = serviceScopeFactory.CreateScope();
+                var mediaStorage = bgScope.ServiceProvider.GetRequiredService<IMediaStorageService>();
+                await mediaStorage.SyncLocalDiskToDbAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[MediaStorage Background Sync] {ex.Message}");
+            }
+        });
 
         // Tự động seed bổ sung đầy đủ danh sách Xã/Thị trấn/Phường cho tất cả 30 quận huyện Hà Nội
         await LocationSeeder.SeedMissingLocationsAsync(dbContext);
