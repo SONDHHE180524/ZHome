@@ -1,13 +1,12 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { AnalyticsService, AnalyticsOverview, TopPage, DailyTraffic, DailyPageRatio, RecentSession, TopActiveUser } from '../../services/analytics.service';
+import { AnalyticsService, AnalyticsOverview, TopPage, DailyTraffic, DailyPageRatio } from '../../services/analytics.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
   selector: 'app-admin-traffic-analytics',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   template: `
     <div class="analytics-container animate-fade-in">
       <!-- Header Banner -->
@@ -26,44 +25,6 @@ import { ToastService } from '../../services/toast.service';
           </p>
         </div>
 
-        <div class="header-controls">
-          <!-- Time Range Selector -->
-          <div class="filter-pill-group">
-            <button 
-              type="button"
-              class="pill-btn" 
-              [class.active]="selectedDays() === 7" 
-              (click)="changeTimeRange(7)">
-              7 ngày qua
-            </button>
-            <button 
-              type="button"
-              class="pill-btn" 
-              [class.active]="selectedDays() === 14" 
-              (click)="changeTimeRange(14)">
-              14 ngày qua
-            </button>
-            <button 
-              type="button"
-              class="pill-btn" 
-              [class.active]="selectedDays() === 30" 
-              (click)="changeTimeRange(30)">
-              30 ngày qua
-            </button>
-          </div>
-
-          <div class="action-buttons">
-            <button (click)="loadAnalytics()" class="btn btn-secondary" title="Cập nhật lại dữ liệu">
-              <svg class="refresh-icon" [class.spinning]="isLoading()" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
-              </svg>
-              Làm mới
-            </button>
-            <a routerLink="/admin/dashboard" class="btn btn-primary">
-              ← Về Dashboard Admin
-            </a>
-          </div>
-        </div>
       </div>
 
       @if (isLoading()) {
@@ -91,28 +52,6 @@ import { ToastService } from '../../services/toast.service';
               </div>
               <div class="kpi-footer-note">
                 <span class="highlight-green">✓ Toàn thời gian</span> từ lúc khởi lập hệ thống
-              </div>
-            </div>
-          </div>
-
-          <!-- All-time Unique Visitors -->
-          <div class="kpi-card card-teal">
-            <div class="kpi-icon-wrap bg-teal-glow">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-            <div class="kpi-body">
-              <div class="kpi-sub-title">Khách Duy Nhất (Unique Visitors)</div>
-              <div class="kpi-main-val text-teal">
-                {{ data()?.allTimeTotalUniqueVisitors | number }}
-                <span class="unit-text">người</span>
-              </div>
-              <div class="kpi-footer-note">
-                Dựa trên thiết bị & địa chỉ IP độc nhất
               </div>
             </div>
           </div>
@@ -540,210 +479,6 @@ import { ToastService } from '../../services/toast.service';
           </div>
         </div>
 
-        <!-- 5. TOP ACTIVE USERS: AI TRUY CẬP NHIỀU NHẤT & THỜI GIAN HOẠT ĐỘNG BAO NHIÊU -->
-        <div class="section-container">
-          <div class="section-header">
-            <div>
-              <span class="section-tag tag-primary">
-                <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                  <circle cx="8.5" cy="7" r="4"/>
-                  <polyline points="17 11 19 13 23 9"/>
-                </svg>
-                Thống Kê Người Dùng
-              </span>
-              <h2>Top Người Dùng Hoạt Động & Truy Cập Nhiều Nhất</h2>
-              <p>Danh sách người dùng truy cập nhiều nhất hệ thống, thống kê tổng số phiên, số lượt xem và tổng thời gian hoạt động</p>
-            </div>
-            <div class="header-stat-badge">
-              <span class="badge-count-pill">{{ data()?.topActiveUsers?.length || 0 }} thành viên tích cực</span>
-            </div>
-          </div>
-
-          <div class="table-responsive-wrapper">
-            <table class="modern-table">
-              <thead>
-                <tr>
-                  <th style="width: 70px;">Hạng</th>
-                  <th>Họ Tên / Người Dùng</th>
-                  <th>Số Điện Thoại</th>
-                  <th>Vai Trò</th>
-                  <th class="text-right">Lượt Xem (Visits)</th>
-                  <th class="text-right">Số Phiên</th>
-                  <th class="text-right">Tổng Thời Gian Hoạt Động</th>
-                  <th>Thiết Bị</th>
-                  <th>Hoạt Động Gần Nhất</th>
-                </tr>
-              </thead>
-              <tbody>
-                @if (data()?.topActiveUsers && data()!.topActiveUsers.length > 0) {
-                  @for (u of data()?.topActiveUsers; track u.userId || u.rank) {
-                    <tr>
-                      <td>
-                        @if (u.rank === 1) {
-                          <span class="rank-badge rank-1-mono">🥇 #1</span>
-                        } @else if (u.rank === 2) {
-                          <span class="rank-badge rank-2-mono">🥈 #2</span>
-                        } @else if (u.rank === 3) {
-                          <span class="rank-badge rank-3-mono">🥉 #3</span>
-                        } @else {
-                          <span class="rank-badge rank-normal">#{{ u.rank }}</span>
-                        }
-                      </td>
-                      <td>
-                        <div class="user-cell">
-                          <div class="user-avatar-box" [class]="'avatar-role-' + u.userRole.toLowerCase()">
-                            {{ u.fullName.charAt(0).toUpperCase() }}
-                          </div>
-                          <div class="user-meta-col">
-                            <span class="user-fullname font-bold">{{ u.fullName }}</span>
-                            <span class="user-subid">ID: #{{ u.userId }}</span>
-                          </div>
-                        </div>
-                      </td>
-                      <td>
-                        <span class="phone-text font-mono">{{ u.phone || 'Chưa cập nhật' }}</span>
-                      </td>
-                      <td>
-                        <span class="role-pill" [class]="getRoleBadgeClass(u.userRole)">
-                          {{ u.roleDisplay }}
-                        </span>
-                      </td>
-                      <td class="text-right font-bold text-dark">
-                        {{ u.totalVisits | number }}
-                      </td>
-                      <td class="text-right text-muted">
-                        {{ u.totalSessions | number }} phiên
-                      </td>
-                      <td class="text-right">
-                        <span class="active-time-pill">
-                          <svg class="mini-clock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <polyline points="12 6 12 12 16 14"/>
-                          </svg>
-                          <strong>{{ u.totalDurationFormatted }}</strong>
-                        </span>
-                      </td>
-                      <td>
-                        <span class="device-tag">
-                          @if (u.deviceType === 'Mobile') {
-                            <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                            Mobile
-                          } @else if (u.deviceType === 'Tablet') {
-                            <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                            Tablet
-                          } @else {
-                            <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                            Desktop
-                          }
-                        </span>
-                      </td>
-                      <td class="font-mono text-muted">
-                        {{ u.lastActivityAt | date:'HH:mm:ss dd/MM' }}
-                      </td>
-                    </tr>
-                  }
-                } @else {
-                  <tr>
-                    <td colspan="9" class="text-center py-4 text-muted">
-                      Đang đồng bộ dữ liệu người dùng tích cực...
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 6. SESSION DURATION LOGS: THỜI LƯỢNG MỖI PHIÊN ĐĂNG NHẬP / TRUY CẬP -->
-        <div class="section-container">
-          <div class="section-header">
-            <div>
-              <span class="section-tag tag-mono">
-                <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <circle cx="12" cy="12" r="10"/>
-                  <polyline points="12 6 12 12 16 14"/>
-                </svg>
-                Nhật Ký Phiên Truy Cập
-              </span>
-              <h2>Thời Lượng Chi Tiết Của Từng Phiên Đăng Nhập & Khách Web</h2>
-              <p>Danh sách các phiên truy cập gần nhất kèm tên người dùng, thời gian bắt đầu, số trang xem và chính xác thời lượng của mỗi phiên</p>
-            </div>
-            <div class="duration-legend">
-              <span class="badge-dur dur-short">Dưới 1 phút</span>
-              <span class="badge-dur dur-medium">1 - 5 phút</span>
-              <span class="badge-dur dur-long">Trên 5 phút (Tương tác sâu)</span>
-            </div>
-          </div>
-
-          <div class="table-responsive-wrapper">
-            <table class="modern-table">
-              <thead>
-                <tr>
-                  <th>Người Dùng / Tài Khoản</th>
-                  <th>Số Điện Thoại</th>
-                  <th>Đối Tượng</th>
-                  <th>Thiết Bị</th>
-                  <th>Thời Điểm Bắt Đầu</th>
-                  <th>Hoạt Động Cuối</th>
-                  <th class="text-center">Số Trang Xem</th>
-                  <th class="text-right">Thời Lượng Mỗi Phiên</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (sess of data()?.recentSessions; track sess.sessionToken) {
-                  <tr>
-                    <td>
-                      <div class="user-cell">
-                        <div class="user-avatar-initial" [class]="'avatar-role-' + sess.userRole.toLowerCase()">
-                          {{ sess.userName.charAt(0).toUpperCase() }}
-                        </div>
-                        <div class="user-meta-col">
-                          <span class="user-fullname font-bold">{{ sess.userName }}</span>
-                          <span class="user-subcode font-mono text-muted">{{ sess.sessionToken.substring(0, 16) }}...</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <span class="font-mono text-muted">{{ sess.phone || '—' }}</span>
-                    </td>
-                    <td>
-                      <span class="role-pill" [class]="getRoleBadgeClass(sess.userRole)">
-                        {{ sess.roleDisplay }}
-                      </span>
-                    </td>
-                    <td>
-                      <span class="device-tag">
-                        @if (sess.deviceType === 'Mobile') {
-                          <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                          Mobile
-                        } @else if (sess.deviceType === 'Tablet') {
-                          <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-                          Tablet
-                        } @else {
-                          <svg class="device-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-                          Desktop
-                        }
-                      </span>
-                    </td>
-                    <td class="font-mono text-muted">{{ sess.startedAt | date:'HH:mm:ss dd/MM' }}</td>
-                    <td class="font-mono text-muted">{{ sess.lastActivityAt | date:'HH:mm:ss dd/MM' }}</td>
-                    <td class="text-center font-bold">{{ sess.pageCount }}</td>
-                    <td class="text-right">
-                      <span class="session-duration-badge" [class]="getDurationBadgeClass(sess.durationSeconds)">
-                        <svg class="mini-clock-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                          <circle cx="12" cy="12" r="10"/>
-                          <polyline points="12 6 12 12 16 14"/>
-                        </svg>
-                        {{ sess.durationFormatted }}
-                      </span>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
       }
     </div>
   `,
@@ -1860,11 +1595,6 @@ export class AdminTrafficAnalyticsComponent implements OnInit {
     });
   }
 
-  changeTimeRange(days: number): void {
-    this.selectedDays.set(days);
-    this.loadAnalytics();
-  }
-
   getTopPage(rank: number): TopPage | undefined {
     return this.data()?.topPages?.find(p => p.rank === rank);
   }
@@ -1921,36 +1651,4 @@ export class AdminTrafficAnalyticsComponent implements OnInit {
     return 'Bình thường';
   }
 
-  getRoleIconClass(roleKey: string): string {
-    switch (roleKey) {
-      case 'Tenant': return 'role-tenant';
-      case 'Landlord': return 'role-landlord';
-      case 'Administrator': return 'role-admin';
-      default: return 'role-guest';
-    }
-  }
-
-  getRoleProgressClass(roleKey: string): string {
-    switch (roleKey) {
-      case 'Tenant': return 'fill-tenant';
-      case 'Landlord': return 'fill-landlord';
-      case 'Administrator': return 'fill-admin';
-      default: return 'fill-guest';
-    }
-  }
-
-  getRoleBadgeClass(roleKey: string): string {
-    switch (roleKey) {
-      case 'Tenant': return 'role-badge-tenant';
-      case 'Landlord': return 'role-badge-landlord';
-      case 'Administrator': return 'role-badge-admin';
-      default: return 'role-badge-guest';
-    }
-  }
-
-  getDurationBadgeClass(seconds: number): string {
-    if (seconds >= 300) return 'badge-dur-long'; // >= 5m
-    if (seconds >= 60) return 'badge-dur-med'; // 1m - 5m
-    return 'badge-dur-short'; // < 1m
-  }
 }
