@@ -75,7 +75,7 @@ import { ToastService } from '../../services/toast.service';
             </div>
           </div>
 
-          <!-- Today Traffic -->
+          <!-- Today Traffic: Tính theo từng phiên đăng nhập của 1 role bất kì -->
           <div class="kpi-card card-purple">
             <div class="kpi-icon-wrap bg-purple-glow">
               <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -86,10 +86,10 @@ import { ToastService } from '../../services/toast.service';
               <div class="kpi-sub-title">Truy Cập Hôm Nay</div>
               <div class="kpi-main-val text-purple">
                 {{ data()?.todayVisits | number }}
-                <span class="unit-text">lượt</span>
+                <span class="unit-text">phiên</span>
               </div>
               <div class="kpi-footer-note">
-                <span class="highlight-purple">{{ data()?.todayUniqueVisitors }}</span> khách độc nhất trong ngày
+                <span class="highlight-purple">{{ data()?.todayUniqueVisitors }}</span> người dùng đăng nhập trong ngày
               </div>
             </div>
           </div>
@@ -541,6 +541,21 @@ import { ToastService } from '../../services/toast.service';
                 <span>Xóa role Người thuê</span>
               }
             </button>
+
+            <!-- Nút xóa tất cả hôm nay -->
+            <button type="button" 
+                    class="btn-danger-clean btn-all-clean" 
+                    (click)="clearTodayTraffic('All', 'Tất cả các role & khách vãng lai')"
+                    [disabled]="isClearing()"
+                    title="Xóa sạch toàn bộ lượt xem trang và phiên truy cập hôm nay">
+              @if (isClearing() && clearingRole() === 'All') {
+                <svg class="spinning inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                <span>Đang xóa...</span>
+              } @else {
+                <svg class="inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <span>Xóa tất cả hôm nay</span>
+              }
+            </button>
           </div>
         </div>
 
@@ -724,6 +739,17 @@ import { ToastService } from '../../services/toast.service';
     .btn-danger-clean:disabled {
       opacity: 0.6;
       cursor: not-allowed;
+    }
+
+    .btn-all-clean {
+      background: linear-gradient(135deg, #475569 0%, #334155 100%);
+      border-color: rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 12px rgba(51, 65, 85, 0.25);
+    }
+
+    .btn-all-clean:hover:not(:disabled) {
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      box-shadow: 0 6px 16px rgba(30, 41, 59, 0.4);
     }
 
     .spinning {
