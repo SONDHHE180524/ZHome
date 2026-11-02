@@ -1,6 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AnalyticsService, AnalyticsOverview, TopPage, DailyTraffic, DailyPageRatio } from '../../services/analytics.service';
+import { AnalyticsService, AnalyticsOverview, TopPage, DailyPageRatio } from '../../services/analytics.service';
 import { ToastService } from '../../services/toast.service';
 
 @Component({
@@ -275,79 +275,6 @@ import { ToastService } from '../../services/toast.service';
                     </td>
                     <td class="text-right font-mono">
                       {{ p.avgDurationFormatted }}
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- 3. DAILY VISITOR TRAFFIC: TỔNG SỐ LƯỢNG NGƯỜI TRUY CẬP WEB THEO NGÀY -->
-        <div class="section-container">
-          <div class="section-header">
-            <div>
-              <span class="section-tag tag-mono">
-                <svg class="inline-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="18" y1="20" x2="18" y2="10"/>
-                  <line x1="12" y1="20" x2="12" y2="4"/>
-                  <line x1="6" y1="20" x2="6" y2="14"/>
-                </svg>
-                Lưu Lượng Hàng Ngày
-              </span>
-              <h2>Tổng Số Lượng Người Truy Cập Web Theo Ngày</h2>
-              <p>Biểu đồ cột trực quan biến động số lượt truy cập (Visits) và số người dùng độc nhất (Unique Visitors) qua các ngày</p>
-            </div>
-            <div class="chart-legend">
-              <span class="legend-item"><span class="legend-color bg-dark-col"></span> Lượt truy cập (Pageviews)</span>
-              <span class="legend-item"><span class="legend-color bg-slate-col"></span> Người truy cập độc nhất</span>
-            </div>
-          </div>
-
-          <!-- SVG Visual Bar Chart -->
-          <div class="chart-container">
-            <div class="chart-bars-wrap">
-              @for (day of data()?.dailyTraffic; track day.date) {
-                <div class="chart-col" [title]="day.dayOfWeek + ' (' + day.formattedDate + '): ' + day.visitsCount + ' lượt, ' + day.uniqueVisitorsCount + ' khách'">
-                  <div class="col-count-tip">{{ day.visitsCount }}</div>
-                  <div class="bars-pair">
-                    <div class="bar-fill bar-visits" [style.height.px]="calculateBarHeight(day.visitsCount)"></div>
-                    <div class="bar-fill bar-uniques" [style.height.px]="calculateBarHeight(day.uniqueVisitorsCount)"></div>
-                  </div>
-                  <div class="col-label">{{ day.formattedDate }}</div>
-                  <div class="col-sub-label">{{ day.dayOfWeek }}</div>
-                </div>
-              }
-            </div>
-          </div>
-
-          <!-- Daily Table Breakdown -->
-          <div class="table-responsive-wrapper">
-            <table class="modern-table">
-              <thead>
-                <tr>
-                  <th>Ngày</th>
-                  <th>Thứ</th>
-                  <th class="text-right">Tổng Lượt Xem (Visits)</th>
-                  <th class="text-right">Khách Độc Nhất (Unique)</th>
-                  <th class="text-right">Số Phiên (Sessions)</th>
-                  <th class="text-right">Thời Lượng Phiên TB</th>
-                  <th>Mức Độ Tấp Nập</th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (d of data()?.dailyTraffic; track d.date) {
-                  <tr>
-                    <td class="font-bold text-dark">{{ d.formattedDate }}</td>
-                    <td>{{ d.dayOfWeek }}</td>
-                    <td class="text-right font-bold text-dark">{{ d.visitsCount | number }}</td>
-                    <td class="text-right font-bold text-muted">{{ d.uniqueVisitorsCount | number }}</td>
-                    <td class="text-right text-muted">{{ d.sessionsCount | number }}</td>
-                    <td class="text-right font-mono">{{ formatSeconds(d.avgDurationSeconds) }}</td>
-                    <td>
-                      <span class="status-chip" [class]="getTrafficLevelClass(d.visitsCount)">
-                        {{ getTrafficLevelText(d.visitsCount) }}
-                      </span>
                     </td>
                   </tr>
                 }
@@ -1832,22 +1759,6 @@ export class AdminTrafficAnalyticsComponent implements OnInit {
     return this.data()?.topPages?.find(p => p.rank === rank);
   }
 
-  calculateBarHeight(val: number): number {
-    const list = this.data()?.dailyTraffic || [];
-    const maxVal = Math.max(...list.map(d => d.visitsCount), 1);
-    const height = (val / maxVal) * 160;
-    return Math.max(height, 6);
-  }
-
-  formatSeconds(seconds: number): string {
-    if (!seconds || seconds <= 0) return '0s';
-    const s = Math.round(seconds);
-    if (s < 60) return `${s}s`;
-    const m = Math.floor(s / 60);
-    const rem = s % 60;
-    return rem > 0 ? `${m}m ${rem}s` : `${m}m`;
-  }
-
   getCategoryClass(category: string): string {
     switch (category) {
       case 'Homepage': return 'cat-home';
@@ -1870,18 +1781,6 @@ export class AdminTrafficAnalyticsComponent implements OnInit {
       case 'Auth': return 'Đăng Nhập';
       default: return 'Khác';
     }
-  }
-
-  getTrafficLevelClass(count: number): string {
-    if (count > 50) return 'status-high';
-    if (count > 25) return 'status-normal';
-    return 'status-low';
-  }
-
-  getTrafficLevelText(count: number): string {
-    if (count > 50) return '🔥 Rất nhộn nhịp';
-    if (count > 25) return 'Ổn định';
-    return 'Bình thường';
   }
 
 }
