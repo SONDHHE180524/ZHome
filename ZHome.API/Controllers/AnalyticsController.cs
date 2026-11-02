@@ -472,6 +472,92 @@ namespace ZHome.API.Controllers
             return "Desktop";
         }
 
+
+        // 4. Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của role Administrator (Admin)
+        [HttpDelete("admin/today-traffic")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ClearTodayAdminTraffic([FromQuery] string? date)
+        {
+            try
+            {
+                var todayUtc = DateTime.UtcNow.Date;
+                var todayVn = DateTime.UtcNow.AddHours(7).Date;
+
+                DateTime targetStartUtc;
+                DateTime targetEndUtc;
+
+                if (!string.IsNullOrWhiteSpace(date) && DateTime.TryParse(date, out var parsedDate))
+                {
+                    targetStartUtc = parsedDate.Date;
+                    targetEndUtc = targetStartUtc.AddDays(1);
+                }
+                else
+                {
+                    // Bao phủ cả khoảng thời gian hôm nay theo UTC và hôm nay theo giờ Việt Nam (UTC+7)
+                    var todayStartUtc = todayUtc;
+                    var todayEndUtc = todayUtc.AddDays(1);
+                    var todayStartVnUtc = todayVn.AddHours(-7);
+                    var todayEndVnUtc = todayStartVnUtc.AddDays(1);
+
+                    targetStartUtc = todayStartUtc < todayStartVnUtc ? todayStartUtc : todayStartVnUtc;
+                    targetEndUtc = todayEndUtc > todayEndVnUtc ? todayEndUtc : todayEndVnUtc;
+                }
+
+                // Lấy danh sách ID của các tài khoản có vai trò Quản trị viên (Administrator)
+                var adminUserIds = await _context.Users
+                    .Where(u => u.Role != null && (u.Role.RoleName == "Administrator" || u.Role.RoleName == "Admin"))
+                    .Select(u => u.Id)
+                    .ToListAsync();
+
+                // 1. Tìm các bản ghi PageViewLogs của Admin trong ngày
+                var adminPageLogs = await _context.PageViewLogs
+                    .Where(p => (p.UserRole == "Administrator" || p.UserRole == "Admin" || (p.UserId.HasValue && adminUserIds.Contains(p.UserId.Value)))
+                             && p.ViewedAt >= targetStartUtc && p.ViewedAt < targetEndUtc)
+                    .ToListAsync();
+
+                var adminSessionTokens = adminPageLogs
+                    .Select(p => p.SessionToken)
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .Distinct()
+                    .ToList();
+
+                // 2. Tìm các phiên UserSessions của Admin trong ngày
+                var adminSessions = await _context.UserSessions
+                    .Where(s => ((s.UserRole == "Administrator" || s.UserRole == "Admin" || (s.UserId.HasValue && adminUserIds.Contains(s.UserId.Value)))
+                                 && s.StartedAt >= targetStartUtc && s.StartedAt < targetEndUtc)
+                             || adminSessionTokens.Contains(s.SessionToken))
+                    .ToListAsync();
+
+                int deletedLogsCount = adminPageLogs.Count;
+                int deletedSessionsCount = adminSessions.Count;
+
+                if (adminPageLogs.Any())
+                {
+                    _context.PageViewLogs.RemoveRange(adminPageLogs);
+                }
+
+                if (adminSessions.Any())
+                {
+                    _context.UserSessions.RemoveRange(adminSessions);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Đã xóa thành công {deletedLogsCount} lượt truy cập và {deletedSessionsCount} phiên của Admin trong ngày hôm nay.",
+                    deletedLogsCount,
+                    deletedSessionsCount
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ClearTodayAdminTraffic Error] {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Lỗi khi xóa lượt truy cập của Admin: " + ex.Message });
+            }
+        }
+
         private static string FormatDuration(int seconds)
         {
             if (seconds <= 0) return "0s";

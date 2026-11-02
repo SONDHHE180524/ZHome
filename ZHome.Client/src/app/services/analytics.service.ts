@@ -290,4 +290,13 @@ export class AnalyticsService {
   getAnalyticsOverview(days: number = 14): Observable<AnalyticsOverview> {
     return this.http.get<AnalyticsOverview>(`${this.apiUrl}/admin/overview?days=${days}`);
   }
+
+  /**
+   * Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của role Administrator (Admin)
+   */
+  clearTodayAdminTraffic(date?: string): Observable<any> {
+    const url = date ? `${this.apiUrl}/admin/today-traffic?date=${date}` : `${this.apiUrl}/admin/today-traffic`;
+    return this.http.delete<any>(url);
+  }
 }
+
