@@ -473,10 +473,10 @@ namespace ZHome.API.Controllers
         }
 
 
-        // 4. Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của role Administrator (Admin)
+        // 4. Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay theo role (Administrator, Landlord, Tenant, All)
         [HttpDelete("admin/today-traffic")]
         [Authorize(Roles = "Administrator")]
-        public async Task<IActionResult> ClearTodayAdminTraffic([FromQuery] string? date)
+        public async Task<IActionResult> ClearTodayTraffic([FromQuery] string? role, [FromQuery] string? date)
         {
             try
             {
@@ -503,42 +503,101 @@ namespace ZHome.API.Controllers
                     targetEndUtc = todayEndUtc > todayEndVnUtc ? todayEndUtc : todayEndVnUtc;
                 }
 
-                // Lấy danh sách ID của các tài khoản có vai trò Quản trị viên (Administrator)
-                var adminUserIds = await _context.Users
-                    .Where(u => u.Role != null && (u.Role.RoleName == "Administrator" || u.Role.RoleName == "Admin"))
-                    .Select(u => u.Id)
-                    .ToListAsync();
+                // Chuẩn hóa role
+                string targetRole = string.IsNullOrWhiteSpace(role) ? "Administrator" : role.Trim();
+                string roleDisplayName;
 
-                // 1. Tìm các bản ghi PageViewLogs của Admin trong ngày
-                var adminPageLogs = await _context.PageViewLogs
-                    .Where(p => (p.UserRole == "Administrator" || p.UserRole == "Admin" || (p.UserId.HasValue && adminUserIds.Contains(p.UserId.Value)))
-                             && p.ViewedAt >= targetStartUtc && p.ViewedAt < targetEndUtc)
-                    .ToListAsync();
+                List<long> targetUserIds = new();
+                bool isAll = targetRole.Equals("All", StringComparison.OrdinalIgnoreCase);
 
-                var adminSessionTokens = adminPageLogs
+                if (!isAll)
+                {
+                    if (targetRole.Equals("Landlord", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetRole = "Landlord";
+                        roleDisplayName = "Chủ trọ";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && u.Role.RoleName == "Landlord")
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                    else if (targetRole.Equals("Tenant", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetRole = "Tenant";
+                        roleDisplayName = "Người thuê";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && u.Role.RoleName == "Tenant")
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                    else
+                    {
+                        targetRole = "Administrator";
+                        roleDisplayName = "Admin";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && (u.Role.RoleName == "Administrator" || u.Role.RoleName == "Admin"))
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                }
+                else
+                {
+                    roleDisplayName = "Tất cả";
+                }
+
+                // 1. Tìm các bản ghi PageViewLogs trong ngày theo role
+                IQueryable<PageViewLog> logsQuery = _context.PageViewLogs
+                    .Where(p => p.ViewedAt >= targetStartUtc && p.ViewedAt < targetEndUtc);
+
+                if (!isAll)
+                {
+                    if (targetRole == "Administrator")
+                    {
+                        logsQuery = logsQuery.Where(p => p.UserRole == "Administrator" || p.UserRole == "Admin" || (p.UserId.HasValue && targetUserIds.Contains(p.UserId.Value)));
+                    }
+                    else
+                    {
+                        logsQuery = logsQuery.Where(p => p.UserRole == targetRole || (p.UserId.HasValue && targetUserIds.Contains(p.UserId.Value)));
+                    }
+                }
+
+                var targetPageLogs = await logsQuery.ToListAsync();
+
+                var targetSessionTokens = targetPageLogs
                     .Select(p => p.SessionToken)
                     .Where(t => !string.IsNullOrEmpty(t))
                     .Distinct()
                     .ToList();
 
-                // 2. Tìm các phiên UserSessions của Admin trong ngày
-                var adminSessions = await _context.UserSessions
-                    .Where(s => ((s.UserRole == "Administrator" || s.UserRole == "Admin" || (s.UserId.HasValue && adminUserIds.Contains(s.UserId.Value)))
-                                 && s.StartedAt >= targetStartUtc && s.StartedAt < targetEndUtc)
-                             || adminSessionTokens.Contains(s.SessionToken))
-                    .ToListAsync();
+                // 2. Tìm các phiên UserSessions trong ngày theo role
+                IQueryable<UserSession> sessionsQuery = _context.UserSessions
+                    .Where(s => s.StartedAt >= targetStartUtc && s.StartedAt < targetEndUtc);
 
-                int deletedLogsCount = adminPageLogs.Count;
-                int deletedSessionsCount = adminSessions.Count;
-
-                if (adminPageLogs.Any())
+                if (!isAll)
                 {
-                    _context.PageViewLogs.RemoveRange(adminPageLogs);
+                    if (targetRole == "Administrator")
+                    {
+                        sessionsQuery = sessionsQuery.Where(s => s.UserRole == "Administrator" || s.UserRole == "Admin" || (s.UserId.HasValue && targetUserIds.Contains(s.UserId.Value)) || targetSessionTokens.Contains(s.SessionToken));
+                    }
+                    else
+                    {
+                        sessionsQuery = sessionsQuery.Where(s => s.UserRole == targetRole || (s.UserId.HasValue && targetUserIds.Contains(s.UserId.Value)) || targetSessionTokens.Contains(s.SessionToken));
+                    }
                 }
 
-                if (adminSessions.Any())
+                var targetSessions = await sessionsQuery.ToListAsync();
+
+                int deletedLogsCount = targetPageLogs.Count;
+                int deletedSessionsCount = targetSessions.Count;
+
+                if (targetPageLogs.Any())
                 {
-                    _context.UserSessions.RemoveRange(adminSessions);
+                    _context.PageViewLogs.RemoveRange(targetPageLogs);
+                }
+
+                if (targetSessions.Any())
+                {
+                    _context.UserSessions.RemoveRange(targetSessions);
                 }
 
                 await _context.SaveChangesAsync();
@@ -546,15 +605,15 @@ namespace ZHome.API.Controllers
                 return Ok(new
                 {
                     success = true,
-                    message = $"Đã xóa thành công {deletedLogsCount} lượt truy cập và {deletedSessionsCount} phiên của Admin trong ngày hôm nay.",
+                    message = $"Đã xóa thành công {deletedLogsCount} lượt truy cập và {deletedSessionsCount} phiên của role {roleDisplayName} trong ngày hôm nay.",
                     deletedLogsCount,
                     deletedSessionsCount
                 });
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[ClearTodayAdminTraffic Error] {ex.Message}");
-                return StatusCode(500, new { success = false, message = "Lỗi khi xóa lượt truy cập của Admin: " + ex.Message });
+                Console.WriteLine($"[ClearTodayTraffic Error] {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Lỗi khi xóa lượt truy cập: " + ex.Message });
             }
         }
 

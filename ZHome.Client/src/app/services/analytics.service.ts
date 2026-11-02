@@ -292,11 +292,20 @@ export class AnalyticsService {
   }
 
   /**
+   * Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay theo role (Administrator, Landlord, Tenant, All)
+   */
+  clearTodayTraffic(role: string = 'Administrator', date?: string): Observable<any> {
+    const params = new URLSearchParams();
+    params.set('role', role);
+    if (date) params.set('date', date);
+    return this.http.delete<any>(`${this.apiUrl}/admin/today-traffic?${params.toString()}`);
+  }
+
+  /**
    * Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của role Administrator (Admin)
    */
   clearTodayAdminTraffic(date?: string): Observable<any> {
-    const url = date ? `${this.apiUrl}/admin/today-traffic?date=${date}` : `${this.apiUrl}/admin/today-traffic`;
-    return this.http.delete<any>(url);
+    return this.clearTodayTraffic('Administrator', date);
   }
 }
 

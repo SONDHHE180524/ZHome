@@ -25,29 +25,6 @@ import { ToastService } from '../../services/toast.service';
           </p>
         </div>
 
-        <div class="header-action">
-          <button type="button" 
-                  class="btn-danger-glow" 
-                  (click)="clearTodayAdminTraffic()"
-                  [disabled]="isClearing()"
-                  title="Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của Quản trị viên (Admin)">
-            @if (isClearing()) {
-              <svg class="spinning inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                <circle cx="12" cy="12" r="10" stroke-opacity="0.25"/>
-                <path d="M12 2a10 10 0 0 1 10 10"/>
-              </svg>
-              <span>Đang xóa...</span>
-            } @else {
-              <svg class="inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="3 6 5 6 21 6"/>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                <line x1="10" y1="11" x2="10" y2="17"/>
-                <line x1="14" y1="11" x2="14" y2="17"/>
-              </svg>
-              <span>Xóa truy cập Admin hôm nay</span>
-            }
-          </button>
-        </div>
       </div>
 
       @if (isLoading()) {
@@ -502,6 +479,71 @@ import { ToastService } from '../../services/toast.service';
           </div>
         </div>
 
+        <!-- QUẢN TRỊ DỮ LIỆU: XÓA TRUY CẬP TRONG NGÀY THEO ROLE -->
+        <div class="cleanup-card">
+          <div class="cleanup-info">
+            <div class="cleanup-icon-wrap">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                <line x1="10" y1="11" x2="10" y2="17"/>
+                <line x1="14" y1="11" x2="14" y2="17"/>
+              </svg>
+            </div>
+            <div>
+              <h3 class="cleanup-title">Xóa Lịch Sử & Lượt Truy Cập Trong Ngày Theo Role</h3>
+              <p class="cleanup-desc">Thao tác xóa toàn bộ lượt xem trang và các phiên truy cập ghi nhận trong ngày hôm nay theo từng nhóm người dùng.</p>
+            </div>
+          </div>
+
+          <div class="cleanup-buttons">
+            <!-- Nút xóa role Admin -->
+            <button type="button" 
+                    class="btn-danger-clean" 
+                    (click)="clearTodayTraffic('Administrator', 'Quản trị viên (Admin)')"
+                    [disabled]="isClearing()"
+                    title="Xóa toàn bộ lượt truy cập trong ngày hôm nay của role Admin">
+              @if (isClearing() && clearingRole() === 'Administrator') {
+                <svg class="spinning inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                <span>Đang xóa...</span>
+              } @else {
+                <svg class="inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <span>Xóa role Admin</span>
+              }
+            </button>
+
+            <!-- Nút xóa role Chủ trọ -->
+            <button type="button" 
+                    class="btn-danger-clean" 
+                    (click)="clearTodayTraffic('Landlord', 'Chủ trọ')"
+                    [disabled]="isClearing()"
+                    title="Xóa toàn bộ lượt truy cập trong ngày hôm nay của role Chủ trọ">
+              @if (isClearing() && clearingRole() === 'Landlord') {
+                <svg class="spinning inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                <span>Đang xóa...</span>
+              } @else {
+                <svg class="inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                <span>Xóa role Chủ trọ</span>
+              }
+            </button>
+
+            <!-- Nút xóa role Người thuê -->
+            <button type="button" 
+                    class="btn-danger-clean" 
+                    (click)="clearTodayTraffic('Tenant', 'Người thuê')"
+                    [disabled]="isClearing()"
+                    title="Xóa toàn bộ lượt truy cập trong ngày hôm nay của role Người thuê">
+              @if (isClearing() && clearingRole() === 'Tenant') {
+                <svg class="spinning inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10"/></svg>
+                <span>Đang xóa...</span>
+              } @else {
+                <svg class="inline-svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+                <span>Xóa role Người thuê</span>
+              }
+            </button>
+          </div>
+        </div>
+
       }
     </div>
   `,
@@ -597,41 +639,90 @@ import { ToastService } from '../../services/toast.service';
       letter-spacing: -0.02em;
     }
 
-    .header-action {
+    /* BOTTOM CLEANUP CARD */
+    .cleanup-card {
+      background: #ffffff;
+      border: 1px solid #fee2e2;
+      border-radius: 20px;
+      padding: 24px 28px;
+      margin-top: 10px;
+      margin-bottom: 24px;
       display: flex;
+      justify-content: space-between;
       align-items: center;
-      z-index: 2;
+      gap: 24px;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.06);
     }
 
-    .btn-danger-glow {
+    .cleanup-info {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .cleanup-icon-wrap {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: #fef2f2;
+      color: #ef4444;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid #fecaca;
+    }
+
+    .cleanup-title {
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: #1e293b;
+      margin: 0 0 4px 0;
+    }
+
+    .cleanup-desc {
+      font-size: 0.85rem;
+      color: #64748b;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .cleanup-buttons {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn-danger-clean {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      padding: 12px 20px;
+      padding: 10px 18px;
       background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       color: #ffffff;
-      border: 1px solid rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(239, 68, 68, 0.2);
       border-radius: 12px;
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       font-weight: 700;
       cursor: pointer;
-      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.45);
+      box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
       transition: all 0.2s ease;
       white-space: nowrap;
     }
 
-    .btn-danger-glow:hover:not(:disabled) {
+    .btn-danger-clean:hover:not(:disabled) {
       background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
       transform: translateY(-2px);
-      box-shadow: 0 6px 22px rgba(220, 38, 38, 0.6);
+      box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4);
     }
 
-    .btn-danger-glow:active:not(:disabled) {
+    .btn-danger-clean:active:not(:disabled) {
       transform: translateY(0);
     }
 
-    .btn-danger-glow:disabled {
-      opacity: 0.65;
+    .btn-danger-clean:disabled {
+      opacity: 0.6;
       cursor: not-allowed;
     }
 
@@ -641,6 +732,20 @@ import { ToastService } from '../../services/toast.service';
 
     .inline-svg {
       flex-shrink: 0;
+    }
+
+    @media (max-width: 992px) {
+      .cleanup-card {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .cleanup-buttons {
+        width: 100%;
+      }
+      .btn-danger-clean {
+        flex: 1;
+        justify-content: center;
+      }
     }
 
     .analytics-header p {
@@ -1645,29 +1750,38 @@ export class AdminTrafficAnalyticsComponent implements OnInit {
   selectedDays = signal<number>(14);
   data = signal<AnalyticsOverview | null>(null);
   isClearing = signal<boolean>(false);
+  clearingRole = signal<string>('');
 
   ngOnInit(): void {
     this.loadAnalytics();
   }
 
-  clearTodayAdminTraffic(): void {
-    if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của Quản trị viên (role Admin)?\n\nThao tác này sẽ đặt lại các lượt xem của Admin hôm nay và không thể hoàn tác.')) {
+  clearTodayTraffic(role: string, roleName: string): void {
+    if (!confirm(`Bạn có chắc chắn muốn xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay của role ${roleName}?\n\nThao tác này sẽ đặt lại các lượt xem của ${roleName} hôm nay và không thể hoàn tác.`)) {
       return;
     }
 
     this.isClearing.set(true);
-    this.analyticsService.clearTodayAdminTraffic().subscribe({
+    this.clearingRole.set(role);
+
+    this.analyticsService.clearTodayTraffic(role).subscribe({
       next: (res) => {
         this.isClearing.set(false);
-        this.toastService.show(res.message || 'Đã xóa toàn bộ lượt truy cập hôm nay của role Admin!', 'success');
+        this.clearingRole.set('');
+        this.toastService.show(res.message || `Đã xóa toàn bộ lượt truy cập hôm nay của role ${roleName}!`, 'success');
         this.loadAnalytics();
       },
       error: (err) => {
         this.isClearing.set(false);
-        const msg = err.error?.message || 'Lỗi khi xóa lượt truy cập của Admin.';
+        this.clearingRole.set('');
+        const msg = err.error?.message || `Lỗi khi xóa lượt truy cập của role ${roleName}.`;
         this.toastService.show(msg, 'error');
       }
     });
+  }
+
+  clearTodayAdminTraffic(): void {
+    this.clearTodayTraffic('Administrator', 'Quản trị viên (Admin)');
   }
 
   loadAnalytics(): void {
