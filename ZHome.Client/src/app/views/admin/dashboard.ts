@@ -15,7 +15,7 @@ import { ToastService } from '../../services/toast.service';
         <div class="header-content">
           <span class="role-badge">Hệ Thống Quản Trị Trung Tâm</span>
           <h1>Bảng Điều Khiển Admin ZHome</h1>
-          <p>Giám sát toàn bộ hoạt động nhà trọ, chủ trọ, duyệt hồ sơ và thống kê dòng tiền hệ thống.</p>
+          <p>Giám sát toàn bộ hoạt động nhà trọ, chủ trọ và duyệt hồ sơ hệ thống.</p>
         </div>
         <div class="header-actions">
           <a routerLink="/admin/traffic-analytics" class="btn btn-secondary">
@@ -134,21 +134,6 @@ import { ToastService } from '../../services/toast.service';
             </div>
           </div>
 
-          <!-- Card 6: Tổng Doanh Thu Giao Dịch Sàn -->
-          <div class="kpi-card card-purple">
-            <div class="kpi-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2" y="5" width="20" height="14" rx="3"></rect>
-                <path d="M2 10h20"></path>
-                <circle cx="17" cy="14.5" r="1.2" fill="currentColor"></circle>
-              </svg>
-            </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Doanh Thu Giao Dịch</span>
-              <strong class="kpi-value text-purple">{{ (stats()?.totalTransactionsRevenue || 0) | number:'1.0-0' }} <span class="kpi-sub-unit">VNĐ</span></strong>
-              <span class="kpi-sub">Dòng tiền thanh toán qua ZHome</span>
-            </div>
-          </div>
         </div>
 
         <!-- System Quick Navigation Cards -->

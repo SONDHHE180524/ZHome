@@ -208,20 +208,20 @@ namespace ZHome.API.Controllers
                     .Distinct()
                     .CountAsync();
 
-                // Thống kê hôm nay
-                long todayVisits = await _context.PageViewLogs
-                    .Where(p => p.ViewedAt >= todayUtc)
-                    .CountAsync();
+                // Thống kê hôm nay: Tính theo từng phiên đăng nhập của một role bất kỳ (Admin, Chủ trọ, Người thuê)
+                var todayRoleSessions = await _context.UserSessions
+                    .Where(s => s.StartedAt >= todayUtc
+                             && s.UserRole != "Guest"
+                             && (s.UserId != null || s.UserRole == "Administrator" || s.UserRole == "Admin" || s.UserRole == "Landlord" || s.UserRole == "Tenant"))
+                    .ToListAsync();
 
-                long todaySessions = await _context.UserSessions
-                    .Where(s => s.StartedAt >= todayUtc)
-                    .CountAsync();
+                long todayVisits = todayRoleSessions.Count;
+                long todaySessions = todayVisits;
 
-                long todayUniqueVisitors = await _context.UserSessions
-                    .Where(s => s.StartedAt >= todayUtc)
-                    .Select(s => s.IpAddress ?? s.SessionToken)
+                long todayUniqueVisitors = todayRoleSessions
+                    .Select(s => s.UserId.HasValue ? s.UserId.ToString() : (s.IpAddress ?? s.SessionToken))
                     .Distinct()
-                    .CountAsync();
+                    .Count();
 
                 // Lấy toàn bộ log trong dải ngày để xử lý bộ nhớ chính xác 100% không bị lệch múi giờ
                 var rangePageLogs = await _context.PageViewLogs
@@ -290,17 +290,25 @@ namespace ZHome.API.Controllers
                     var dayLogs = rangePageLogs.Where(x => x.ViewedAt.ToString("yyyy-MM-dd") == dStr).ToList();
                     var daySessions = rangeSessions.Where(x => x.StartedAt.ToString("yyyy-MM-dd") == dStr).ToList();
 
+                    // Tính lượt truy cập theo từng phiên đăng nhập của role bất kỳ
+                    var dayRoleSessions = daySessions
+                        .Where(s => s.UserRole != "Guest" && (s.UserId != null || s.UserRole == "Administrator" || s.UserRole == "Admin" || s.UserRole == "Landlord" || s.UserRole == "Tenant"))
+                        .ToList();
+
+                    int dayVisitsCount = dayRoleSessions.Count;
+                    int dayUniqueCount = dayRoleSessions.Select(x => x.UserId?.ToString() ?? x.SessionToken).Distinct().Count();
+
                     dailyTrafficList.Add(new DailyTrafficDto
                     {
                         Date = dStr,
                         FormattedDate = d.ToString("dd/MM"),
                         DayOfWeek = GetVietnameseDayOfWeek(d.DayOfWeek),
-                        VisitsCount = dayLogs.Count,
-                        UniqueVisitorsCount = dayLogs.Select(x => x.SessionToken).Distinct().Count(),
-                        SessionsCount = daySessions.Count,
-                        AvgDurationSeconds = daySessions.Any()
-                            ? Math.Round(daySessions.Average(x => (double)x.DurationSeconds), 0)
-                            : (dayLogs.Any() ? Math.Round(dayLogs.Average(x => (double)x.DurationSeconds), 0) : 0)
+                        VisitsCount = dayVisitsCount,
+                        UniqueVisitorsCount = dayUniqueCount,
+                        SessionsCount = dayVisitsCount,
+                        AvgDurationSeconds = dayRoleSessions.Any()
+                            ? Math.Round(dayRoleSessions.Average(x => (double)x.DurationSeconds), 0)
+                            : (daySessions.Any() ? Math.Round(daySessions.Average(x => (double)x.DurationSeconds), 0) : 0)
                     });
                 }
 
@@ -470,6 +478,163 @@ namespace ZHome.API.Controllers
             if (ua.Contains("mobile") || ua.Contains("android") || ua.Contains("iphone")) return "Mobile";
             if (ua.Contains("ipad") || ua.Contains("tablet")) return "Tablet";
             return "Desktop";
+        }
+
+
+        // 4. Xóa toàn bộ lượt truy cập và lịch sử trong ngày hôm nay theo role (Administrator, Landlord, Tenant, Guest, All)
+        [HttpDelete("admin/today-traffic")]
+        [Authorize(Roles = "Administrator")]
+        public async Task<IActionResult> ClearTodayTraffic([FromQuery] string? role, [FromQuery] string? date)
+        {
+            try
+            {
+                var todayUtc = DateTime.UtcNow.Date;
+                var todayVn = DateTime.UtcNow.AddHours(7).Date;
+
+                DateTime targetStartUtc;
+                DateTime targetEndUtc;
+
+                if (!string.IsNullOrWhiteSpace(date) && DateTime.TryParse(date, out var parsedDate))
+                {
+                    targetStartUtc = parsedDate.Date;
+                    targetEndUtc = targetStartUtc.AddDays(1);
+                }
+                else
+                {
+                    // Bao phủ cả khoảng thời gian hôm nay theo UTC và hôm nay theo giờ Việt Nam (UTC+7)
+                    var todayStartUtc = todayUtc;
+                    var todayEndUtc = todayUtc.AddDays(1);
+                    var todayStartVnUtc = todayVn.AddHours(-7);
+                    var todayEndVnUtc = todayStartVnUtc.AddDays(1);
+
+                    targetStartUtc = todayStartUtc < todayStartVnUtc ? todayStartUtc : todayStartVnUtc;
+                    targetEndUtc = todayEndUtc > todayEndVnUtc ? todayEndUtc : todayEndVnUtc;
+                }
+
+                string targetRole = string.IsNullOrWhiteSpace(role) ? "Administrator" : role.Trim();
+                string roleDisplayName;
+
+                List<long> targetUserIds = new();
+                bool isAll = targetRole.Equals("All", StringComparison.OrdinalIgnoreCase);
+
+                if (!isAll)
+                {
+                    if (targetRole.Equals("Landlord", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetRole = "Landlord";
+                        roleDisplayName = "Chủ trọ";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && u.Role.RoleName == "Landlord")
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                    else if (targetRole.Equals("Tenant", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetRole = "Tenant";
+                        roleDisplayName = "Người thuê";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && u.Role.RoleName == "Tenant")
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                    else if (targetRole.Equals("Guest", StringComparison.OrdinalIgnoreCase))
+                    {
+                        targetRole = "Guest";
+                        roleDisplayName = "Khách vãng lai (Guest)";
+                    }
+                    else
+                    {
+                        targetRole = "Administrator";
+                        roleDisplayName = "Admin";
+                        targetUserIds = await _context.Users
+                            .Where(u => u.Role != null && (u.Role.RoleName == "Administrator" || u.Role.RoleName == "Admin"))
+                            .Select(u => u.Id)
+                            .ToListAsync();
+                    }
+                }
+                else
+                {
+                    roleDisplayName = "Tất cả các role & khách vãng lai";
+                }
+
+                // 1. Tìm các bản ghi PageViewLogs trong ngày theo role
+                IQueryable<PageViewLog> logsQuery = _context.PageViewLogs
+                    .Where(p => p.ViewedAt >= targetStartUtc && p.ViewedAt < targetEndUtc);
+
+                if (!isAll)
+                {
+                    if (targetRole == "Administrator")
+                    {
+                        logsQuery = logsQuery.Where(p => p.UserRole == "Administrator" || p.UserRole == "Admin" || (p.UserId.HasValue && targetUserIds.Contains(p.UserId.Value)));
+                    }
+                    else if (targetRole == "Guest")
+                    {
+                        logsQuery = logsQuery.Where(p => p.UserRole == "Guest" || p.UserId == null);
+                    }
+                    else
+                    {
+                        logsQuery = logsQuery.Where(p => p.UserRole == targetRole || (p.UserId.HasValue && targetUserIds.Contains(p.UserId.Value)));
+                    }
+                }
+
+                var targetPageLogs = await logsQuery.ToListAsync();
+
+                var targetSessionTokens = targetPageLogs
+                    .Select(p => p.SessionToken)
+                    .Where(t => !string.IsNullOrEmpty(t))
+                    .Distinct()
+                    .ToList();
+
+                // 2. Tìm các phiên UserSessions trong ngày theo role
+                IQueryable<UserSession> sessionsQuery = _context.UserSessions
+                    .Where(s => s.StartedAt >= targetStartUtc && s.StartedAt < targetEndUtc);
+
+                if (!isAll)
+                {
+                    if (targetRole == "Administrator")
+                    {
+                        sessionsQuery = sessionsQuery.Where(s => s.UserRole == "Administrator" || s.UserRole == "Admin" || (s.UserId.HasValue && targetUserIds.Contains(s.UserId.Value)) || targetSessionTokens.Contains(s.SessionToken));
+                    }
+                    else if (targetRole == "Guest")
+                    {
+                        sessionsQuery = sessionsQuery.Where(s => s.UserRole == "Guest" || s.UserId == null || targetSessionTokens.Contains(s.SessionToken));
+                    }
+                    else
+                    {
+                        sessionsQuery = sessionsQuery.Where(s => s.UserRole == targetRole || (s.UserId.HasValue && targetUserIds.Contains(s.UserId.Value)) || targetSessionTokens.Contains(s.SessionToken));
+                    }
+                }
+
+                var targetSessions = await sessionsQuery.ToListAsync();
+
+                int deletedLogsCount = targetPageLogs.Count;
+                int deletedSessionsCount = targetSessions.Count;
+
+                if (targetPageLogs.Any())
+                {
+                    _context.PageViewLogs.RemoveRange(targetPageLogs);
+                }
+
+                if (targetSessions.Any())
+                {
+                    _context.UserSessions.RemoveRange(targetSessions);
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Đã xóa thành công {deletedLogsCount} lượt truy cập và {deletedSessionsCount} phiên của role {roleDisplayName} trong ngày hôm nay.",
+                    deletedLogsCount,
+                    deletedSessionsCount
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ClearTodayTraffic Error] {ex.Message}");
+                return StatusCode(500, new { success = false, message = "Lỗi khi xóa lượt truy cập: " + ex.Message });
+            }
         }
 
         private static string FormatDuration(int seconds)

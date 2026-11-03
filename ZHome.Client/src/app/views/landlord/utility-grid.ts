@@ -473,9 +473,9 @@ import { environment } from '../../../environments/environment';
 
       <!-- Modal: Cập nhật tài khoản ngân hàng bắt buộc -->
       @if (showBankModal()) {
-        <div class="meter-modal-backdrop" (click)="closeBankModal()">
-          <div class="meter-modal-card bank-setup-modal" (click)="$event.stopPropagation()" style="max-width: 680px; width: 95%;">
-            <div class="meter-modal-header" style="background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 18px 24px; border-radius: 16px 16px 0 0;">
+        <div class="modal-backdrop" (click)="closeBankModal()">
+          <div class="modal-card bank-setup-modal" (click)="$event.stopPropagation()">
+            <div class="meter-modal-header">
               <div>
                 <h3 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: #f8fafc; display: flex; align-items: center; gap: 8px;">
                   <span>💳</span> Thiết Lập Tài Khoản Ngân Hàng Nhận Tiền
@@ -484,7 +484,7 @@ import { environment } from '../../../environments/environment';
                   Khách thuê sẽ quét mã QR chuyển khoản trực tiếp vào tài khoản này khi thanh toán tiền phòng & điện nước
                 </p>
               </div>
-              <button (click)="closeBankModal()" class="close-btn" style="color: #94a3b8;">✕</button>
+              <button type="button" (click)="closeBankModal()" class="close-btn" style="color: #94a3b8; font-size: 1.6rem; cursor: pointer; border: none; background: transparent; line-height: 1;">✕</button>
             </div>
 
             <div class="meter-modal-body p-4" style="background: #ffffff; max-height: 75vh; overflow-y: auto;">
@@ -559,7 +559,7 @@ import { environment } from '../../../environments/environment';
               </div>
             </div>
 
-            <div class="meter-modal-footer p-3" style="background: #f8fafc; border-top: 1px solid #e2e8f0; border-radius: 0 0 16px 16px; display: flex; justify-content: flex-end; gap: 10px;">
+            <div class="meter-modal-footer">
               <button type="button" (click)="closeBankModal()" class="btn btn-secondary-light">
                 Đóng
               </button>
@@ -906,6 +906,46 @@ import { environment } from '../../../environments/environment';
       margin: auto !important;
       position: relative !important;
     }
+
+    /* Bank Setup Modal Overlay */
+    .bank-setup-modal {
+      padding: 0 !important;
+      overflow: hidden !important;
+      display: flex !important;
+      flex-direction: column !important;
+      max-height: 90vh !important;
+      width: 95% !important;
+      max-width: 680px !important;
+      border: 1px solid rgba(255, 255, 255, 0.2) !important;
+      box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.45) !important;
+    }
+    .bank-setup-modal .meter-modal-header {
+      background: linear-gradient(135deg, #1e293b, #0f172a) !important;
+      color: #ffffff !important;
+      padding: 20px 24px !important;
+      border-radius: 16px 16px 0 0 !important;
+      display: flex !important;
+      justify-content: space-between !important;
+      align-items: center !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      flex-shrink: 0 !important;
+    }
+    .bank-setup-modal .meter-modal-body {
+      background: #ffffff !important;
+      overflow-y: auto !important;
+      flex: 1 1 auto !important;
+      padding: 24px !important;
+    }
+    .bank-setup-modal .meter-modal-footer {
+      background: #f8fafc !important;
+      border-top: 1px solid #e2e8f0 !important;
+      border-radius: 0 0 16px 16px !important;
+      display: flex !important;
+      justify-content: flex-end !important;
+      gap: 12px !important;
+      padding: 16px 24px !important;
+      flex-shrink: 0 !important;
+    }
     .meter-modal-header {
       display: flex;
       justify-content: space-between;
@@ -1076,9 +1116,6 @@ export class LandlordUtilityGridComponent implements OnInit {
           bankAccountName: res?.bankAccountName || '',
           bankQrUrl: res?.bankQrUrl || ''
         };
-        if (!res?.isConfigured) {
-          this.showBankModal.set(true);
-        }
       },
       error: () => {
         // If error fetching dedicated bank info, check profile
@@ -1092,9 +1129,6 @@ export class LandlordUtilityGridComponent implements OnInit {
               bankAccountName: p?.bankAccountName || p?.fullName || '',
               bankQrUrl: p?.bankQrUrl || ''
             };
-            if (!hasBank) {
-              this.showBankModal.set(true);
-            }
           }
         });
       }
