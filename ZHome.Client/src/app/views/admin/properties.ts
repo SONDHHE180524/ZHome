@@ -105,7 +105,7 @@ import { environment } from '../../../environments/environment';
                     <span class="box-lbl">Phòng trống</span>
                   </div>
                   <div class="stat-box box-amber">
-                    <span class="box-num">{{ prop.occupiedRooms }}</span>
+                    <span class="box-num">{{ getOccupiedRooms(prop) }}</span>
                     <span class="box-lbl">Đang thuê</span>
                   </div>
                 </div>
@@ -254,12 +254,12 @@ import { environment } from '../../../environments/environment';
             <div class="modal-body">
               <p>Bạn có chắc chắn muốn xóa nhà trọ: <strong>{{ selectedPropertyForDelete()?.title }}</strong>?</p>
               
-              @if (selectedPropertyForDelete()?.occupiedRooms > 0) {
+              @if (getOccupiedRooms(selectedPropertyForDelete()) > 0) {
                 <div class="danger-alert-box">
                   <div class="danger-alert-icon">⚠️</div>
                   <div class="danger-alert-content">
                     <strong>Không thể xóa nhà trọ!</strong>
-                    <p>Khu trọ này hiện đang có <strong>{{ selectedPropertyForDelete()?.occupiedRooms }}</strong> phòng đang có khách thuê. Để bảo vệ quyền lợi người thuê, bạn phải thanh lý toàn bộ hợp đồng thuê trước khi xóa khu trọ!</p>
+                    <p>Khu trọ này hiện đang có <strong>{{ getOccupiedRooms(selectedPropertyForDelete()) }}</strong> phòng đang có khách thuê. Để bảo vệ quyền lợi người thuê, bạn phải thanh lý toàn bộ hợp đồng thuê trước khi xóa khu trọ!</p>
                   </div>
                 </div>
               } @else {
@@ -273,7 +273,7 @@ import { environment } from '../../../environments/environment';
                 <button 
                   type="button" 
                   class="btn btn-danger" 
-                  [disabled]="isSubmitting() || selectedPropertyForDelete()?.occupiedRooms > 0"
+                  [disabled]="isSubmitting() || getOccupiedRooms(selectedPropertyForDelete()) > 0"
                   (click)="submitDeleteProperty()">
                   {{ isSubmitting() ? 'Đang xóa...' : 'Xác nhận xóa khu trọ' }}
                 </button>
@@ -1139,6 +1139,17 @@ export class AdminPropertiesComponent implements OnInit {
     this.selectedLandlordId.set(Number(val) || 0);
   }
 
+  getOccupiedRooms(prop: any): number {
+    if (!prop) return 0;
+    if (prop.occupiedRooms !== undefined && prop.occupiedRooms !== null && prop.occupiedRooms > 0) {
+      return prop.occupiedRooms;
+    }
+    if (prop.rooms && Array.isArray(prop.rooms) && prop.rooms.length > 0) {
+      return prop.rooms.filter((r: any) => r.status === 'Occupied' || r.status === 'Rented' || r.status !== 'Available').length;
+    }
+    return 0;
+  }
+
   toggleRoomsDetail(propId: number): void {
     if (this.expandedPropertyId() === propId) {
       this.expandedPropertyId.set(null);
@@ -1217,7 +1228,7 @@ export class AdminPropertiesComponent implements OnInit {
     const prop = this.selectedPropertyForDelete();
     if (!prop) return;
 
-    if (prop.occupiedRooms > 0) {
+    if (this.getOccupiedRooms(prop) > 0) {
       this.toastService.show('Không thể xóa khu trọ vì còn phòng đang có khách thuê!', 'error');
       return;
     }

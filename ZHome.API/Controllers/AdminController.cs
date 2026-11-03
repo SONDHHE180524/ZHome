@@ -19,15 +19,18 @@ namespace ZHome.API.Controllers
         private readonly ZHomeDbContext _context;
         private readonly Services.INotificationService _notificationService;
         private readonly Services.IMediaStorageService _mediaStorage;
+        private readonly Services.ISePayService _sePayService;
 
         public AdminController(
             ZHomeDbContext context, 
             Services.INotificationService notificationService,
-            Services.IMediaStorageService mediaStorage)
+            Services.IMediaStorageService mediaStorage,
+            Services.ISePayService sePayService)
         {
             _context = context;
             _notificationService = notificationService;
             _mediaStorage = mediaStorage;
+            _sePayService = sePayService;
         }
 
         // Tạo tài khoản Quản trị viên mới (CHỈ ADMIN ĐANG ĐĂNG NHẬP MỚI CÓ QUYỀN GỌI)
@@ -259,7 +262,7 @@ namespace ZHome.API.Controllers
             var totalTenants = await _context.Users.CountAsync(u => u.Role != null && u.Role.RoleName == "Tenant");
             var totalRooms = await _context.Rooms.CountAsync();
             var vacantRooms = await _context.Rooms.CountAsync(r => r.Status == "Available");
-            var occupiedRooms = await _context.Rooms.CountAsync(r => r.Status == "Occupied");
+            var occupiedRooms = await _context.Rooms.CountAsync(r => r.Status == "Occupied" || r.Status == "Rented");
             var pendingVerifications = await _context.Users.CountAsync(u => u.Role != null && u.Role.RoleName == "Landlord" && (u.VerificationStatus == "Pending" || string.IsNullOrEmpty(u.VerificationStatus) || u.VerificationStatus == "None"));
             var totalTransactionsRevenue = await _context.BillTransactions.SumAsync(t => (decimal?)t.Amount) ?? 0m;
 
@@ -311,7 +314,7 @@ namespace ZHome.API.Controllers
                     LandlordVerificationStatus = p.Landlord != null ? (p.Landlord.VerificationStatus ?? "None") : "None",
                     TotalRooms = p.Rooms.Count,
                     VacantRooms = p.Rooms.Count(r => r.Status == "Available"),
-                    OccupiedRooms = p.Rooms.Count(r => r.Status == "Occupied"),
+                    OccupiedRooms = p.Rooms.Count(r => r.Status == "Occupied" || r.Status == "Rented"),
                     // Room details - NOTE: Privacy strict compliance: NO tenant name, phone or identity card exposed to Admin
                     Rooms = p.Rooms.Select(r => new
                     {
@@ -326,6 +329,15 @@ namespace ZHome.API.Controllers
                 .ToListAsync();
 
             return Ok(properties);
+        }
+
+        // Lấy lịch sử giao dịch chủ trọ gia hạn / mua gói cước với hệ thống (kết nối trực tiếp SePay API)
+        // Mặc định chỉ tính từ đầu tháng này (allMonths = false)
+        [HttpGet("system-transactions")]
+        public async Task<IActionResult> GetSystemTransactions([FromQuery] bool allMonths = false)
+        {
+            var transactions = await _sePayService.GetSystemSubscriptionTransactionsAsync(!allMonths);
+            return Ok(transactions);
         }
 
         // Get transaction history for Admin (filterable per property, or all properties)

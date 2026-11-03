@@ -75,4 +75,21 @@ namespace ZHome.API.Models.DTOs
         [JsonPropertyName("description")]
         public string? Description { get; set; }
     }
+
+    public class SystemSubscriptionTransactionDto
+    {
+        public string TransactionId { get; set; } = string.Empty;
+        public string ReferenceNumber { get; set; } = string.Empty;
+        public string OrderCode { get; set; } = string.Empty;
+        public string PayerName { get; set; } = "Chủ trọ ZHome";
+        public string PayerPhone { get; set; } = "0375457065";
+        public string PackageName { get; set; } = string.Empty;
+        public decimal Amount { get; set; }
+        public string BankBrandName { get; set; } = "VietinBank";
+        public string AccountNumber { get; set; } = string.Empty;
+        public string TransactionContent { get; set; } = string.Empty;
+        public DateTime TransactionDate { get; set; }
+        public string Status { get; set; } = "Thành công";
+        public string TransactionType { get; set; } = "Gia hạn gói cước chủ trọ";
+    }
 }

@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Globalization;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text.Json;
@@ -168,7 +170,7 @@ namespace ZHome.API.Services
                             }
                             else if (aProp.ValueKind == JsonValueKind.String)
                             {
-                                decimal.TryParse(aProp.GetString(), System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out amount);
+                                decimal.TryParse(aProp.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out amount);
                             }
                         }
 
@@ -209,6 +211,119 @@ namespace ZHome.API.Services
             }
 
             return false;
+        }
+
+        public async Task<List<SystemSubscriptionTransactionDto>> GetSystemSubscriptionTransactionsAsync(bool currentMonthOnly = true)
+        {
+            var list = new List<SystemSubscriptionTransactionDto>();
+            if (!IsConfigured())
+            {
+                return list;
+            }
+
+            try
+            {
+                string url = $"https://my.sepay.vn/userapi/transactions/list?account_number={_settings.AccountNumber}&limit=100";
+                var httpRequest = new HttpRequestMessage(HttpMethod.Get, url);
+                httpRequest.Headers.Add("Authorization", $"Bearer {_settings.ApiKey}");
+
+                var response = await _httpClient.SendAsync(httpRequest);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var fallbackReq = new HttpRequestMessage(HttpMethod.Get, url);
+                    fallbackReq.Headers.Add("Authorization", $"Apikey {_settings.ApiKey}");
+                    response = await _httpClient.SendAsync(fallbackReq);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("SePay API returned status code {StatusCode} when getting system transactions", response.StatusCode);
+                    return list;
+                }
+
+                string json = await response.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("transactions", out var txArray) && txArray.ValueKind == JsonValueKind.Array)
+                {
+                    var now = DateTime.Now;
+                    var startOfMonth = new DateTime(now.Year, now.Month, 1, 0, 0, 0);
+
+                    foreach (var tx in txArray.EnumerateArray())
+                    {
+                        decimal amountIn = 0;
+                        if (tx.TryGetProperty("amount_in", out var aProp))
+                        {
+                            if (aProp.ValueKind == JsonValueKind.Number)
+                            {
+                                amountIn = aProp.GetDecimal();
+                            }
+                            else if (aProp.ValueKind == JsonValueKind.String)
+                            {
+                                decimal.TryParse(aProp.GetString(), NumberStyles.Any, CultureInfo.InvariantCulture, out amountIn);
+                            }
+                        }
+
+                        if (amountIn <= 0) continue;
+
+                        string content = tx.TryGetProperty("transaction_content", out var cProp) ? cProp.GetString() ?? "" : "";
+                        string refNo = tx.TryGetProperty("reference_number", out var rProp) ? rProp.GetString() ?? "" : "";
+                        string txId = tx.TryGetProperty("id", out var idProp) ? idProp.GetString() ?? "" : "";
+                        string bank = tx.TryGetProperty("bank_brand_name", out var bProp) ? bProp.GetString() ?? "VietinBank" : "VietinBank";
+                        string accNo = tx.TryGetProperty("account_number", out var accProp) ? accProp.GetString() ?? _settings.AccountNumber ?? "888819661666" : _settings.AccountNumber ?? "888819661666";
+
+                        DateTime txDate = DateTime.Now;
+                        if (tx.TryGetProperty("transaction_date", out var dProp) && DateTime.TryParse(dProp.GetString(), out var parsedDate))
+                        {
+                            txDate = parsedDate;
+                        }
+
+                        // Check if it's a subscription transaction (ZH prefix or SEVQR)
+                        bool isSubscription = content.Contains("ZH", StringComparison.OrdinalIgnoreCase) || content.Contains("SEVQR", StringComparison.OrdinalIgnoreCase);
+                        if (!isSubscription) continue;
+
+                        // "chỉ tính từ đầu tháng này thôi"
+                        if (currentMonthOnly && txDate < startOfMonth)
+                        {
+                            continue;
+                        }
+
+                        // Extract OrderCode
+                        var match = Regex.Match(content, @"ZH\s*(\d+)", RegexOptions.IgnoreCase);
+                        string orderCode = match.Success ? $"ZH{match.Groups[1].Value}" : "";
+
+                        // Determine Package
+                        string packageName = "Gói Nâng Cao";
+                        if (amountIn == 99000m) packageName = "Gói Cơ Bản (50 phòng)";
+                        else if (amountIn == 199000m) packageName = "Gói Nâng Cao (150 phòng)";
+                        else packageName = $"Gói Dịch Vụ Nền Tảng ({amountIn:N0} đ)";
+
+                        list.Add(new SystemSubscriptionTransactionDto
+                        {
+                            TransactionId = txId,
+                            ReferenceNumber = refNo,
+                            OrderCode = orderCode,
+                            PayerName = "Tung (Chủ trọ / Admin)",
+                            PayerPhone = "0375457065",
+                            PackageName = packageName,
+                            Amount = amountIn,
+                            BankBrandName = bank,
+                            AccountNumber = accNo,
+                            TransactionContent = content,
+                            TransactionDate = txDate,
+                            Status = "Thành công",
+                            TransactionType = "Gia hạn gói dịch vụ chủ trọ"
+                        });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Lỗi khi lấy danh sách giao dịch từ SePay API");
+            }
+
+            return list;
         }
     }
 }
