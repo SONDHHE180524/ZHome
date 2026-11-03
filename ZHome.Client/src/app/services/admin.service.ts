@@ -11,8 +11,13 @@ export class AdminService {
 
   constructor(private http: HttpClient) {}
 
-  getVerifications(): Observable<any[]> {
-    return this.http.get<any[]>(`${this.apiUrl}/verifications`);
+  getVerifications(status: string = 'pending'): Observable<any[]> {
+    const params = status ? `?status=${encodeURIComponent(status)}` : '';
+    return this.http.get<any[]>(`${this.apiUrl}/verifications${params}`);
+  }
+
+  getVerificationCounts(): Observable<{ pending: number; rejected: number; approved: number; total: number }> {
+    return this.http.get<{ pending: number; rejected: number; approved: number; total: number }>(`${this.apiUrl}/verifications/counts`);
   }
 
   approveVerification(userId: number): Observable<any> {

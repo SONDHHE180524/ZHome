@@ -99,14 +99,34 @@ namespace ZHome.API.Controllers
             });
         }
 
-        // Get all landlord verification requests
+        // Get landlord verification requests (supports filtering by status: pending (default), rejected, approved, all)
         [HttpGet("verifications")]
-        public async Task<IActionResult> GetVerifications()
+        public async Task<IActionResult> GetVerifications([FromQuery] string? status = "pending")
         {
-            var verifications = await _context.Users
+            var query = _context.Users
                 .Include(u => u.Role)
-                .Where(u => u.Role != null && u.Role.RoleName == "Landlord")
-                .OrderByDescending(u => u.VerificationStatus == "Pending" ? 1 : 0)
+                .Where(u => u.Role != null && u.Role.RoleName == "Landlord");
+
+            if (string.Equals(status, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                // Return all landlords
+            }
+            else if (string.Equals(status, "approved", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(u => u.VerificationStatus == "Approved");
+            }
+            else if (string.Equals(status, "rejected", StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(u => u.VerificationStatus == "Rejected");
+            }
+            else
+            {
+                // Default "pending": chỉ hiện ai đang cần xác minh (Pending, None, null, empty)
+                query = query.Where(u => u.VerificationStatus == "Pending" || string.IsNullOrEmpty(u.VerificationStatus) || u.VerificationStatus == "None");
+            }
+
+            var verifications = await query
+                .OrderByDescending(u => u.CreatedAt)
                 .ThenByDescending(u => u.Id)
                 .Select(u => new
                 {
@@ -123,6 +143,25 @@ namespace ZHome.API.Controllers
                 .ToListAsync();
 
             return Ok(verifications);
+        }
+
+        [HttpGet("verifications/counts")]
+        public async Task<IActionResult> GetVerificationCounts()
+        {
+            var landlordQuery = _context.Users.Where(u => u.Role != null && u.Role.RoleName == "Landlord");
+
+            var pending = await landlordQuery.CountAsync(u => u.VerificationStatus == "Pending" || string.IsNullOrEmpty(u.VerificationStatus) || u.VerificationStatus == "None");
+            var rejected = await landlordQuery.CountAsync(u => u.VerificationStatus == "Rejected");
+            var approved = await landlordQuery.CountAsync(u => u.VerificationStatus == "Approved");
+            var total = await landlordQuery.CountAsync();
+
+            return Ok(new
+            {
+                Pending = pending,
+                Rejected = rejected,
+                Approved = approved,
+                Total = total
+            });
         }
 
         // Approve landlord verification

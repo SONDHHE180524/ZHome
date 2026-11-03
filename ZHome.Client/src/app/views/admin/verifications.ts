@@ -16,15 +16,63 @@ import { environment } from '../../../environments/environment';
           <h1>Phê Duyệt & Xác Thực Chủ Trọ</h1>
           <p>Xem danh sách hồ sơ đăng ký chủ nhà, đối chiếu thông tin CCCD và cấp tích xanh xác minh chính chủ</p>
         </div>
+
+        <div class="filter-pill-group">
+          <button type="button" 
+                  class="pill-btn" 
+                  [class.active]="currentTab() === 'pending'"
+                  (click)="setTab('pending')">
+            Chờ xét duyệt
+            @if (counts().pending > 0) {
+              <span class="tab-badge badge-warning">{{ counts().pending }}</span>
+            }
+          </button>
+          <button type="button" 
+                  class="pill-btn" 
+                  [class.active]="currentTab() === 'rejected'"
+                  (click)="setTab('rejected')">
+            Bị từ chối
+            @if (counts().rejected > 0) {
+              <span class="tab-badge badge-danger">{{ counts().rejected }}</span>
+            }
+          </button>
+          <button type="button" 
+                  class="pill-btn" 
+                  [class.active]="currentTab() === 'approved'"
+                  (click)="setTab('approved')">
+            Đã xác minh
+            @if (counts().approved > 0) {
+              <span class="tab-badge badge-success">{{ counts().approved }}</span>
+            }
+          </button>
+          <button type="button" 
+                  class="pill-btn" 
+                  [class.active]="currentTab() === 'all'"
+                  (click)="setTab('all')">
+            Tất cả
+            <span class="tab-badge">{{ counts().total }}</span>
+          </button>
+        </div>
       </div>
 
       @if (isLoading()) {
         <div class="loading-state">Đang tải danh sách yêu cầu xác thực...</div>
       } @else if (verifications().length === 0) {
         <div class="glass-panel empty-state">
-          <span class="empty-icon"></span>
-          <h3>Không có yêu cầu xác thực nào cần xử lý</h3>
-          <p class="text-muted mt-2">Hiện tại toàn bộ hồ sơ chủ trọ đã được giải quyết hoặc chưa có yêu cầu mới.</p>
+          <span class="empty-icon">✓</span>
+          @if (currentTab() === 'pending') {
+            <h3>Không có yêu cầu xác thực nào cần xử lý</h3>
+            <p class="text-muted mt-2">Hiện tại toàn bộ hồ sơ chủ trọ đã được giải quyết hoặc chưa có yêu cầu mới.</p>
+          } @else if (currentTab() === 'rejected') {
+            <h3>Không có hồ sơ nào bị từ chối</h3>
+            <p class="text-muted mt-2">Chưa có tài khoản chủ trọ nào nằm trong danh sách từ chối.</p>
+          } @else if (currentTab() === 'approved') {
+            <h3>Chưa có chủ trọ nào được duyệt</h3>
+            <p class="text-muted mt-2">Danh sách chủ trọ đã xác minh chính chủ hiện đang trống.</p>
+          } @else {
+            <h3>Không có dữ liệu</h3>
+            <p class="text-muted mt-2">Hệ thống chưa ghi nhận tài khoản chủ trọ nào.</p>
+          }
         </div>
       } @else {
         <div class="glass-panel table-card">
@@ -97,10 +145,10 @@ import { environment } from '../../../environments/environment';
                     </td>
                     <td>
                       <div class="actions-cell">
-                        @if (item.status === 'Pending' || item.status === 'Rejected') {
+                        @if (item.status === 'Pending' || item.status === 'None' || item.status === 'Rejected') {
                           <button (click)="approve(item.userId)" class="btn btn-success btn-xs">Duyệt </button>
                         }
-                        @if (item.status === 'Pending' || item.status === 'Approved' || item.status === 'VERIFIED' || item.status === 'Verified') {
+                        @if (item.status === 'Pending' || item.status === 'None' || item.status === 'Approved' || item.status === 'VERIFIED' || item.status === 'Verified') {
                           <button (click)="openRejectModal(item.userId)" class="btn btn-danger btn-xs">Từ chối </button>
                         }
                       </div>
@@ -152,6 +200,85 @@ import { environment } from '../../../environments/environment';
     </div>
   `,
   styles: [`
+    .filter-pill-group {
+      display: inline-flex;
+      background: #f1f5f9;
+      padding: 4px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      gap: 4px;
+      align-items: center;
+    }
+
+    .pill-btn {
+      background: transparent;
+      border: none;
+      color: #64748b;
+      font-size: 0.85rem;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .pill-btn:hover {
+      color: #0f172a;
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    .pill-btn.active {
+      background: #2563eb;
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    .tab-badge {
+      font-size: 0.72rem;
+      padding: 2px 7px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.08);
+      font-weight: 800;
+    }
+
+    .pill-btn.active .tab-badge {
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
+    }
+
+    .tab-badge.badge-warning {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .pill-btn.active .tab-badge.badge-warning {
+      background: #fbbf24;
+      color: #78350f;
+    }
+
+    .tab-badge.badge-danger {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .pill-btn.active .tab-badge.badge-danger {
+      background: #f87171;
+      color: #ffffff;
+    }
+
+    .tab-badge.badge-success {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .pill-btn.active .tab-badge.badge-success {
+      background: #4ade80;
+      color: #064e3b;
+    }
+
     .verifications-container {
       display: flex;
       flex-direction: column;
@@ -433,6 +560,13 @@ export class AdminVerificationsComponent implements OnInit {
 
   verifications = signal<any[]>([]);
   isLoading = signal(true);
+  currentTab = signal<'pending' | 'rejected' | 'approved' | 'all'>('pending');
+  counts = signal<{ pending: number; rejected: number; approved: number; total: number }>({
+    pending: 0,
+    rejected: 0,
+    approved: 0,
+    total: 0
+  });
 
   // Reject Modal States
   showRejectModal = signal(false);
@@ -447,9 +581,14 @@ export class AdminVerificationsComponent implements OnInit {
     this.fetchRequests();
   }
 
+  setTab(tab: 'pending' | 'rejected' | 'approved' | 'all'): void {
+    this.currentTab.set(tab);
+    this.fetchRequests();
+  }
+
   fetchRequests(): void {
     this.isLoading.set(true);
-    this.adminService.getVerifications().subscribe({
+    this.adminService.getVerifications(this.currentTab()).subscribe({
       next: (data) => {
         this.verifications.set(data);
         this.isLoading.set(false);
@@ -458,6 +597,16 @@ export class AdminVerificationsComponent implements OnInit {
         this.isLoading.set(false);
         this.toastService.show('Lỗi tải danh sách yêu cầu xác thực từ server.', 'error');
       }
+    });
+    this.fetchCounts();
+  }
+
+  fetchCounts(): void {
+    this.adminService.getVerificationCounts().subscribe({
+      next: (res) => {
+        this.counts.set(res);
+      },
+      error: (err) => console.error('Error fetching verification counts:', err)
     });
   }
 
@@ -470,11 +619,11 @@ export class AdminVerificationsComponent implements OnInit {
   }
 
   approve(userId: number): void {
-    if (!confirm('Bạn có chắc chắn muốn phê duyệt xác thực tài khoản chủ nhà này?')) return;
+    if (!confirm('Bạn có chắc chắn muốn phê duyệt tài khoản chủ nhà này? Sau khi duyệt, chủ trọ sẽ có thể đăng nhập vào hệ thống và được cấp tích xanh xác minh uy tín.')) return;
 
     this.adminService.approveVerification(userId).subscribe({
       next: (res) => {
-        this.toastService.show(res.message || 'Phê duyệt chủ nhà thành công!', 'success');
+        this.toastService.show(res.message || 'Phê duyệt chủ nhà thành công! Chủ trọ đã có thể đăng nhập.', 'success');
         this.fetchRequests();
       },
       error: (err) => {
