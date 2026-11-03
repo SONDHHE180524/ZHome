@@ -103,22 +103,7 @@ import { ToastService } from '../../services/toast.service';
             </div>
           </div>
 
-          <!-- Card 4: Số Phòng Đang Cho Thuê & Phòng Trống -->
-          <div class="kpi-card card-cyan">
-            <div class="kpi-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9.5L12 3l9 6.5V20a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <circle cx="12" cy="13" r="2.5"></circle>
-              </svg>
-            </div>
-            <div class="kpi-info">
-              <span class="kpi-label">Phòng Đang Thuê / Trống</span>
-              <strong class="kpi-value text-cyan">{{ stats()?.occupiedRooms || 0 }} <span class="kpi-sub-unit">/ {{ stats()?.vacantRooms || 0 }} trống</span></strong>
-              <span class="kpi-sub">{{ stats()?.occupiedRooms || 0 }} phòng đã có người ở</span>
-            </div>
-          </div>
-
-          <!-- Card 5: Duyệt Chủ Trọ Chờ Xử Lý -->
+          <!-- Card 4: Duyệt Chủ Trọ Chờ Xử Lý -->
           <div class="kpi-card card-amber">
             <div class="kpi-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
