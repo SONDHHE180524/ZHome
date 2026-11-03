@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using ZHome.API.Models.DTOs;
 
@@ -10,5 +11,6 @@ namespace ZHome.API.Services
         SePayPaymentResponseDto CreateBillPaymentInfo(long orderCode, decimal amount, long billId, string customDescription, string userEmail);
         bool VerifyWebhookToken(string? authHeader);
         Task<bool> CheckTransactionFromSePayAsync(string descriptionPattern, decimal expectedAmount);
+        Task<List<SystemSubscriptionTransactionDto>> GetSystemSubscriptionTransactionsAsync(bool currentMonthOnly = true);
     }
 }

@@ -50,6 +50,10 @@ export class AdminService {
     return this.http.get<any[]>(url);
   }
 
+  getSystemTransactions(allMonths: boolean = false): Observable<any[]> {
+    return this.http.get<any[]>(`${this.apiUrl}/system-transactions?allMonths=${allMonths}`);
+  }
+
   // Roles & User Management
   getRoles(): Observable<any[]> {
     return this.http.get<any[]>(`${this.apiUrl}/roles`);

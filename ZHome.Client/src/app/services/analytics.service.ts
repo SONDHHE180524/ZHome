@@ -146,16 +146,34 @@ export class AnalyticsService {
 
   private getOrCreateSessionToken(): string {
     if (typeof window === 'undefined') return 'ssr_sess';
-    let token = sessionStorage.getItem('zh_visitor_session');
-    if (!token) {
-      token = 'zh_sess_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-      sessionStorage.setItem('zh_visitor_session', token);
+    const SESSION_KEY = 'zh_visitor_session';
+    const LAST_ACTIVE_KEY = 'zh_session_last_active';
+    const ONE_HOUR_MS = 60 * 60 * 1000; // 1 tiếng tính từ lúc thoát/không hoạt động
+
+    const now = Date.now();
+    let token = localStorage.getItem(SESSION_KEY);
+    const lastActiveStr = localStorage.getItem(LAST_ACTIVE_KEY);
+    const lastActive = lastActiveStr ? parseInt(lastActiveStr, 10) : 0;
+
+    // Nếu chưa có token hoặc đã thoát/không hoạt động quá 1 tiếng -> tính phiên mới
+    if (!token || !lastActive || (now - lastActive) > ONE_HOUR_MS) {
+      token = 'zh_sess_' + Math.random().toString(36).substring(2, 10) + now.toString(36);
+      localStorage.setItem(SESSION_KEY, token);
     }
+
+    localStorage.setItem(LAST_ACTIVE_KEY, now.toString());
     return token;
+  }
+
+  private touchActivity(): void {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('zh_session_last_active', Date.now().toString());
+    }
   }
 
   private handlePageNavigation(url: string): void {
     this.currentUrl = url;
+    this.touchActivity();
     const { title, category } = this.resolvePageMetadata(url);
 
     const payload = {
@@ -188,6 +206,7 @@ export class AnalyticsService {
     if (typeof window !== 'undefined') {
       this.pingTimer = setInterval(() => {
         if (!this.sessionToken) return;
+        this.touchActivity();
         this.http.post<any>(`${this.apiUrl}/ping`, {
           sessionToken: this.sessionToken,
           durationIncrementSeconds: 20,
