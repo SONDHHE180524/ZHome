@@ -117,8 +117,6 @@ import { environment } from '../../../environments/environment';
                   <th style="min-width: 120px;">Vai trò</th>
                   <th style="min-width: 120px;">Xác minh CCCD</th>
                   <th style="min-width: 130px;">Gói cước</th>
-                  <th style="min-width: 180px;">Thời gian hoạt động</th>
-                  <th style="min-width: 100px;">Ngày tạo</th>
                   <th class="text-right" style="min-width: 120px;">Thao tác</th>
                 </tr>
               </thead>
@@ -182,27 +180,6 @@ import { environment } from '../../../environments/environment';
                       <span class="pkg-simple-tag" [ngClass]="getSubscriptionBadgeClass(u.subscriptionName)">
                         {{ getSimplePackageName(u.subscriptionName) }}
                       </span>
-                    </td>
-
-                    <!-- Cột 6: Thời gian hoạt động -->
-                    <td>
-                      <div class="activity-cell">
-                        @if (isUserOnline(u.lastActiveAt)) {
-                          <span class="active-pill online">
-                            <span class="dot-online"></span> Đang trực tuyến
-                          </span>
-                        } @else {
-                          <span class="active-time">{{ formatTimeAgo(u.lastActiveAt) }}</span>
-                        }
-                        <div class="login-subtext">
-                          <span class="text-muted">Đăng nhập:</span> {{ u.lastLoginAt ? (u.lastLoginAt | date:'dd/MM HH:mm') : 'Chưa có' }}
-                        </div>
-                      </div>
-                    </td>
-
-                    <!-- Cột 7: Ngày tạo -->
-                    <td>
-                      <span class="date-text">{{ u.createdAt | date:'dd/MM/yyyy' }}</span>
                     </td>
 
                     <!-- Cột 8: Thao tác -->

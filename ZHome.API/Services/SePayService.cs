@@ -283,6 +283,12 @@ namespace ZHome.API.Services
                         bool isSubscription = content.Contains("ZH", StringComparison.OrdinalIgnoreCase) || content.Contains("SEVQR", StringComparison.OrdinalIgnoreCase);
                         if (!isSubscription) continue;
 
+                        // Bỏ qua giao dịch chuyển nhầm theo yêu cầu của Admin (chỉ giữ đúng 2 giao dịch 199k)
+                        if (txId == "95852409" || refNo == "106T26B043KBE6WY")
+                        {
+                            continue;
+                        }
+
                         // "chỉ tính từ đầu tháng này thôi"
                         if (currentMonthOnly && txDate < startOfMonth)
                         {
@@ -304,8 +310,8 @@ namespace ZHome.API.Services
                             TransactionId = txId,
                             ReferenceNumber = refNo,
                             OrderCode = orderCode,
-                            PayerName = "Tung (Chủ trọ / Admin)",
-                            PayerPhone = "0375457065",
+                            PayerName = "Chủ trọ hệ thống",
+                            PayerPhone = "Chuyển khoản SePay",
                             PackageName = packageName,
                             Amount = amountIn,
                             BankBrandName = bank,
